@@ -11,6 +11,10 @@ A pet project to learn Go — a hybrid board game combining chess piece movement
 - Pawns reverse direction when reaching the far edge
 - **Win**: get 4 of your pieces in a row — horizontal, vertical, or diagonal
 
+## Example
+
+![Gameplay](play.png)
+
 ## How to Run
 
 ```bash
