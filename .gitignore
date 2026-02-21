@@ -1,0 +1,17 @@
+# Binaries
+/main
+/tui
+
+# Go build cache
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+
+# Claude Code
+.claude/
+CLAUDE.md
+code-critic.md
+.code-critic.md
