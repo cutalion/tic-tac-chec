@@ -17,11 +17,11 @@ type ColorScheme struct {
 }
 
 var colorSchemes = []ColorScheme{
-	{"Red / Blue",      lipgloss.AdaptiveColor{Light: "1", Dark: "9"},       lipgloss.AdaptiveColor{Light: "4", Dark: "12"}},
-	{"Gold / Blue",     lipgloss.AdaptiveColor{Light: "3", Dark: "11"},      lipgloss.AdaptiveColor{Light: "4", Dark: "12"}},
-	{"Cyan / Magenta",  lipgloss.AdaptiveColor{Light: "6", Dark: "14"},      lipgloss.AdaptiveColor{Light: "5", Dark: "13"}},
+	{"Red / Blue", lipgloss.AdaptiveColor{Light: "1", Dark: "9"}, lipgloss.AdaptiveColor{Light: "4", Dark: "12"}},
+	{"Gold / Blue", lipgloss.AdaptiveColor{Light: "3", Dark: "11"}, lipgloss.AdaptiveColor{Light: "4", Dark: "12"}},
+	{"Cyan / Magenta", lipgloss.AdaptiveColor{Light: "6", Dark: "14"}, lipgloss.AdaptiveColor{Light: "5", Dark: "13"}},
 	{"Orange / Purple", lipgloss.AdaptiveColor{Light: "#994400", Dark: "#FF6600"}, lipgloss.AdaptiveColor{Light: "5", Dark: "13"}},
-	{"Green / Purple",  lipgloss.AdaptiveColor{Light: "2", Dark: "10"},      lipgloss.AdaptiveColor{Light: "5", Dark: "13"}},
+	{"Green / Purple", lipgloss.AdaptiveColor{Light: "2", Dark: "10"}, lipgloss.AdaptiveColor{Light: "5", Dark: "13"}},
 }
 
 type model struct {
@@ -125,7 +125,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-		case "right", "h":
+		case "right", "l":
 			if m.cursorOnBoard {
 				if m.boardCursor.Col < engine.BoardSize-1 {
 					m.boardCursor = boardCursor(engine.Cell{Row: m.boardCursor.Row, Col: m.boardCursor.Col + 1})
@@ -136,16 +136,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-		case "left", "l":
-			{
-				if m.cursorOnBoard {
-					if m.boardCursor.Col > 0 {
-						m.boardCursor = boardCursor(engine.Cell{Row: m.boardCursor.Row, Col: m.boardCursor.Col - 1})
-					}
-				} else {
-					if m.panelCursor > 0 {
-						m.panelCursor -= 1
-					}
+		case "left", "h":
+			if m.cursorOnBoard {
+				if m.boardCursor.Col > 0 {
+					m.boardCursor = boardCursor(engine.Cell{Row: m.boardCursor.Row, Col: m.boardCursor.Col - 1})
+				}
+			} else {
+				if m.panelCursor > 0 {
+					m.panelCursor -= 1
 				}
 			}
 
