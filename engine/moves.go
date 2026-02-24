@@ -1,6 +1,6 @@
 package engine
 
-type Direction [2]int
+type direction [2]int
 
 func (g *Game) pieceMoves(piece *Piece) ([]Cell, error) {
 	switch piece.Kind {
@@ -18,21 +18,21 @@ func (g *Game) pieceMoves(piece *Piece) ([]Cell, error) {
 }
 
 func (g *Game) rookMoves(rook *Piece) ([]Cell, error) {
-	left := Direction{0, -1}
-	right := Direction{0, 1}
-	up := Direction{-1, 0}
-	down := Direction{1, 0}
-	directions := []Direction{right, down, left, up}
+	left := direction{0, -1}
+	right := direction{0, 1}
+	up := direction{-1, 0}
+	down := direction{1, 0}
+	directions := []direction{right, down, left, up}
 
 	return g.slideMoves(rook, directions)
 }
 
 func (g *Game) bishopMoves(bishop *Piece) ([]Cell, error) {
-	upLeft := Direction{-1, -1}
-	upRight := Direction{-1, 1}
-	downLeft := Direction{1, -1}
-	downRight := Direction{1, 1}
-	directions := []Direction{upRight, downRight, downLeft, upLeft} // clockwise from top-right
+	upLeft := direction{-1, -1}
+	upRight := direction{-1, 1}
+	downLeft := direction{1, -1}
+	downRight := direction{1, 1}
+	directions := []direction{upRight, downRight, downLeft, upLeft} // clockwise from top-right
 
 	return g.slideMoves(bishop, directions)
 }
@@ -43,17 +43,17 @@ func (g *Game) knightMoves(knight *Piece) ([]Cell, error) {
 		return nil, ErrNotOnBoard
 	}
 
-	upLeft := Direction{-2, -1}
-	upRight := Direction{-2, 1}
-	downLeft := Direction{2, -1}
-	downRight := Direction{2, 1}
-	leftUp := Direction{-1, -2}
-	leftDown := Direction{1, -2}
-	rightUp := Direction{-1, 2}
-	rightDown := Direction{1, 2}
-	directions := []Direction{upRight, rightUp, rightDown, downRight, downLeft, leftDown, leftUp, upLeft}
+	upLeft := direction{-2, -1}
+	upRight := direction{-2, 1}
+	downLeft := direction{2, -1}
+	downRight := direction{2, 1}
+	leftUp := direction{-1, -2}
+	leftDown := direction{1, -2}
+	rightUp := direction{-1, 2}
+	rightDown := direction{1, 2}
+	directions := []direction{upRight, rightUp, rightDown, downRight, downLeft, leftDown, leftUp, upLeft}
 
-	moves := []Cell{}
+	var moves []Cell
 	for _, dir := range directions {
 		cell := Cell{Row: from.Row + dir[0], Col: from.Col + dir[1]}
 
@@ -67,8 +67,8 @@ func (g *Game) knightMoves(knight *Piece) ([]Cell, error) {
 }
 
 func (g *Game) pawnMoves(pawn *Piece) ([]Cell, error) {
-	moves := []Cell{}
-	direction := g.PawnDirections[pawn.Color]
+	var moves []Cell
+	direction := int(g.PawnDirections[pawn.Color])
 
 	from, onBoard := g.Board.Find(pawn)
 	if !onBoard {
@@ -98,8 +98,8 @@ func (g *Game) pawnMoves(pawn *Piece) ([]Cell, error) {
 	return moves, nil
 }
 
-func (g *Game) slideMoves(piece *Piece, directions []Direction) ([]Cell, error) {
-	moves := []Cell{}
+func (g *Game) slideMoves(piece *Piece, directions []direction) ([]Cell, error) {
+	var moves []Cell
 
 	from, found := g.Board.Find(piece)
 	if !found {

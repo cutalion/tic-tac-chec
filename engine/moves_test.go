@@ -218,8 +218,7 @@ func TestPawnMovesWithObstacle(t *testing.T) {
 	moves, err := g.pawnMoves(pawn)
 	expectNoError(t, err)
 
-	expected := []Cell{}
-
+	var expected []Cell
 	if !reflect.DeepEqual(moves, expected) {
 		t.Errorf("Expected %v, got %v", expected, moves)
 	}

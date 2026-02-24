@@ -5,16 +5,6 @@ import (
 	"strings"
 )
 
-const BoardSize = 4
-
-type Board [BoardSize][BoardSize]*Piece
-type Line []*Piece
-
-type Cell struct {
-	Row int
-	Col int
-}
-
 func (b *Board) At(pos Cell) *Piece {
 	return b[pos.Row][pos.Col]
 }

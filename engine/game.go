@@ -16,32 +16,11 @@ var (
 	ErrNotImplemented = errors.New("not implemented")
 )
 
-type GameStatus int
-
-const (
-	GameStarted GameStatus = iota
-	GameOver
-)
-
-type Game struct {
-	Board          Board
-	Pieces         Pieces
-	Turn           Color
-	PawnDirections [ColorCount]int
-	Status         GameStatus
-	Winner         *Color
-}
-
-const BlackSide = 0 // 0 row at the top
-const WhiteSide = BoardSize - 1
-const ToBlackSide = -1
-const ToWhiteSide = 1
-
 func NewGame() *Game {
 	return &Game{
 		Turn:   White,
 		Pieces: NewPieces(),
-		PawnDirections: [ColorCount]int{
+		PawnDirections: PawnDirections{
 			White: ToBlackSide, // white moves up initially
 			Black: ToWhiteSide, // black moves down initially
 		},
@@ -86,29 +65,6 @@ func (g *Game) Move(selected Piece, cell Cell) error {
 	return nil
 }
 
-func (g *Game) checkGameOver() bool {
-	if g.Status == GameOver {
-		return true
-	}
-
-	for _, lines := range g.Board.Lines() {
-		win := true
-
-		for _, cell := range lines {
-			if cell == nil || cell.Color != g.Turn {
-				win = false
-				break
-			}
-		}
-
-		if win {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (g *Game) movePiece(piece *Piece, cell Cell) error {
 	moves, err := g.pieceMoves(piece)
 	if err != nil {
@@ -134,10 +90,6 @@ func (g *Game) placePiece(piece *Piece, cell Cell) error {
 	return nil
 }
 
-func (g *Game) Piece(p Piece) *Piece {
-	return g.Pieces.Get(p.Color, p.Kind)
-}
-
 func (g *Game) nextTurn() {
 	if g.Turn == White {
 		g.Turn = Black
@@ -149,14 +101,41 @@ func (g *Game) nextTurn() {
 	g.maybeTurnPawnDirection(g.Piece(BlackPawn))
 }
 
+func (g *Game) checkGameOver() bool {
+	if g.Status == GameOver {
+		return true
+	}
+
+	for _, lines := range g.Board.Lines() {
+		win := true
+
+		for _, cell := range lines {
+			if cell == nil || cell.Color != g.Turn {
+				win = false
+				break
+			}
+		}
+
+		if win {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (g *Game) Piece(p Piece) *Piece {
+	return g.Pieces.Get(p.Color, p.Kind)
+}
+
 func (g *Game) maybeTurnPawnDirection(pawn *Piece) {
 	pos, onBoard := g.Board.Find(pawn)
 	if onBoard {
-		if g.PawnDirections[pawn.Color] == ToBlackSide && pos.Row == BlackSide {
+		if g.PawnDirections[pawn.Color] == ToBlackSide && pos.Row == int(BlackSide) {
 			g.PawnDirections[pawn.Color] = ToWhiteSide
 		}
 
-		if g.PawnDirections[pawn.Color] == ToWhiteSide && pos.Row == WhiteSide {
+		if g.PawnDirections[pawn.Color] == ToWhiteSide && pos.Row == int(WhiteSide) {
 			g.PawnDirections[pawn.Color] = ToBlackSide
 		}
 	} else {
