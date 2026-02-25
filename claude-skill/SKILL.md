@@ -59,17 +59,18 @@ Next turn: W
 1. **Start:** Run `__SKILL_DIR__/tic-tac-chec-cli start` and note the `--game=<path>` from the output.
 2. **Show the board** to the human from the CLI output.
 3. **Human's turn (White):** Ask the human for their move. They should tell you something like "pawn to a3" or "WP a3". Execute: `__SKILL_DIR__/tic-tac-chec-cli --game=<path> move <piece> <square>`
-4. **Your turn (Black):** Analyze the board, decide your move, and execute it.
-5. **Show updated board** after your move.
-6. **Repeat** from step 3 until someone wins or the human wants to stop.
+4. **Show the board** after the human's move so they can see the result.
+5. **Your turn (Black):** Analyze the board, decide your move, and execute it.
+6. **Show updated board** after your move.
+7. **Repeat** from step 3 until someone wins or the human wants to stop.
 
 If a move fails (illegal move, wrong turn, etc.), show the error and ask for a different move.
 
 ## Output Style
 
-- **Be concise.** Show the board, state your move, ask for theirs. No analysis or reasoning unless the human asks.
+- **Be concise.** Show the board, state your move, ask for theirs.
 - **Always wrap the board in a markdown code block** (triple backticks) so column alignment is preserved. Always put a text line before the code block (e.g., your move description or "Board:") so the CLI bullet point (`●`) doesn't merge with the first row of the board.
-- After your move, just say what you did: "BP b3. Your move!"
+- After your move, just say what you did: "BP b3. Your move!" Do NOT reveal your strategy, which line you're building, or why you chose a move. Keep it secret.
 - Only explain strategy if the human asks "why?" or similar.
 
 ## Strategy
@@ -81,6 +82,11 @@ When choosing your move, think through these priorities in order:
 3. **Check ALL lines through every cell before moving.** There are 10 winning lines (4 rows, 4 columns, 2 diagonals). Before each move, scan every line — don't fixate on one threat and miss another. Especially check whether your own move opens a winning line for the opponent.
 4. **Don't hand the opponent a win.** Before capturing or vacating a cell, check if you're opening a line for them. Moving off a cell is as important as moving onto one.
 5. **Build two-way threats.** Place or move to create a position where you threaten to complete a line in two different ways. The human can only block one.
-6. **Control the center.** Cells b2, b3, c2, c3 appear in the most lines. Prefer placing pieces there early.
-7. **Prefer placing over moving** in the early game (first 3-4 turns). Move pieces later when repositioning creates better alignments.
-8. **Capture only with purpose.** Capturing removes your piece from its current line AND returns a piece to the opponent's hand. Only capture to block a winning threat or land in a strong position.
+6. **Be deceptive — don't build lines obviously.** Avoid placing pieces in a straight line where the opponent can see the threat forming. Instead, build lines indirectly:
+   - Place a knight away from your target line — it can jump into position later.
+   - Capture an opponent's piece that blocks your line, framing it as a defensive move.
+   - Place pieces that serve multiple lines simultaneously, so your true goal isn't clear.
+   - Set up a line where the final piece can be moved into place (e.g., a rook sliding across a row, a bishop moving diagonally into the last cell).
+7. **Control the center.** Cells b2, b3, c2, c3 appear in the most lines. Prefer placing pieces there early.
+8. **Prefer placing over moving** in the early game (first 3-4 turns). Move pieces later when repositioning creates better alignments.
+9. **Capture only with purpose.** Capturing removes your piece from its current line AND returns a piece to the opponent's hand. Only capture to block a winning threat or land in a strong position.
