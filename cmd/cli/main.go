@@ -1,132 +1,49 @@
 package main
 
 import (
-	"encoding/json"
-	"flag"
-	"fmt"
-	"io"
 	"os"
 
-	"tic-tac-chec/engine"
+	"github.com/alecthomas/kong"
 )
 
+var cli struct {
+	Game string `help:"Path to the current state of the game" short:"g" optional:""`
+	Start     StartCmd `cmd:"" help:"Start a new game"`
+	Move      MoveCmd  `cmd:"" help:"Move a piece"`
+}
+
+type MoveCmd struct {
+	Piece  string `arg:"" help:"Piece to move: WR, WN, WK, WB, WP, BR, BP, BN, BK, BB"`
+	Square string `arg:"" help:"Square to move to: a1, b2, c3, d4"`
+}
+
+type StartCmd struct{}
+
 func main() {
-	gameState := flag.String("game-state", "", "Path to the current state of the game (json file)")
-	flag.Parse()
-	args := flag.Args()
+	app := NewApp(os.Stdout, os.Stderr)
+	ctx := kong.Parse(&cli,
+		kong.Name("tic-tac-chec"),
+		kong.Description("A chess-themed tic-tac-toe game on a 4x4 board."),
+		kong.UsageOnError(),
+	)
 
-	if len(args) == 0 {
-		printUsage()
-		return
-	}
-
-	switch args[0] {
+	var err error
+	switch ctx.Command() {
 	case "start":
-		start(gameState)
-	case "move":
-		move(gameState, args[1:])
+		_, err = app.Start(cli.Game)
+	case "move <piece> <square>":
+		err = app.Move(cli.Game, cli.Move.Piece, cli.Move.Square)
 	default:
-		fmt.Println("Invalid command")
-		printUsage()
-		return
+		ctx.Fatalf("unknown command: %s", ctx.Command())
 	}
+
+	ctx.FatalIfErrorf(err)
 }
 
-func start(gameState *string) {
-	fmt.Println("Starting game...")
-	if *gameState == "" {
-		fmt.Println("No game state file provided, creating new...")
-		path, err := createGameStateFile()
-		if err != nil {
-			fmt.Println("Error creating game state:", err)
-			return
-		}
+func (MoveCmd) Help() string {
+	return `White: WP=Pawn  WR=Rook  WN/WK=Knight  WB=Bishop
 
-		gameState = &path
-		fmt.Println("Game state file created:", gameState)
-	}
+Black: BP=Pawn  BR=Rook  BN/BK=Knight  BB=Bishop
 
-	game := engine.NewGame()
-	err := writeGameState(game, *gameState)
-	if err != nil {
-		fmt.Println("Error writing game state:", err)
-		return
-	}
-
-	fmt.Println("Game started, make your move")
-	fmt.Printf("Example: tic-tac-chec --game-state=%v, move wp a3", *gameState)
-
-	f, err := os.Open(*gameState)
-	if err != nil {
-		fmt.Println("Error opening game state file:", err)
-		return
-	}
-
-	contents, err := io.ReadAll(f)
-	if err != nil {
-		fmt.Println("Error reading game state file:", err)
-		return
-	}
-
-	fmt.Println()
-	fmt.Println(string(contents))
-}
-
-func writeGameState(game *engine.Game, path string) error {
-	state := &GameState{
-		Board:  game.Board,
-		Turn:   Turn(game.Turn),
-		Status: GameStatus(game.Status),
-		Winner: (*Turn)(game.Winner),
-	}
-
-	data, err := json.Marshal(state)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(path, data, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createGameStateFile() (string, error) {
-	f, err := os.CreateTemp("", "tic-tac-chec-game-state-*.json")
-	if err != nil {
-		return "", err
-	}
-	f.Close()
-
-	return f.Name(), nil
-}
-
-func move(gameState *string, args []string) {
-	fmt.Println("Moving piece...:", args)
-}
-
-func stop(gameState *string) {
-	fmt.Println("Stopping game...")
-}
-
-func printUsage() {
-	fmt.Println("Usage:")
-	fmt.Println("  tic-tac-chec start")
-	fmt.Println("  tic-tac-chec move [PIECE] [SQUARE]")
-	fmt.Println("  tic-tac-chec stop")
-	fmt.Println("PIECE:")
-	fmt.Println("  WR, wr - White Rook")
-	fmt.Println("  WN, wn, WK, wk - White Knight")
-	fmt.Println("  WB, wb - White Bishop")
-	fmt.Println("  WQ, wq - White Queen")
-	fmt.Println("  WK, wk - White King")
-	fmt.Println("  BP, bp - Black Pawn")
-	fmt.Println("  BN, bn, BK, bk - Black Knight")
-	fmt.Println("  BB, bb - Black Bishop")
-	fmt.Println("  BQ, bq - Black Queen")
-	fmt.Println("  BK, bk - Black King")
-	fmt.Println("SQUARE:")
-	fmt.Println("  a1 .. d4")
+Square: a1 .. d4`
 }

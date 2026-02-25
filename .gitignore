@@ -1,6 +1,7 @@
 # Binaries
 /main
 /tui
+/cli
 
 # Go build cache
 *.test
