@@ -1,0 +1,86 @@
+---
+name: play-tic-tac-chec
+description: Play a game of Chess Tic-Tac-Toe against Claude
+allowed-tools: Bash
+---
+
+# Skill: Play Tic-Tac-Chec
+
+You are playing Tic-Tac-Chec as **Black** against the human (White).
+The game runs through a CLI binary built from this project.
+
+## Game Rules
+
+- 4x4 board, 2 players: White (human) and Black (you)
+- Each player has 4 chess pieces: Pawn (P), Rook (R), Bishop (B), Knight (N)
+- On your turn you may either:
+  - **Place** a piece from your hand onto any empty cell
+  - **Move** a piece already on the board using chess-style movement
+- **Capturing** an opponent's piece returns it to the opponent's hand (shogi-style)
+- **Pawns** reverse direction when reaching the far edge (no promotion)
+- **Win condition:** get 4 of your color in a row (horizontal, vertical, or diagonal)
+
+## Chess Movement Rules
+
+- **Rook:** slides horizontally or vertically, any number of squares (up to 3 on this board)
+- **Bishop:** slides diagonally, any number of squares
+- **Knight:** L-shape (2+1), can jump over pieces
+- **Pawn:** moves 1 square forward (toward opponent's side), captures diagonally forward
+
+## CLI Reference
+
+Binary location: `__SKILL_DIR__/tic-tac-chec-cli` (build with `go build -o tic-tac-chec-cli ./cmd/cli` if needed)
+
+| Command | Example |
+|---------|---------|
+| Start new game | `__SKILL_DIR__/tic-tac-chec-cli start` |
+| Make a move | `__SKILL_DIR__/tic-tac-chec-cli --game=<path> move <piece> <square>` |
+
+- **Piece codes:** WP, WR, WB, WN (White) / BP, BR, BB, BN (Black)
+- **Squares:** columns a-d, rows 1-4 (e.g., `a1` = bottom-left, `d4` = top-right)
+- The `start` command prints the game state file path in its output. Capture it for subsequent moves.
+
+## Board Layout
+
+```
+  a  b  c  d
+4 .  .  .  .  4    ← Black's home side (row 4 = top)
+3 .  .  .  .  3
+2 .  .  .  .  2
+1 .  .  .  .  1    ← White's home side (row 1 = bottom)
+  a  b  c  d
+White hand: WP WR WB WN
+Black hand: BP BR BB BN
+Next turn: W
+```
+
+## Game Loop
+
+1. **Start:** Run `__SKILL_DIR__/tic-tac-chec-cli start` and note the `--game=<path>` from the output.
+2. **Show the board** to the human from the CLI output.
+3. **Human's turn (White):** Ask the human for their move. They should tell you something like "pawn to a3" or "WP a3". Execute: `__SKILL_DIR__/tic-tac-chec-cli --game=<path> move <piece> <square>`
+4. **Your turn (Black):** Analyze the board, decide your move, and execute it.
+5. **Show updated board** after your move.
+6. **Repeat** from step 3 until someone wins or the human wants to stop.
+
+If a move fails (illegal move, wrong turn, etc.), show the error and ask for a different move.
+
+## Output Style
+
+- **Be concise.** Show the board, state your move, ask for theirs. No analysis or reasoning unless the human asks.
+- **Always wrap the board in a markdown code block** (triple backticks) so column alignment is preserved. Always put a text line before the code block (e.g., your move description or "Board:") so the CLI bullet point (`●`) doesn't merge with the first row of the board.
+- After your move, just say what you did: "BP b3. Your move!"
+- Only explain strategy if the human asks "why?" or similar.
+
+## Strategy
+
+When choosing your move, think through these priorities in order:
+
+1. **Win if you can.** If placing or moving a piece completes 4-in-a-row, do it.
+2. **Block immediate threats.** If the human has 3-in-a-row with the 4th cell open, check whether they can actually fill it in one legal move. If their hand is empty, the only way to fill the cell is to move an existing piece there — but if that piece is already part of the 3-in-a-row, moving it vacates its cell and doesn't complete the line. Only block if the opponent has a real way to complete it (a piece in hand, or a piece NOT in the line that can legally reach the open cell). **Critical:** also verify that the opponent cannot capture your blocker with a piece that would itself complete the line. If they can, the block fails — instead break the line by capturing one of their pieces.
+3. **Check ALL lines through every cell before moving.** There are 10 winning lines (4 rows, 4 columns, 2 diagonals). Before each move, scan every line — don't fixate on one threat and miss another. Especially check whether your own move opens a winning line for the opponent.
+4. **Don't hand the opponent a win.** Before capturing or vacating a cell, check if you're opening a line for them. Moving off a cell is as important as moving onto one.
+5. **Build two-way threats.** Place or move to create a position where you threaten to complete a line in two different ways. The human can only block one.
+6. **Control the center.** Cells b2, b3, c2, c3 appear in the most lines. Prefer placing pieces there early.
+7. **Prefer placing over moving** in the early game (first 3-4 turns). Move pieces later when repositioning creates better alignments.
+8. **Capture only with purpose.** Capturing removes your piece from its current line AND returns a piece to the opponent's hand. Only capture to block a winning threat or land in a strong position.
