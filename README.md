@@ -21,6 +21,25 @@ A pet project to learn Go — a hybrid board game combining chess piece movement
 go run ./cmd/tui/
 ```
 
+## Claude Code Skill
+
+Play against Claude in your terminal using the [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill.
+
+### Requirements
+
+- Go 1.25+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI
+
+### Install
+
+```bash
+make install-skill
+```
+
+Then restart Claude Code and say `/play-tic-tac-chec`.
+
+The skill self-improves: when Claude loses, it analyzes the game and updates its strategy in `~/.claude/skills/play-tic-tac-chec/SKILL.md`.
+
 ## Controls
 
 | Key | Action |
