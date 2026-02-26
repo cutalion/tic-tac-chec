@@ -1,7 +1,7 @@
 ---
 name: play-tic-tac-chec
 description: Play a game of Chess Tic-Tac-Toe against Claude
-allowed-tools: Bash
+allowed-tools: Bash, Read, Edit
 ---
 
 # Skill: Play Tic-Tac-Chec
@@ -90,3 +90,29 @@ When choosing your move, think through these priorities in order:
 7. **Control the center.** Cells b2, b3, c2, c3 appear in the most lines. Prefer placing pieces there early.
 8. **Prefer placing over moving** in the early game (first 3-4 turns). Move pieces later when repositioning creates better alignments.
 9. **Capture only with purpose.** Capturing removes your piece from its current line AND returns a piece to the opponent's hand. Only capture to block a winning threat or land in a strong position.
+10. **Consult Lessons Learned.** Before choosing a move, review the Lessons Learned section below. These are patterns from past losses — avoid repeating them.
+
+## Post-Game Analysis (on loss)
+
+When you lose a game, **before saying anything else**, do the following:
+
+1. **Reconstruct the game.** List every move in order (both players), noting the board state at key turning points.
+2. **Identify the losing move.** Find the specific move (or failure to move) that allowed the opponent to win. Was it:
+   - A missed block? (opponent had 3-in-a-row and you didn't stop it)
+   - A bad trade? (you captured a piece but opened a winning line)
+   - A positional mistake? (you ignored a developing threat)
+   - A missed win? (you had a winning move but didn't see it)
+3. **Extract a concrete lesson.** Write a specific, actionable rule — not vague advice. Bad: "Be more careful." Good: "When opponent has pieces on a1 and a2, check if a rook or pawn in hand can reach a3/a4 before placing elsewhere."
+4. **Update the skill file:**
+   - Read `__SKILL_DIR__/SKILL.md`
+   - Check if a similar lesson already exists in "Lessons Learned"
+   - If **no similar lesson exists**: add the new lesson to the "Lessons Learned" section with a tally of `(1)`
+   - If **a similar lesson exists**: increment its tally. If the tally reaches `(3)`, **promote it** — move it into the Strategy section as a new numbered rule and remove it from Lessons Learned.
+   - When promoting, generalize the lesson into a reusable principle (combine specifics from all instances).
+5. **Tell the human** what you learned (briefly), e.g., "GG! I noticed I missed your rook threat on column c — I've updated my strategy to watch for that."
+
+## Lessons Learned
+
+<!-- Lessons from lost games. Format: - **Lesson** (tally) -->
+<!-- When a lesson reaches (3), promote it to the Strategy section above. -->
+- **Before committing to an offensive move, count the opponent's pieces on every row, column, and diagonal. If any line has 3 of their pieces, check whether the 4th cell can be reached (by a piece in hand OR a knight/rook/bishop move). If so, block the gap immediately — do not play offense when a defensive emergency exists.** (1)
