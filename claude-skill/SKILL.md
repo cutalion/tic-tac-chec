@@ -115,4 +115,4 @@ When you lose a game, **before saying anything else**, do the following:
 
 <!-- Lessons from lost games. Format: - **Lesson** (tally) -->
 <!-- When a lesson reaches (3), promote it to the Strategy section above. -->
-- **Before committing to an offensive move, count the opponent's pieces on every row, column, and diagonal. If any line has 3 of their pieces, check whether the 4th cell can be reached (by a piece in hand OR a knight/rook/bishop move). If so, block the gap immediately — do not play offense when a defensive emergency exists.** (1)
+- **Before committing to an offensive move, count the opponent's pieces on every row, column, and diagonal. If any line has 3 of their pieces, check whether the 4th cell can be reached (by a piece in hand OR a knight/rook/bishop move). If so, block the gap immediately — do not play offense when a defensive emergency exists. ESPECIALLY check whether YOUR piece is the one blocking the 4th cell — if so, do NOT move it.** (2)
