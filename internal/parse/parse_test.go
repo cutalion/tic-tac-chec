@@ -1,11 +1,11 @@
-package main
+package parse
 
 import (
 	"testing"
 	"tic-tac-chec/engine"
 )
 
-func TestParseSquare(t *testing.T) {
+func TestSquare(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected engine.Cell
@@ -17,12 +17,12 @@ func TestParseSquare(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		cell, err := parseSquare(test.input)
+		cell, err := Square(test.input)
 		if err != nil {
-			t.Errorf("parseSquare(%q) returned error: %v", test.input, err)
+			t.Errorf("Square(%q) returned error: %v", test.input, err)
 		}
 		if cell != test.expected {
-			t.Errorf("parseSquare(%q) = %v, want %v", test.input, cell, test.expected)
+			t.Errorf("Square(%q) = %v, want %v", test.input, cell, test.expected)
 		}
 	}
 }

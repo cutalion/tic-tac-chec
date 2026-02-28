@@ -6,6 +6,108 @@ import (
 	"slices"
 )
 
+// --- Core types ---
+
+type (
+	Color     int
+	PieceKind int
+)
+
+const (
+	White Color = iota
+	Black
+	ColorCount
+)
+
+func (c Color) String() string {
+	switch c {
+	case White:
+		return "W"
+	case Black:
+		return "B"
+	}
+
+	panic("unknown color")
+}
+
+const (
+	Pawn PieceKind = iota
+	Rook
+	Bishop
+	Knight
+	PieceKindCount
+)
+
+func (k PieceKind) String() string {
+	switch k {
+	case Pawn:
+		return "P"
+	case Rook:
+		return "R"
+	case Bishop:
+		return "B"
+	case Knight:
+		return "N" // K is used for King in chess. We don't have King, but anyway
+	}
+
+	panic("unknown piece kind")
+}
+
+const PieceCount = int(PieceKindCount) * int(ColorCount)
+
+type Piece struct {
+	Color Color
+	Kind  PieceKind
+}
+
+type Pieces [ColorCount][PieceKindCount]Piece
+
+// --- Board ---
+
+const BoardSize = 4
+
+type Board [BoardSize][BoardSize]*Piece
+type Line []*Piece
+
+type Cell struct {
+	Row int
+	Col int
+}
+
+type BoardSide int
+
+const (
+	BlackSide BoardSide = 0 // 0 row at the top
+	WhiteSide BoardSide = BoardSize - 1
+)
+
+// --- Game ---
+
+type GameStatus int
+
+const (
+	GameStarted GameStatus = iota
+	GameOver
+)
+
+type PawnDirection int
+
+const (
+	ToBlackSide PawnDirection = -1
+	ToWhiteSide PawnDirection = 1
+)
+
+type PawnDirections [ColorCount]PawnDirection
+
+type Game struct {
+	Board          Board
+	Pieces         Pieces
+	Turn           Color
+	PawnDirections PawnDirections
+	Status         GameStatus
+	Winner         *Color
+}
+
 var (
 	ErrOutOfBounds    = errors.New("cell is out of bounds")
 	ErrOccupied       = errors.New("cell is already occupied")
@@ -65,6 +167,12 @@ func (g *Game) Move(selected Piece, cell Cell) error {
 	return nil
 }
 
+func (g *Game) Piece(p Piece) *Piece {
+	return g.Pieces.Get(p.Color, p.Kind)
+}
+
+// --- Private helpers ---
+
 func (g *Game) movePiece(piece *Piece, cell Cell) error {
 	moves, err := g.pieceMoves(piece)
 	if err != nil {
@@ -122,10 +230,6 @@ func (g *Game) checkGameOver() bool {
 	}
 
 	return false
-}
-
-func (g *Game) Piece(p Piece) *Piece {
-	return g.Pieces.Get(p.Color, p.Kind)
 }
 
 func (g *Game) maybeTurnPawnDirection(pawn *Piece) {
