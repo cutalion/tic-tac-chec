@@ -10,11 +10,16 @@ func (b *Board) At(pos Cell) *Piece {
 }
 
 func (b *Board) Find(piece *Piece) (Cell, bool) {
+	if piece == nil {
+		return Cell{}, false
+	}
+
 	for row := range BoardSize {
 		for col := range BoardSize {
 			pos := Cell{row, col}
+			boardPiece := b.At(pos)
 
-			if b.At(pos) == piece {
+			if boardPiece != nil && *boardPiece == *piece {
 				return pos, true
 			}
 		}
