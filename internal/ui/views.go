@@ -10,22 +10,23 @@ import (
 
 type ColorScheme struct {
 	Name string
-	P1   lipgloss.AdaptiveColor // "White" player
-	P2   lipgloss.AdaptiveColor // "Black" player
+	P1   lipgloss.Color // "White" player
+	P2   lipgloss.Color // "Black" player
 }
 
+// Using dark-mode colors since SSH clients typically have dark backgrounds
 var ColorSchemes = []ColorScheme{
-	{"Red / Blue", lipgloss.AdaptiveColor{Light: "1", Dark: "9"}, lipgloss.AdaptiveColor{Light: "4", Dark: "12"}},
-	{"Gold / Blue", lipgloss.AdaptiveColor{Light: "3", Dark: "11"}, lipgloss.AdaptiveColor{Light: "4", Dark: "12"}},
-	{"Cyan / Magenta", lipgloss.AdaptiveColor{Light: "6", Dark: "14"}, lipgloss.AdaptiveColor{Light: "5", Dark: "13"}},
-	{"Orange / Purple", lipgloss.AdaptiveColor{Light: "#994400", Dark: "#FF6600"}, lipgloss.AdaptiveColor{Light: "5", Dark: "13"}},
-	{"Green / Purple", lipgloss.AdaptiveColor{Light: "2", Dark: "10"}, lipgloss.AdaptiveColor{Light: "5", Dark: "13"}},
+	{"Red / Blue", lipgloss.Color("9"), lipgloss.Color("12")},
+	{"Gold / Blue", lipgloss.Color("11"), lipgloss.Color("12")},
+	{"Cyan / Magenta", lipgloss.Color("14"), lipgloss.Color("13")},
+	{"Orange / Purple", lipgloss.Color("#FF6600"), lipgloss.Color("13")},
+	{"Green / Purple", lipgloss.Color("10"), lipgloss.Color("13")},
 }
 
 var (
-	borderDimmed   = lipgloss.AdaptiveColor{Light: "250", Dark: "238"}
-	borderHovered  = lipgloss.AdaptiveColor{Light: "0", Dark: "15"}
-	borderSelected = lipgloss.AdaptiveColor{Light: "3", Dark: "11"}
+	borderDimmed   = lipgloss.Color("238")
+	borderHovered  = lipgloss.Color("15")
+	borderSelected = lipgloss.Color("11")
 )
 
 var baseCellStyle = lipgloss.NewStyle().

@@ -11,8 +11,10 @@ import (
 	"tic-tac-chec/internal/ui"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
+	"github.com/muesli/termenv"
 	"github.com/charmbracelet/wish/bubbletea"
 )
 
@@ -26,6 +28,10 @@ type playerConn struct {
 }
 
 func main() {
+	// Force color support — the server process has no TTY, but SSH clients do.
+	// Without this, lipgloss detects no TTY and strips all ANSI colors.
+	lipgloss.SetColorProfile(termenv.ANSI256)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "2222"
