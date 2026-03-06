@@ -21,6 +21,19 @@ A pet project to learn Go — a hybrid board game combining chess piece movement
 go run ./cmd/tui/
 ```
 
+## Play Online
+
+Connect via SSH — no install needed:
+
+```bash
+ssh tramway.proxy.rlwy.net -p 17014
+```
+
+You'll be paired with the next player who connects. Features:
+- Auto-pairing lobby
+- Turn indicator and board flip (Black sees the board from their side)
+- In-game rules screen (`?`)
+
 ## Claude Code Skill
 
 Play against Claude in your terminal using the [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill.
@@ -44,9 +57,9 @@ The skill self-improves: when Claude loses, it analyzes the game and updates its
 
 | Key | Action |
 |-----|--------|
-| ↑ ↓ ← → | Move cursor |
-| Enter | Select piece / confirm move |
-| Esc | Deselect |
+| ↑ ↓ ← → / h j k l | Move cursor |
+| Enter / Space | Select piece / confirm move |
+| ? | Rules screen |
 | N | New game (after game over) |
 | C | Cycle color scheme |
 | S | Toggle status overlay |
