@@ -26,8 +26,14 @@ type playerConn struct {
 }
 
 func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "2222"
+	}
+
 	s, err := wish.NewServer(
-		wish.WithAddress(":2222"),
+		wish.WithAddress(":"+port),
+		wish.WithHostKeyPath(".ssh/host_key"),
 		wish.WithMiddleware(
 			bubbletea.Middleware(teaHandler),
 		),
@@ -36,7 +42,7 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	log.Println("Listening on 2222")
+	log.Println("Listening on " + port)
 
 	go lobbyLoop(lobby)
 

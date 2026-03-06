@@ -17,6 +17,9 @@ CLAUDE.md
 code-critic.md
 .code-critic.md
 
+# SSH host keys
+.ssh/
+
 # Built binaries
 /tic-tac-chec
 /tic-tac-chec-cli
