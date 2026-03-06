@@ -11,6 +11,42 @@ type BoardCursor engine.Cell
 
 var Kinds = []engine.PieceKind{engine.Pawn, engine.Rook, engine.Bishop, engine.Knight}
 
+func (m Model) shouldFlip() bool {
+	return m.Mode == ModeOnline && m.MyColor == engine.Black
+}
+
+// layout holds computed parameters for flipped/normal board orientation.
+// All cursor movement and panel transitions use these instead of hardcoded directions.
+type layout struct {
+	topColor    engine.Color // which color's hand panel is on top
+	bottomColor engine.Color // which color's hand panel is on bottom
+	upDelta     int          // row delta when pressing "up" (-1 normal, +1 flipped)
+	downDelta   int          // row delta when pressing "down" (+1 normal, -1 flipped)
+	topRow      int          // engine row at visual top of board (0 normal, 3 flipped)
+	bottomRow   int          // engine row at visual bottom of board (3 normal, 0 flipped)
+}
+
+func (m Model) layout() layout {
+	if m.shouldFlip() {
+		return layout{
+			topColor:    engine.White,
+			bottomColor: engine.Black,
+			upDelta:     +1,
+			downDelta:   -1,
+			topRow:      engine.BoardSize - 1,
+			bottomRow:   0,
+		}
+	}
+	return layout{
+		topColor:    engine.Black,
+		bottomColor: engine.White,
+		upDelta:     -1,
+		downDelta:   +1,
+		topRow:      0,
+		bottomRow:   engine.BoardSize - 1,
+	}
+}
+
 type Model struct {
 	Game             *engine.Game
 	CursorOnBoard    bool
@@ -19,14 +55,17 @@ type Model struct {
 	PanelCursor      PanelCursor
 	LastErrorMessage string
 	ShowStatus       bool
+	ShowRules        bool
 	WindowWidth      int
 	SchemeIdx        int
 
 	// Multiplayer fields
-	Mode     Mode
-	MyColor  engine.Color
-	Moves    chan<- MoveRequest // send moves to Room
-	Incoming <-chan tea.Msg     // receive state updates from Room
+	Mode       Mode
+	Phase      Phase
+	MyColor    engine.Color
+	Moves      chan<- MoveRequest  // send moves to Room
+	Incoming   <-chan tea.Msg      // receive state updates from Room
+	LobbyReady <-chan engine.Color // receives assigned color when paired
 }
 
 func InitialModel() Model {
@@ -36,6 +75,13 @@ func InitialModel() Model {
 }
 
 func (m Model) Init() tea.Cmd {
+	if m.Phase == PhaseWaiting {
+		lobbyReady := m.LobbyReady
+		return func() tea.Msg {
+			color := <-lobbyReady
+			return PairedMsg{Color: color}
+		}
+	}
 	return m.nextCmd()
 }
 
@@ -76,6 +122,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.LastErrorMessage = ""
 
 	switch msg := msg.(type) {
+
+	case PairedMsg:
+		m.Phase = PhasePlaying
+		m.MyColor = msg.Color
+		return m, m.nextCmd()
 
 	case GameStateMsg:
 		game := msg.Game
@@ -119,6 +170,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "c":
 			m.SchemeIdx = (m.SchemeIdx + 1) % len(ColorSchemes)
 			return m, m.nextCmd()
+
+		case "?":
+			m.ShowRules = !m.ShowRules
+			return m, m.nextCmd()
 		}
 
 		// block all other input when game is over
@@ -128,10 +183,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.String() {
 		case "up", "k":
+			lay := m.layout()
 			if m.CursorOnBoard {
-				if m.BoardCursor.Row > 0 {
-					m.BoardCursor = BoardCursor(engine.Cell{Row: m.BoardCursor.Row - 1, Col: m.BoardCursor.Col})
-				} else if m.Game.Turn == engine.Black { // black hand panel on top
+				if m.BoardCursor.Row != lay.topRow {
+					m.BoardCursor = BoardCursor(engine.Cell{Row: m.BoardCursor.Row + lay.upDelta, Col: m.BoardCursor.Col})
+				} else if m.Game.Turn == lay.topColor {
 					cursor, ok := m.pickUnusedPanelPiece()
 					if ok {
 						m.PanelCursor = cursor
@@ -139,24 +195,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			} else {
-				if m.Game.Turn == engine.White { // white hand panel at the bottom
+				if m.Game.Turn == lay.bottomColor {
 					m.CursorOnBoard = true
-					m.BoardCursor = BoardCursor(engine.Cell{Row: engine.BoardSize - 1, Col: int(m.PanelCursor)})
+					m.BoardCursor = BoardCursor(engine.Cell{Row: lay.bottomRow, Col: int(m.PanelCursor)})
 				}
 			}
 
 		case "down", "j":
+			lay := m.layout()
 			if m.CursorOnBoard {
-				if m.BoardCursor.Row < engine.BoardSize-1 {
-					m.BoardCursor = BoardCursor(engine.Cell{Row: m.BoardCursor.Row + 1, Col: m.BoardCursor.Col})
-				} else if m.Game.Turn == engine.White { // white hand panel at the bottom
+				if m.BoardCursor.Row != lay.bottomRow {
+					m.BoardCursor = BoardCursor(engine.Cell{Row: m.BoardCursor.Row + lay.downDelta, Col: m.BoardCursor.Col})
+				} else if m.Game.Turn == lay.bottomColor {
 					m.CursorOnBoard = false
 					m.PanelCursor = PanelCursor(m.BoardCursor.Col)
 				}
 			} else {
-				if m.Game.Turn == engine.Black { // black hand panel on top
+				if m.Game.Turn == lay.topColor {
 					m.CursorOnBoard = true
-					m.BoardCursor = BoardCursor(engine.Cell{Row: 0, Col: int(m.PanelCursor)})
+					m.BoardCursor = BoardCursor(engine.Cell{Row: lay.topRow, Col: int(m.PanelCursor)})
 				}
 			}
 

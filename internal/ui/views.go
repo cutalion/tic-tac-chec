@@ -14,6 +14,14 @@ type ColorScheme struct {
 	P2   lipgloss.Color // "Black" player
 }
 
+func toLipglossColor(scheme ColorScheme, color engine.Color) lipgloss.Color {
+	if color == engine.White {
+		return scheme.P1
+	}
+
+	return scheme.P2
+}
+
 // Using dark-mode colors since SSH clients typically have dark backgrounds
 var ColorSchemes = []ColorScheme{
 	{"Red / Blue", lipgloss.Color("9"), lipgloss.Color("12")},
@@ -66,9 +74,64 @@ func rightLabel(n string) string {
 		Render(n)
 }
 
+func rulesView() string {
+	return `
+  Tic Tac Chec — Rules
+
+  4×4 board, 2 players (White / Black)
+  Each player has: Pawn, Rook, Bishop, Knight
+
+  On your turn, either:
+    • Place a piece from your hand onto any empty cell
+    • Move a piece already on the board (chess rules)
+
+  Captures return the piece to its owner's hand (shogi-style)
+  Pawns reverse direction at the far edge (no promotion)
+
+  Win: get 4 of your color in a row
+       (horizontal, vertical, or diagonal)
+
+  Controls:
+    arrows/hjkl  Move cursor
+    enter/space  Select piece / confirm move
+    c            Change color scheme
+    n            New game (local only)
+    ?            Toggle this screen
+    q            Quit
+
+  Press ? to return
+`
+}
+
+func turnIndicator(m Model, scheme ColorScheme) string {
+	style := lipgloss.NewStyle()
+
+	if m.Game.Status == engine.GameOver {
+		style = style.Foreground(toLipglossColor(scheme, *m.Game.Winner))
+		return style.Render(colorName(*m.Game.Winner) + " wins!")
+	}
+
+	turnColor := colorName(m.Game.Turn)
+	style = style.Foreground(toLipglossColor(scheme, m.Game.Turn))
+	if m.Mode == ModeOnline {
+		if m.Game.Turn == m.MyColor {
+			return style.Render("Your turn")
+		} else {
+			return "Opponent's turn"
+		}
+	} else {
+		return style.Render(turnColor + "'s turn")
+	}
+}
+
 func (m Model) View() string {
-	blackActive := m.Game.Turn == engine.Black
-	whiteActive := m.Game.Turn == engine.White
+	if m.ShowRules {
+		return rulesView()
+	}
+
+	if m.Phase == PhaseWaiting {
+		return "\n  Waiting for opponent...\n\n  Press ? for rules, q to quit\n"
+	}
 
 	bw := rowLabelWidth + lipgloss.Width(baseCellStyle.Render(" "))*engine.BoardSize + 2
 	title := lipgloss.NewStyle().Width(bw).Align(lipgloss.Center).Render("Tic Tac Chec")
@@ -79,30 +142,26 @@ func (m Model) View() string {
 	}
 
 	scheme := ColorSchemes[m.SchemeIdx]
+	lay := m.layout()
 
-	bh := engine.BoardSize * lipgloss.Height(baseCellStyle.Render(" "))
-	var mainBoard string
-	var gameOver string
+	mainBoard := boardView(m, scheme)
 
-	if m.Game.Status == engine.GameOver {
-		gameOver = gameOverView(*m.Game.Winner, bw, bh)
-	}
+	turnLine := lipgloss.NewStyle().Width(bw).Align(lipgloss.Center).Render(turnIndicator(m, scheme))
 
-	mainBoard = boardView(m, scheme)
+	topActive := m.Game.Turn == lay.topColor
+	bottomActive := m.Game.Turn == lay.bottomColor
 
 	return lipgloss.JoinVertical(lipgloss.Left,
 		"",
 		title,
-		"",
-		handPanel(m.Game, engine.Black, !m.CursorOnBoard && blackActive, int(m.PanelCursor), m.SelectedPiece, scheme),
+		turnLine,
+		handPanel(m.Game, lay.topColor, !m.CursorOnBoard && topActive, int(m.PanelCursor), m.SelectedPiece, scheme),
 		mainBoard,
-		handPanel(m.Game, engine.White, !m.CursorOnBoard && whiteActive, int(m.PanelCursor), m.SelectedPiece, scheme),
-		"",
-		gameOver,
+		handPanel(m.Game, lay.bottomColor, !m.CursorOnBoard && bottomActive, int(m.PanelCursor), m.SelectedPiece, scheme),
 		"",
 		fixedLine.Render(m.LastErrorMessage),
 		fixedLine.Render(statusLine),
-		fmt.Sprintf("q - quit, n - new game, c - color [%s]", scheme.Name),
+		fmt.Sprintf("q - quit, c - color [%s], ? - rules", scheme.Name),
 	)
 }
 
@@ -116,24 +175,17 @@ func colorName(c engine.Color) string {
 	return c.String()
 }
 
-func gameOverView(winner engine.Color, bw, bh int) string {
-	popup := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(borderSelected).
-		Padding(1, 3).
-		Align(lipgloss.Center).
-		Render(fmt.Sprintf("%v wins!\n\nPress N for new game", colorName(winner)))
-	return lipgloss.Place(bw, bh, lipgloss.Center, lipgloss.Center, popup)
-}
-
-// mainBoard = boardView(m.Game.Board, engine.Cell(m.BoardCursor), m.CursorOnBoard, m.SelectedPiece, scheme)
-// func boardView(board engine.Board, cursor engine.Cell, active bool, selected *engine.Piece, scheme ColorScheme) string {
 func boardView(m Model, scheme ColorScheme) string {
+	flipped := m.shouldFlip()
 	parts := []string{letterMarkers()}
 
 	for i := range engine.BoardSize {
-		cells := rowCells(m, i, scheme)
-		num := fmt.Sprintf("%d", engine.BoardSize-i)
+		engineRow := i
+		if flipped {
+			engineRow = engine.BoardSize - 1 - i
+		}
+		cells := rowCells(m, engineRow, scheme)
+		num := fmt.Sprintf("%d", engine.BoardSize-engineRow)
 		cellsRow := lipgloss.JoinHorizontal(lipgloss.Top, cells...)
 		parts = append(parts, lipgloss.JoinHorizontal(lipgloss.Top, leftLabel(num), cellsRow, rightLabel(num)))
 	}

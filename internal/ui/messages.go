@@ -28,3 +28,16 @@ type ErrorMsg struct {
 
 // OpponentDisconnectedMsg is received when the other player leaves.
 type OpponentDisconnectedMsg struct{}
+
+// Phase tracks whether the player is waiting in the lobby or playing.
+type Phase int
+
+const (
+	PhasePlaying Phase = iota
+	PhaseWaiting
+)
+
+// PairedMsg is delivered when the lobby pairs this player with an opponent.
+type PairedMsg struct {
+	Color engine.Color
+}

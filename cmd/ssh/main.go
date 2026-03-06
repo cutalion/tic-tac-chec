@@ -68,21 +68,23 @@ func main() {
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	moves := make(chan ui.MoveRequest)
 	incoming := make(chan tea.Msg)
+	ready := make(chan engine.Color)
 
 	player := game.Player{
 		Moves:    moves,
 		Incoming: incoming,
 	}
 
-	ready := make(chan engine.Color)
-	lobby <- playerConn{player: player, ready: ready}
-	color := <-ready
+	go func() {
+		lobby <- playerConn{player: player, ready: ready}
+	}()
 
 	model := ui.InitialModel()
-	model.MyColor = color
 	model.Mode = ui.ModeOnline
+	model.Phase = ui.PhaseWaiting
 	model.Moves = moves
 	model.Incoming = incoming
+	model.LobbyReady = ready
 
 	return model, nil
 }
