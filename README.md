@@ -34,6 +34,26 @@ You'll be paired with the next player who connects. Features:
 - Turn indicator and board flip (Black sees the board from their side)
 - In-game rules screen (`?`)
 
+## Self-Hosting
+
+Run the SSH server with Docker:
+
+```bash
+docker build -t tic-tac-chec .
+docker run -p 2222:2222 tic-tac-chec
+```
+
+Players connect with `ssh localhost -p 2222`.
+
+To keep the host key stable across redeploys, set the `HOST_KEY_PEM` env var to an Ed25519 private key in PEM format:
+
+```bash
+ssh-keygen -t ed25519 -f host_key -N "" && rm host_key.pub
+docker run -p 2222:2222 -e HOST_KEY_PEM="$(cat host_key)" tic-tac-chec
+```
+
+Without `HOST_KEY_PEM`, keys are auto-generated on startup (clients will see a host key change warning after each redeploy).
+
 ## Claude Code Skill
 
 Play against Claude in your terminal using the [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill.

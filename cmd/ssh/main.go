@@ -14,8 +14,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
-	"github.com/muesli/termenv"
 	"github.com/charmbracelet/wish/bubbletea"
+	"github.com/muesli/termenv"
 )
 
 var (
@@ -39,7 +39,7 @@ func main() {
 
 	s, err := wish.NewServer(
 		wish.WithAddress(":"+port),
-		wish.WithHostKeyPath(".ssh/host_key"),
+		hostKeyOption(),
 		wish.WithMiddleware(
 			bubbletea.Middleware(teaHandler),
 		),
@@ -114,4 +114,12 @@ func lobbyLoop(lobby chan playerConn) {
 		white.ready <- white.player.Color
 		black.ready <- black.player.Color
 	}
+}
+
+func hostKeyOption() ssh.Option {
+	if pem := os.Getenv("HOST_KEY_PEM"); pem != "" {
+		return wish.WithHostKeyPEM([]byte(pem))
+	}
+
+	return wish.WithHostKeyPath(".ssh/host_key")
 }
