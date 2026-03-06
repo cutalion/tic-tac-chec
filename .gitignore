@@ -17,10 +17,6 @@ CLAUDE.md
 code-critic.md
 .code-critic.md
 
-# SSH keys
-id_ed25519
-id_ed25519.pub
-
 # Built binaries
 /tic-tac-chec
 /tic-tac-chec-cli
