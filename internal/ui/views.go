@@ -79,24 +79,29 @@ func (m Model) View() string {
 
 	scheme := ColorSchemes[m.SchemeIdx]
 
-	bh := 2 + engine.BoardSize*lipgloss.Height(baseCellStyle.Render(" "))
+	bh := engine.BoardSize * lipgloss.Height(baseCellStyle.Render(" "))
 	var mainBoard string
+	var gameOver string
+
 	if m.Game.Status == engine.GameOver {
-		mainBoard = gameOverView(*m.Game.Winner, bw, bh)
-	} else {
-		mainBoard = boardView(m.Game.Board, engine.Cell(m.BoardCursor), m.CursorOnBoard, m.SelectedPiece, scheme)
+		gameOver = gameOverView(*m.Game.Winner, bw, bh)
 	}
 
+	mainBoard = boardView(m, scheme)
+
 	return lipgloss.JoinVertical(lipgloss.Left,
+		"",
 		title,
 		"",
 		handPanel(m.Game, engine.Black, !m.CursorOnBoard && blackActive, int(m.PanelCursor), m.SelectedPiece, scheme),
 		mainBoard,
 		handPanel(m.Game, engine.White, !m.CursorOnBoard && whiteActive, int(m.PanelCursor), m.SelectedPiece, scheme),
 		"",
+		gameOver,
+		"",
 		fixedLine.Render(m.LastErrorMessage),
 		fixedLine.Render(statusLine),
-		fmt.Sprintf("q quit  s status  n new game  c color [%s]", scheme.Name),
+		fmt.Sprintf("q - quit, n - new game, c - color [%s]", scheme.Name),
 	)
 }
 
@@ -120,27 +125,13 @@ func gameOverView(winner engine.Color, bw, bh int) string {
 	return lipgloss.Place(bw, bh, lipgloss.Center, lipgloss.Center, popup)
 }
 
-func boardView(board engine.Board, cursor engine.Cell, active bool, selected *engine.Piece, scheme ColorScheme) string {
-	var selectedCell engine.Cell
-	selectedOnBoard := false
-	if selected != nil {
-		selectedCell, selectedOnBoard = board.Find(selected)
-	}
-
+// mainBoard = boardView(m.Game.Board, engine.Cell(m.BoardCursor), m.CursorOnBoard, m.SelectedPiece, scheme)
+// func boardView(board engine.Board, cursor engine.Cell, active bool, selected *engine.Piece, scheme ColorScheme) string {
+func boardView(m Model, scheme ColorScheme) string {
 	parts := []string{letterMarkers()}
 
 	for i := range engine.BoardSize {
-		cells := make([]string, engine.BoardSize)
-		for j := range engine.BoardSize {
-			style := baseCellStyle
-			switch {
-			case active && cursor.Row == i && cursor.Col == j:
-				style = style.BorderForeground(borderHovered)
-			case selectedOnBoard && selectedCell.Row == i && selectedCell.Col == j:
-				style = style.BorderForeground(borderSelected)
-			}
-			cells[j] = style.Render(pieceView(board[i][j], scheme))
-		}
+		cells := rowCells(m, i, scheme)
 		num := fmt.Sprintf("%d", engine.BoardSize-i)
 		cellsRow := lipgloss.JoinHorizontal(lipgloss.Top, cells...)
 		parts = append(parts, lipgloss.JoinHorizontal(lipgloss.Top, leftLabel(num), cellsRow, rightLabel(num)))
@@ -148,6 +139,28 @@ func boardView(board engine.Board, cursor engine.Cell, active bool, selected *en
 
 	parts = append(parts, letterMarkers())
 	return lipgloss.JoinVertical(lipgloss.Left, parts...)
+}
+
+func rowCells(m Model, i int, scheme ColorScheme) []string {
+	var selectedCell engine.Cell
+	selectedOnBoard := false
+	if m.SelectedPiece != nil {
+		selectedCell, selectedOnBoard = m.Game.Board.Find(m.SelectedPiece)
+	}
+
+	cells := make([]string, engine.BoardSize)
+	for j := range engine.BoardSize {
+		style := baseCellStyle
+		switch {
+		case m.CursorOnBoard && m.BoardCursor.Row == i && m.BoardCursor.Col == j:
+			style = style.BorderForeground(borderHovered)
+		case selectedOnBoard && selectedCell.Row == i && selectedCell.Col == j:
+			style = style.BorderForeground(borderSelected)
+		}
+		cells[j] = style.Render(pieceView(m.Game.Board[i][j], scheme))
+	}
+
+	return cells
 }
 
 func pieceView(piece *engine.Piece, scheme ColorScheme) string {
@@ -190,7 +203,12 @@ func handPanel(game *engine.Game, color engine.Color, active bool, cursor int, s
 		case active && i == cursor:
 			style = style.BorderForeground(borderHovered)
 		}
-		cells[i] = style.Render(pieceView(piece, scheme))
+
+		if onBoard {
+			cells[i] = style.Render(pieceView(nil, scheme))
+		} else {
+			cells[i] = style.Render(pieceView(piece, scheme))
+		}
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftLabel(color.String()), lipgloss.JoinHorizontal(lipgloss.Top, cells...))
 }
