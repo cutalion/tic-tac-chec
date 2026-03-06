@@ -8,5 +8,7 @@ RUN go build -o /ssh-server ./cmd/ssh
 FROM alpine:3.20
 RUN apk add --no-cache ncurses-terminfo-base
 COPY --from=build /ssh-server /ssh-server
+RUN mkdir -p /app/.ssh
+WORKDIR /app
 ENV TERM=xterm-256color
 CMD ["/ssh-server"]
