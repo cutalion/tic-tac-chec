@@ -70,6 +70,14 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	incoming := make(chan tea.Msg)
 	ready := make(chan engine.Color)
 
+	// when player quits/disconnects, close it's channel
+	// so that other player/session can catch it
+	// and send ui.OpponentDisconnectedMsg
+	go func(s ssh.Session) {
+		<-s.Context().Done()
+		close(moves)
+	}(s)
+
 	player := game.Player{
 		Moves:    moves,
 		Incoming: incoming,

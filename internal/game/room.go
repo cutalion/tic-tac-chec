@@ -26,7 +26,10 @@ func (r *Room) Run() {
 		select {
 		case move, ok := <-white.Moves:
 			if !ok {
-				black.Incoming <- tea.Msg(ui.OpponentDisconnectedMsg{})
+				select {
+				case black.Incoming <- ui.OpponentDisconnectedMsg{}: // sent if black still listening
+				default: // skip if nobody listens
+				}
 				return
 			}
 
@@ -35,7 +38,10 @@ func (r *Room) Run() {
 			}
 		case move, ok := <-black.Moves:
 			if !ok {
-				white.Incoming <- tea.Msg(ui.OpponentDisconnectedMsg{})
+				select {
+				case white.Incoming <- ui.OpponentDisconnectedMsg{}:
+				default: // skip
+				}
 				return
 			}
 
@@ -50,12 +56,18 @@ func (r *Room) Run() {
 func (r *Room) handleMove(mover Player, move ui.MoveRequest) (stop bool) {
 	err := r.Game.Move(move.Piece, move.Cell)
 	if err != nil {
-		mover.Incoming <- tea.Msg(ui.ErrorMsg{Err: err})
+		select {
+		case mover.Incoming <- tea.Msg(ui.ErrorMsg{Err: err}):
+		default:
+		}
 		return false
 	}
 
 	for _, player := range r.Players {
-		player.Incoming <- tea.Msg(ui.GameStateMsg{Game: *r.Game})
+		select {
+		case player.Incoming <- tea.Msg(ui.GameStateMsg{Game: *r.Game}):
+		default:
+		}
 	}
 
 	return r.Game.Status == engine.GameOver
