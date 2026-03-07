@@ -2,15 +2,15 @@ package game
 
 import (
 	"testing"
+	"time"
 
 	"tic-tac-chec/engine"
 	"tic-tac-chec/internal/ui"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"go.uber.org/goleak"
 )
 
-func setupRoom() (Room, [2]chan ui.MoveRequest, [2]chan tea.Msg) {
+func setupRoom() (Room, [2]chan ui.MoveRequest) {
 	// create bi-directional channels, so we can manually read/write in tests
 	// readonly would be impractical
 	moves := [2]chan ui.MoveRequest{
@@ -18,33 +18,25 @@ func setupRoom() (Room, [2]chan ui.MoveRequest, [2]chan tea.Msg) {
 		make(chan ui.MoveRequest),
 	}
 
-	incomings := [2]chan tea.Msg{
-		make(chan tea.Msg, 1), // buffered, so we don't wait in tests
-		make(chan tea.Msg, 1),
-	}
+	whitePlayer := NewPlayer(moves[0])
+	blackPlayer := NewPlayer(moves[1])
 
-	room := Room{
-		Game: engine.NewGame(),
-		Players: [2]Player{
-			{Color: engine.White, Moves: moves[0], Incoming: incomings[0]},
-			{Color: engine.Black, Moves: moves[1], Incoming: incomings[1]},
-		},
-	}
+	room := NewRoom(whitePlayer, blackPlayer)
 
-	return room, moves, incomings
+	return room, moves
 }
 
 func TestRoom(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	room, moves, incomings := setupRoom()
+	room, moves := setupRoom()
 	defer close(moves[0])
 	defer close(moves[1])
 
 	go room.Run()
 
 	moves[0] <- ui.MoveRequest{Piece: engine.WhiteBishop, Cell: engine.Cell{Row: 0, Col: 0}}
-	msg0 := <-incomings[0]
+	msg0 := <-room.Players[0].Incoming
 
 	state, ok := msg0.(ui.GameStateMsg)
 	if !ok {
@@ -56,12 +48,40 @@ func TestRoom(t *testing.T) {
 		t.Fatalf("expected WhiteBishop at {0, 0}, got: %v", piece)
 	}
 
-	<-incomings[1]
+	<-room.Players[1].Incoming
 	moves[1] <- ui.MoveRequest{Piece: engine.BlackBishop, Cell: engine.Cell{Row: 0, Col: 0}}
-	msg1 := <-incomings[1]
+	msg1 := <-room.Players[1].Incoming
 
 	_, ok = msg1.(ui.ErrorMsg)
 	if !ok {
 		t.Fatalf("expected ErrorMsg, got: %T", msg1)
 	}
+}
+
+func TestBufferedChannelDeliversMessage(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	moves := [2]chan ui.MoveRequest{
+		make(chan ui.MoveRequest),
+		make(chan ui.MoveRequest),
+	}
+
+	whitePlayer := NewPlayer(moves[0])
+	blackPlayer := NewPlayer(moves[1])
+
+	room := NewRoom(whitePlayer, blackPlayer)
+
+	go room.Run()
+
+	moves[0] <- ui.MoveRequest{Piece: engine.WhiteBishop, Cell: engine.Cell{Row: 0, Col: 0}}
+
+	// expecting black to receive the message, not drop it
+	select {
+	case <-room.Players[1].Incoming:
+		// black received a message, expected behavior
+	case <-time.After(time.Second):
+		t.Fatalf("expected incoming[1] (black) to receive a message, but none was received")
+	}
+
+	close(moves[0])
+	close(moves[1])
 }

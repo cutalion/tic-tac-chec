@@ -67,10 +67,9 @@ func main() {
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	moves := make(chan ui.MoveRequest)
-	incoming := make(chan tea.Msg)
 	ready := make(chan engine.Color)
 
-	// when player quits/disconnects, close it's channel
+	// when player quits/disconnects, close its channel
 	// so that other player/session can catch it
 	// and send ui.OpponentDisconnectedMsg
 	go func(s ssh.Session) {
@@ -78,10 +77,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		close(moves)
 	}(s)
 
-	player := game.Player{
-		Moves:    moves,
-		Incoming: incoming,
-	}
+	player := game.NewPlayer(moves)
 
 	go func() {
 		lobby <- playerConn{player: player, ready: ready}
@@ -91,7 +87,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	model.Mode = ui.ModeOnline
 	model.Phase = ui.PhaseWaiting
 	model.Moves = moves
-	model.Incoming = incoming
+	model.Incoming = player.Incoming
 	model.LobbyReady = ready
 
 	return model, nil
@@ -112,10 +108,7 @@ func lobbyLoop(lobby chan playerConn) {
 		white.player.Color = engine.White
 		black.player.Color = engine.Black
 
-		room := game.Room{
-			Players: [2]game.Player{white.player, black.player},
-			Game:    engine.NewGame(),
-		}
+		room := game.NewRoom(white.player, black.player)
 
 		go room.Run()
 
