@@ -6,6 +6,22 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// Mode determines whether the game is local or online.
+type Mode int
+
+const (
+	ModeLocal Mode = iota
+	ModeOnline
+)
+
+// Phase tracks whether the player is waiting in the lobby or playing.
+type Phase int
+
+const (
+	PhasePlaying Phase = iota
+	PhaseWaiting
+)
+
 type PanelCursor int // 0-3
 type BoardCursor engine.Cell
 

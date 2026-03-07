@@ -181,7 +181,7 @@ func pawnDirectionFromString(str string) (engine.PawnDirection, error) {
 	case toBlackSideStr:
 		return engine.ToBlackSide, nil
 	default:
-		return engine.PawnDirection(0), fmt.Errorf("unknown direction: %s", str)
+		return engine.PawnDirection(0), fmt.Errorf("unknown direction: %s", str) // 0 is not a valid direction; callers must check err
 	}
 }
 
