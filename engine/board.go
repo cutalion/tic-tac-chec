@@ -28,6 +28,12 @@ func (b *Board) Find(piece *Piece) (Cell, bool) {
 	return Cell{}, false
 }
 
+// Move relocates a piece to the target cell. If the target is occupied,
+// the occupant is silently removed from the board — this implements
+// shogi-style capture: since Board holds pointers into Game.Pieces,
+// a captured piece remains in Pieces and becomes "in hand" (Board.Find
+// returns false for it). This invariant requires that every piece on the
+// board is a pointer obtained from Game.Pieces, never a fresh &Piece{}.
 func (b *Board) Move(piece *Piece, to Cell) error {
 	if !to.Valid() {
 		return ErrOutOfBounds

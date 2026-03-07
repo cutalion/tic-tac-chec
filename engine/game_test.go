@@ -171,6 +171,40 @@ func TestPawnDirectionDoesNotChangeWhenPawnIsNotOnTheEdge(t *testing.T) {
 	expectEqual(t, g.PawnDirections[White], ToBlackSide)
 }
 
+func TestCaptureWorks(t *testing.T) {
+	g := NewGame()
+
+	wb := g.Piece(WhiteBishop)
+	bb := g.Piece(BlackBishop)
+
+	g.Move(*wb, Cell{Row: 1, Col: 1})
+	g.Move(*bb, Cell{Row: 2, Col: 2})
+
+	expectBoard(t, g.Board, Board{
+		{nil, nil, nil, nil},
+		{nil, bb, nil, nil},
+		{nil, nil, wb, nil},
+		{nil, nil, nil, nil},
+	})
+
+	err := g.Move(*wb, Cell{Row: 2, Col: 2}) // capture black bishop
+	expectNoError(t, err)
+	expectBoard(t, g.Board, Board{
+		{nil, nil, nil, nil},
+		{nil, nil, nil, nil},
+		{nil, nil, wb, nil},
+		{nil, nil, nil, nil},
+	})
+
+	g.Move(*bb, Cell{Row: 0, Col: 0})
+	expectBoard(t, g.Board, Board{
+		{bb, nil, nil, nil},
+		{nil, nil, nil, nil},
+		{nil, nil, wb, nil},
+		{nil, nil, nil, nil},
+	})
+}
+
 func TestGame(t *testing.T) {
 	g := NewGame()
 
