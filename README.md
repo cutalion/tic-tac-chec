@@ -58,6 +58,8 @@ Without `HOST_KEY_PEM`, keys are auto-generated on startup (clients will see a h
 
 Play against Claude in your terminal using the [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill.
 
+[![Skill demo](skill.png)](https://asciinema.org/a/oq6SKUqsB7aM7iwm)
+
 ### Requirements
 
 - Go 1.25+
