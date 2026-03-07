@@ -62,6 +62,12 @@ Play against Claude in your terminal using the [Claude Code](https://docs.anthro
 
 [![Skill demo](skill.png)](https://asciinema.org/a/oq6SKUqsB7aM7iwm)
 
+### How it works
+
+The skill teaches Claude to play the game through a CLI binary. On each turn, Claude runs `tic-tac-chec-cli move` to make moves and reads the board output to decide its next action. You communicate moves in natural language ("pawn to b3") and Claude translates them into CLI commands.
+
+When Claude loses, it performs a post-game analysis: reconstructs the game move-by-move, identifies where it went wrong, and writes a concrete lesson to the "Lessons Learned" section of its skill file (`~/.claude/skills/play-tic-tac-chec/SKILL.md`). If the same lesson appears three times, it gets promoted into the main Strategy section. Over time, Claude builds a personalized playbook from its failures.
+
 ### Requirements
 
 - Go 1.25+
@@ -74,8 +80,6 @@ make install-skill
 ```
 
 Then restart Claude Code and say `/play-tic-tac-chec`.
-
-The skill self-improves: when Claude loses, it analyzes the game and updates its strategy in `~/.claude/skills/play-tic-tac-chec/SKILL.md`.
 
 ## Controls
 
