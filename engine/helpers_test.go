@@ -23,6 +23,16 @@ func expectError(t *testing.T, err error, target error) {
 	}
 }
 
+func expectErrorType[T error](t *testing.T, err error) {
+	t.Helper()
+	var target T
+	if err == nil {
+		t.Errorf("Expected error of type %T, got nil", target)
+	} else if !errors.As(err, &target) {
+		t.Errorf("Expected error of type %T, got %T: %v", target, err, err)
+	}
+}
+
 func expectNoError(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {

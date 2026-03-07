@@ -14,6 +14,13 @@ var (
 	BlackKnight = Piece{Color: Black, Kind: Knight}
 )
 
+var colorNames = [ColorCount]string{"White", "Black"}
+var kindNames = [PieceKindCount]string{"Pawn", "Rook", "Bishop", "Knight"}
+
+func (p *Piece) FriendlyName() string {
+	return colorNames[p.Color] + " " + kindNames[p.Kind]
+}
+
 func (p *Piece) String() string {
 	if p == nil {
 		return "."

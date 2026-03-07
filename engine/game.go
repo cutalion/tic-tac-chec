@@ -110,13 +110,29 @@ type Game struct {
 
 var (
 	ErrOutOfBounds    = errors.New("cell is out of bounds")
-	ErrOccupied       = errors.New("cell is already occupied")
-	ErrIllegalMove    = errors.New("illegal move")
 	ErrNotOnBoard     = errors.New("piece is not on the board")
 	ErrNotYourTurn    = errors.New("it is not your turn")
 	ErrGameOver       = errors.New("game is over")
 	ErrNotImplemented = errors.New("not implemented")
 )
+
+type IllegalMoveError struct {
+	Piece  Piece
+	Target Cell
+}
+
+func (e *IllegalMoveError) Error() string {
+	return fmt.Sprintf("%v can't move there — illegal move", e.Piece.FriendlyName())
+}
+
+type OccupiedError struct {
+	OccupiedBy Piece
+	Target     Cell
+}
+
+func (e *OccupiedError) Error() string {
+	return fmt.Sprintf("can't place here — occupied by %v", e.OccupiedBy.FriendlyName())
+}
 
 func NewGame() *Game {
 	return &Game{
@@ -180,7 +196,7 @@ func (g *Game) movePiece(piece *Piece, cell Cell) error {
 	}
 
 	if !slices.Contains(moves, cell) {
-		return fmt.Errorf("%v cannot move to %v: %w", piece, cell, ErrIllegalMove)
+		return &IllegalMoveError{Piece: *piece, Target: cell}
 	}
 
 	return g.Board.Move(piece, cell)
@@ -190,7 +206,7 @@ func (g *Game) placePiece(piece *Piece, cell Cell) error {
 	p := g.Board.At(cell)
 
 	if p != nil {
-		return fmt.Errorf("cell %v is already taken by %v: %w", cell, p, ErrOccupied)
+		return &OccupiedError{Target: cell, OccupiedBy: *p}
 	}
 
 	g.Board[cell.Row][cell.Col] = piece

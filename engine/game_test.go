@@ -56,7 +56,7 @@ func TestPlacingAtOccupiedCell(t *testing.T) {
 	g.Board[0][0] = g.Piece(BlackPawn)
 
 	err := g.Move(WhiteRook, Cell{0, 0})
-	expectError(t, err, ErrOccupied)
+	expectErrorType[*OccupiedError](t, err)
 }
 
 func TestValidRookMovement(t *testing.T) {
@@ -97,7 +97,7 @@ func TestInvalidRookMovement(t *testing.T) {
 			g.Board[tt.from.Row][tt.from.Col] = g.Piece(WhiteRook)
 
 			err := g.Move(WhiteRook, tt.to)
-			expectError(t, err, ErrIllegalMove)
+			expectErrorType[*IllegalMoveError](t, err)
 		})
 	}
 }
@@ -122,7 +122,7 @@ func TestRookJumpsNotAllowed(t *testing.T) {
 			g.Board[tt.taken.Row][tt.taken.Col] = g.Piece(WhitePawn)
 
 			err := g.Move(WhiteRook, tt.to)
-			expectError(t, err, ErrIllegalMove)
+			expectErrorType[*IllegalMoveError](t, err)
 		})
 	}
 }
