@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -20,9 +19,7 @@ func TestRookMoves(t *testing.T) {
 		{3, 0},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestRookMovesWithObstacle(t *testing.T) {
@@ -41,9 +38,7 @@ func TestRookMovesWithObstacle(t *testing.T) {
 		{3, 0},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestRookMovesWithCapture(t *testing.T) {
@@ -62,9 +57,7 @@ func TestRookMovesWithCapture(t *testing.T) {
 		{3, 0},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestBishopMoves(t *testing.T) {
@@ -83,9 +76,7 @@ func TestBishopMoves(t *testing.T) {
 		{0, 0},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestBishopMovesWithObstacle(t *testing.T) {
@@ -103,9 +94,7 @@ func TestBishopMovesWithObstacle(t *testing.T) {
 		{3, 1},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestBishopMovesWithCapture(t *testing.T) {
@@ -124,9 +113,7 @@ func TestBishopMovesWithCapture(t *testing.T) {
 		{1, 1},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestKnightMoves(t *testing.T) {
@@ -144,9 +131,7 @@ func TestKnightMoves(t *testing.T) {
 		{3, 0},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestKnightMovesWithObstacle(t *testing.T) {
@@ -164,9 +149,7 @@ func TestKnightMovesWithObstacle(t *testing.T) {
 		{3, 2},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestKnightMovesWithCapture(t *testing.T) {
@@ -185,9 +168,7 @@ func TestKnightMovesWithCapture(t *testing.T) {
 		{3, 0},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestPawnMoves(t *testing.T) {
@@ -203,9 +184,7 @@ func TestPawnMoves(t *testing.T) {
 		{1, 2},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestPawnMovesWithObstacle(t *testing.T) {
@@ -219,9 +198,7 @@ func TestPawnMovesWithObstacle(t *testing.T) {
 	expectNoError(t, err)
 
 	var expected []Cell
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestPawnMovesWithCapture(t *testing.T) {
@@ -241,9 +218,7 @@ func TestPawnMovesWithCapture(t *testing.T) {
 		{1, 3},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }
 
 func TestPawnMovesWithCaptureAtTheEdge(t *testing.T) {
@@ -261,7 +236,5 @@ func TestPawnMovesWithCaptureAtTheEdge(t *testing.T) {
 		{1, 1},
 	}
 
-	if !reflect.DeepEqual(moves, expected) {
-		t.Errorf("Expected %v, got %v", expected, moves)
-	}
+	expectCells(t, moves, expected)
 }

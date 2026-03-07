@@ -182,8 +182,8 @@ func TestCaptureWorks(t *testing.T) {
 
 	expectBoard(t, g.Board, Board{
 		{nil, nil, nil, nil},
-		{nil, bb, nil, nil},
-		{nil, nil, wb, nil},
+		{nil, wb, nil, nil},
+		{nil, nil, bb, nil},
 		{nil, nil, nil, nil},
 	})
 

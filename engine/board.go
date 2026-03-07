@@ -34,7 +34,7 @@ func (b *Board) Find(piece *Piece) (Cell, bool) {
 // a captured piece remains in Pieces and becomes "in hand" (Board.Find
 // returns false for it). This invariant requires that every piece on the
 // board is a pointer obtained from Game.Pieces, never a fresh &Piece{}.
-func (b *Board) Move(piece *Piece, to Cell) error {
+func (b *Board) move(piece *Piece, to Cell) error {
 	if !to.Valid() {
 		return ErrOutOfBounds
 	}

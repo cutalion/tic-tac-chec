@@ -28,7 +28,7 @@ const (
 )
 
 var (
-	ErrPlayerDisconnected = errors.New("Player disconnected")
+	ErrPlayerDisconnected = errors.New("player disconnected")
 )
 
 type Player struct {
@@ -119,14 +119,14 @@ func tickGame(game *engine.Game, white, black Player) error {
 	if err != nil {
 		currentPlayer.Println(err.Error())
 		currentPlayer.Println(msgYourTurn)
-		return nil // not an critical error, continue to the next tick
+		return nil // not a critical error, continue to the next tick
 	}
 
 	err = game.Move(piece, cell)
 	if err != nil {
 		currentPlayer.Println(err.Error())
 		currentPlayer.Println(msgYourTurn)
-		return nil // not an critical error, continue to the next tick
+		return nil // not a critical error, continue to the next tick
 	}
 
 	currentPlayer.PrintGame(game)
@@ -160,18 +160,18 @@ func endGame(game *engine.Game, white, black Player) {
 func readCommand(line string) (engine.Piece, engine.Cell, error) {
 	fields := strings.Fields(line)
 	if len(fields) != 2 {
-		err := fmt.Errorf("Didn't get you! Type piece and cell separated by space")
+		err := errors.New("didn't get you! Type piece and cell separated by space")
 		return engine.Piece{}, engine.Cell{}, err
 	}
 
 	piece, err := parse.Piece(fields[0])
 	if err != nil {
-		return engine.Piece{}, engine.Cell{}, fmt.Errorf("Didn't get you! %s", err)
+		return engine.Piece{}, engine.Cell{}, fmt.Errorf("didn't get you! %w", err)
 	}
 
 	cell, err := parse.Square(fields[1])
 	if err != nil {
-		return engine.Piece{}, engine.Cell{}, fmt.Errorf("Didn't get you! %s", err)
+		return engine.Piece{}, engine.Cell{}, fmt.Errorf("didn't get you! %w", err)
 	}
 
 	return piece, cell, nil

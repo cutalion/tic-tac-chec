@@ -224,7 +224,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else {
 				if m.PanelCursor < engine.BoardSize-1 {
-					m.PanelCursor += 1
+					m.PanelCursor++
 				}
 			}
 
@@ -235,7 +235,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else {
 				if m.PanelCursor > 0 {
-					m.PanelCursor -= 1
+					m.PanelCursor--
 				}
 			}
 

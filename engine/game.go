@@ -111,9 +111,8 @@ type Game struct {
 var (
 	ErrOutOfBounds    = errors.New("cell is out of bounds")
 	ErrNotOnBoard     = errors.New("piece is not on the board")
-	ErrNotYourTurn    = errors.New("it is not your turn")
-	ErrGameOver       = errors.New("game is over")
-	ErrNotImplemented = errors.New("not implemented")
+	ErrNotYourTurn = errors.New("it is not your turn")
+	ErrGameOver    = errors.New("game is over")
 )
 
 type IllegalMoveError struct {
@@ -199,7 +198,7 @@ func (g *Game) movePiece(piece *Piece, cell Cell) error {
 		return &IllegalMoveError{Piece: *piece, Target: cell}
 	}
 
-	return g.Board.Move(piece, cell)
+	return g.Board.move(piece, cell)
 }
 
 func (g *Game) placePiece(piece *Piece, cell Cell) error {

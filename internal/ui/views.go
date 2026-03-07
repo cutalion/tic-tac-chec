@@ -107,6 +107,9 @@ func turnIndicator(m Model, scheme ColorScheme) string {
 	style := lipgloss.NewStyle()
 
 	if m.Game.Status == engine.GameOver {
+		if m.Game.Winner == nil {
+			return style.Render("Draw!")
+		}
 		style = style.Foreground(toLipglossColor(scheme, *m.Game.Winner))
 		return style.Render(colorName(*m.Game.Winner) + " wins!")
 	}

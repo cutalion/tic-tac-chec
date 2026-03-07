@@ -3,6 +3,9 @@ package engine
 import (
 	"errors"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func expectEqual[T comparable](t *testing.T, actual, expected T) {
@@ -37,6 +40,13 @@ func expectNoError(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func expectCells(t *testing.T, actual, expected []Cell) {
+	t.Helper()
+	if diff := cmp.Diff(expected, actual, cmpopts.EquateEmpty()); diff != "" {
+		t.Errorf("cells mismatch (-want +got):\n%s", diff)
 	}
 }
 
