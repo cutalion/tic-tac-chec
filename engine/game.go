@@ -109,8 +109,8 @@ type Game struct {
 }
 
 var (
-	ErrOutOfBounds    = errors.New("cell is out of bounds")
-	ErrNotOnBoard     = errors.New("piece is not on the board")
+	ErrOutOfBounds = errors.New("cell is out of bounds")
+	ErrNotOnBoard  = errors.New("piece is not on the board")
 	ErrNotYourTurn = errors.New("it is not your turn")
 	ErrGameOver    = errors.New("game is over")
 )
@@ -174,7 +174,11 @@ func (g *Game) Move(selected Piece, cell Cell) error {
 
 	if g.checkGameOver() {
 		g.Status = GameOver
-		g.Winner = &g.Turn
+
+		// if Turn is ever changed after this point,
+		// Winner will still point to the correct value
+		winner := g.Turn
+		g.Winner = &winner
 	} else {
 		g.nextTurn()
 	}
