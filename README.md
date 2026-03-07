@@ -23,6 +23,8 @@ go run ./cmd/tui/
 
 ## Play Online
 
+[![SSH play demo](ssh-play.png)](https://asciinema.org/a/y841iuATvfSxSNDF)
+
 Connect via SSH — no install needed:
 
 ```bash
