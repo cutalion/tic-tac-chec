@@ -1,6 +1,6 @@
 # Chess Tic-Tac-Toe (Tic Tac Chec)
 
-A pet project to learn Go — a hybrid board game combining chess piece movement with tic-tac-toe win conditions.
+A pet project to learn Go — a hybrid board game combining chess piece movement with tic-tac-toe win conditions. This is not vibe-coded: I write all the Go code myself, using Claude Code's [Learning output style](https://code.claude.com/docs/en/output-styles) which explains concepts and guides decisions rather than generating code for you.
 
 ## Rules
 
