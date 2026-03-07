@@ -13,7 +13,7 @@ A pet project to learn Go — a hybrid board game combining chess piece movement
 
 ## Example
 
-![Gameplay](play.png)
+[![Gameplay](play.png)](https://asciinema.org/a/EBRFrNjgfLJ6Q7rp)
 
 ## How to Run
 
