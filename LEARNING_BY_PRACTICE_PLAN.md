@@ -6,7 +6,7 @@ Play order is designed so each milestone builds on the previous one.
 
 ---
 
-## Milestone 1: CLI + Claude Skill (AI opponent)
+## Milestone 1: CLI + Claude Skill (AI opponent) — DONE
 
 **What you build:**
 - `cmd/cli/main.go` — a command-line interface to the engine
@@ -37,36 +37,40 @@ Play order is designed so each milestone builds on the previous one.
 
 ---
 
-## Milestone 2: SSH Server (real multiplayer)
+## Milestone 2: SSH Server (real multiplayer) — DONE
 
-**What you build:**
-- `cmd/server/main.go` — SSH game server using `charmbracelet/wish`
-- Two players SSH in, both get the existing Bubbletea TUI
-- A game room ties them together via channels
+**What was built:**
+- `cmd/server/` — plain TCP game server (legacy, text protocol on :9090)
+- `cmd/ssh/main.go` — SSH game server using `charmbracelet/wish` + bubbletea middleware on :2222
+- `internal/game/room.go` — Room type multiplexes moves from both players via channels
+- `internal/ui/` — Bubble Tea TUI with online mode, board flipping, color schemes
+- Lobby auto-pairing, disconnect handling, host key management
+- Deployed to Railway at `tramway.proxy.rlwy.net:17014`
 
 **Architecture:**
 ```
 ssh player1@localhost -p 2222
 ssh player2@localhost -p 2222
 
-Game Server
-├── Lobby goroutine: pairs up connecting players
-├── GameRoom goroutine: owns game state, processes moves
-│       ┌─────────────────────────┐
-│  P1 ──┤  chan Move (in)         ├── P2
-│       │  chan GameState (out)   │
-│       └─────────────────────────┘
-└── Each player goroutine: reads input → sends to room
-                           receives state → renders TUI
+SSH Server (wish + bubbletea middleware)
+├── Lobby goroutine: pairs connecting players via unbuffered channel
+├── Room goroutine: owns game state, multiplexes moves via select
+│       ┌──────────────────────────────┐
+│  P1 ──┤  chan MoveRequest (in)       ├── P2
+│       │  chan tea.Msg (out, buf 1)   │
+│       └──────────────────────────────┘
+└── Each SSH session: Bubble Tea TUI with online mode
+                      sends MoveRequest → Room
+                      receives GameStateMsg/ErrorMsg ← Room
 ```
 
 **Go concepts learned:**
 - Goroutines and the "goroutine per connection" pattern
 - Channels: unidirectional (`chan<-`, `<-chan`), buffered vs unbuffered
-- `select` statement for multiplexing
-- `sync.Mutex` vs channel-based state ownership (CSP style)
-- SSH server with `charmbracelet/wish`
-- Context cancellation for cleanup
+- `select` statement for multiplexing moves from two players
+- Channel-based state ownership (CSP style)
+- SSH server with `charmbracelet/wish` + bubbletea middleware
+- Disconnect handling via channel close detection
 
 ---
 
@@ -97,13 +101,13 @@ Browser ──WebSocket──► Go HTTP server ──► Game engine
 ## Progression Map
 
 ```
-Milestone 1: CLI + Claude skill
-  └─ teaches: JSON, file I/O, CLI design, os.Args
+Milestone 1: CLI + Claude skill              ✅ DONE
+  └─ learned: JSON, file I/O, CLI design (Kong)
 
-Milestone 2: SSH server
-  └─ teaches: goroutines, channels, select, wish, CSP
+Milestone 2: SSH server                      ✅ DONE
+  └─ learned: goroutines, channels, select, wish, CSP, deployment
 
-Milestone 3: Web UI
+Milestone 3: Web UI                          ⬜ NEXT
   └─ teaches: net/http, WebSockets, context, JSON API
 ```
 
@@ -126,17 +130,7 @@ The transport layer (CLI / SSH / HTTP) is always a separate cmd/.
 
 ---
 
-## Starting Point: Milestone 1
+## Next Up: Milestone 3
 
-First task: build the CLI in `cmd/cli/main.go`.
-
-The CLI needs to:
-1. Load game state from `state.json` (or start fresh if file missing)
-2. Parse a command from `os.Args`
-3. Apply the command to the engine
-4. Save updated state back to `state.json`
-5. Print the result
-
-The game state to serialize is the `engine.Game` struct.
-Key question to explore: what does Go's `encoding/json` require of a struct to serialize it?
-(Hint: exported fields, and pointer fields need special thought.)
+Build the Web UI — HTTP server + WebSocket + minimal browser client.
+Reuse the `internal/game` Room/Player pattern from the SSH server, with a WebSocket transport instead of SSH sessions.
