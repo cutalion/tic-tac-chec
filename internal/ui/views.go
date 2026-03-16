@@ -103,26 +103,28 @@ func rulesView() string {
 `
 }
 
-func turnIndicator(m Model, scheme ColorScheme) string {
+func turnIndicator(m Model) string {
 	style := lipgloss.NewStyle()
+	scheme := m.colorScheme()
 
-	if m.Game.Status == engine.GameOver {
-		if m.Game.Winner == nil {
+	if m.gameOver() {
+		if m.draw() {
 			return style.Render("Draw!")
 		}
-		style = style.Foreground(toLipglossColor(scheme, *m.Game.Winner))
-		return style.Render(colorName(*m.Game.Winner) + " wins!")
+
+		style = style.Foreground(toLipglossColor(scheme, *m.winner()))
+		return style.Render(colorName(*m.winner()) + " wins!")
 	}
 
-	turnColor := colorName(m.Game.Turn)
 	style = style.Foreground(toLipglossColor(scheme, m.Game.Turn))
-	if m.Mode == ModeOnline {
-		if m.Game.Turn == m.MyColor {
+	if m.online() {
+		if m.myTurn() {
 			return style.Render("Your turn")
 		} else {
 			return "Opponent's turn"
 		}
 	} else {
+		turnColor := colorName(m.Game.Turn)
 		return style.Render(turnColor + "'s turn")
 	}
 }
@@ -139,32 +141,20 @@ func (m Model) View() string {
 	bw := rowLabelWidth + lipgloss.Width(baseCellStyle.Render(" "))*engine.BoardSize + 2
 	title := lipgloss.NewStyle().Width(bw).Align(lipgloss.Center).Render("Tic Tac Chec")
 
-	statusLine := ""
-	if m.ShowStatus {
-		statusLine = fmt.Sprintf("cursor: board=%v pos=%v panel=%v selected=%v", m.CursorOnBoard, engine.Cell(m.BoardCursor), m.PanelCursor, m.SelectedPiece)
-	}
-
-	scheme := ColorSchemes[m.SchemeIdx]
-	lay := m.layout()
-
-	mainBoard := boardView(m, scheme)
-
-	turnLine := lipgloss.NewStyle().Width(bw).Align(lipgloss.Center).Render(turnIndicator(m, scheme))
-
-	topActive := m.Game.Turn == lay.topColor
-	bottomActive := m.Game.Turn == lay.bottomColor
+	turnLine := lipgloss.NewStyle().Width(bw).Align(lipgloss.Center).Render(turnIndicator(m))
+	layout := m.layout()
 
 	return lipgloss.JoinVertical(lipgloss.Left,
 		"",
 		title,
 		turnLine,
-		handPanel(m.Game, lay.topColor, !m.CursorOnBoard && topActive, int(m.PanelCursor), m.SelectedPiece, scheme),
-		mainBoard,
-		handPanel(m.Game, lay.bottomColor, !m.CursorOnBoard && bottomActive, int(m.PanelCursor), m.SelectedPiece, scheme),
+		handPanel(m, layout.topColor),
+		boardView(m),
+		handPanel(m, layout.bottomColor),
 		"",
 		fixedLine.Render(m.LastErrorMessage),
-		fixedLine.Render(statusLine),
-		fmt.Sprintf("q - quit, c - color [%s], ? - rules", scheme.Name),
+		fixedLine.Render(statusLine(m)),
+		fmt.Sprintf("q - quit, c - color [%s], ? - rules", m.colorScheme().Name),
 	)
 }
 
@@ -178,7 +168,7 @@ func colorName(c engine.Color) string {
 	return c.String()
 }
 
-func boardView(m Model, scheme ColorScheme) string {
+func boardView(m Model) string {
 	flipped := m.shouldFlip()
 	parts := []string{letterMarkers()}
 
@@ -187,7 +177,7 @@ func boardView(m Model, scheme ColorScheme) string {
 		if flipped {
 			engineRow = engine.BoardSize - 1 - i
 		}
-		cells := rowCells(m, engineRow, scheme)
+		cells := rowCells(m, engineRow)
 		num := fmt.Sprintf("%d", engine.BoardSize-engineRow)
 		cellsRow := lipgloss.JoinHorizontal(lipgloss.Top, cells...)
 		parts = append(parts, lipgloss.JoinHorizontal(lipgloss.Top, leftLabel(num), cellsRow, rightLabel(num)))
@@ -197,26 +187,34 @@ func boardView(m Model, scheme ColorScheme) string {
 	return lipgloss.JoinVertical(lipgloss.Left, parts...)
 }
 
-func rowCells(m Model, i int, scheme ColorScheme) []string {
-	var selectedCell engine.Cell
-	selectedOnBoard := false
-	if m.SelectedPiece != nil {
-		selectedCell, selectedOnBoard = m.Game.Board.Find(m.SelectedPiece)
-	}
-
+func rowCells(m Model, row int) []string {
 	cells := make([]string, engine.BoardSize)
-	for j := range engine.BoardSize {
-		style := baseCellStyle
-		switch {
-		case m.CursorOnBoard && m.BoardCursor.Row == i && m.BoardCursor.Col == j:
-			style = style.BorderForeground(borderHovered)
-		case selectedOnBoard && selectedCell.Row == i && selectedCell.Col == j:
-			style = style.BorderForeground(borderSelected)
-		}
-		cells[j] = style.Render(pieceView(m.Game.Board[i][j], scheme))
+
+	for col := range engine.BoardSize {
+		style := baseCellStyle.BorderForeground(cellBorderColor(m, row, col))
+		cells[col] = style.Render(pieceView(m.Game.Board[row][col], m.colorScheme()))
 	}
 
 	return cells
+}
+
+func handPanel(m Model, color engine.Color) string {
+	game := m.Game
+	handCells := make([]string, len(Kinds))
+
+	for col, kind := range Kinds {
+		style := baseCellStyle.BorderForeground(handPieceBorderColor(m, color, col))
+		piece := game.Piece(engine.Piece{Color: color, Kind: kind})
+		onBoard := game.PieceOnBoard(*piece)
+
+		pieceStr := " "
+		if !onBoard {
+			pieceStr = pieceView(piece, m.colorScheme())
+		}
+
+		handCells[col] = style.Render(pieceStr)
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, leftLabel(color.String()), lipgloss.JoinHorizontal(lipgloss.Top, handCells...))
 }
 
 func pieceView(piece *engine.Piece, scheme ColorScheme) string {
@@ -245,26 +243,79 @@ func pieceView(piece *engine.Piece, scheme ColorScheme) string {
 	return lipgloss.NewStyle().Bold(true).Foreground(color).Render(symbol)
 }
 
-func handPanel(game *engine.Game, color engine.Color, active bool, cursor int, selected *engine.Piece, scheme ColorScheme) string {
-	cells := make([]string, len(Kinds))
-	for i, kind := range Kinds {
-		piece := game.Pieces.Get(color, kind)
-		_, onBoard := game.Board.Find(piece)
-		style := baseCellStyle
-		switch {
-		case onBoard:
-			style = style.Faint(true)
-		case piece == selected:
-			style = style.BorderForeground(borderSelected)
-		case active && i == cursor:
-			style = style.BorderForeground(borderHovered)
-		}
+func showCursor(m Model) bool {
+	if m.gameOver() {
+		return false
+	}
 
-		if onBoard {
-			cells[i] = style.Render(pieceView(nil, scheme))
-		} else {
-			cells[i] = style.Render(pieceView(piece, scheme))
+	if m.localGame() { // always show cursor in local game
+		return true
+	}
+
+	return m.myTurn() // in online game, show cursor only when it's my turn
+}
+
+func cellBorderColor(m Model, row, col int) lipgloss.Color {
+	if !showCursor(m) {
+		return borderDimmed
+	}
+
+	if m.SelectedPiece != nil {
+		selectedCell, selectedOnBoard := m.Game.Board.Find(m.SelectedPiece)
+
+		if selectedOnBoard && selectedCell.Row == row && selectedCell.Col == col {
+			return borderSelected
 		}
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, leftLabel(color.String()), lipgloss.JoinHorizontal(lipgloss.Top, cells...))
+
+	if m.cursorOnBoard() && m.Cursor.BoardCursor.Row == row && m.Cursor.BoardCursor.Col == col {
+		return borderHovered
+	}
+
+	return borderDimmed
+}
+
+func handPieceBorderColor(m Model, handColor engine.Color, pos int) lipgloss.Color {
+	if !showCursor(m) {
+		return borderDimmed
+	}
+
+	piece := m.Game.Pieces.Get(handColor, Kinds[pos])
+	inHand := m.Game.PieceInHand(*piece)
+
+	activeHand := m.Game.Turn == handColor
+	selected := m.SelectedPiece
+	cursor := m.Cursor.PanelIndex
+
+	if !activeHand {
+		return borderDimmed
+	}
+
+	if inHand && selected != nil && *piece == *selected {
+		return borderSelected
+	}
+
+	if cursor != nil && pos == *cursor {
+		return borderHovered
+	}
+
+	return borderDimmed
+}
+
+func statusLine(m Model) string {
+	if !m.ShowStatus {
+		return ""
+	}
+
+	boardCursor := "nil"
+	if m.cursorOnBoard() {
+		boardCursor = fmt.Sprintf("(%d, %d)", m.Cursor.BoardCursor.Row, m.Cursor.BoardCursor.Col)
+	}
+
+	panelPos := "nil"
+	if m.Cursor.PanelIndex != nil {
+		panelPos = fmt.Sprintf("%d", *m.Cursor.PanelIndex)
+	}
+
+	return fmt.Sprintf("cursor: board=%v pos=%v panel=%v selected=%v", m.cursorOnBoard(), boardCursor, panelPos, m.SelectedPiece)
 }

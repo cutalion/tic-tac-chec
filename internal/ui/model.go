@@ -22,14 +22,7 @@ const (
 	PhaseWaiting
 )
 
-type PanelCursor int // 0-3
-type BoardCursor engine.Cell
-
 var Kinds = []engine.PieceKind{engine.Pawn, engine.Rook, engine.Bishop, engine.Knight}
-
-func (m Model) shouldFlip() bool {
-	return m.Mode == ModeOnline && m.MyColor == engine.Black
-}
 
 // layout holds computed parameters for flipped/normal board orientation.
 // All cursor movement and panel transitions use these instead of hardcoded directions.
@@ -42,33 +35,10 @@ type layout struct {
 	bottomRow   int          // engine row at visual bottom of board (3 normal, 0 flipped)
 }
 
-func (m Model) layout() layout {
-	if m.shouldFlip() {
-		return layout{
-			topColor:    engine.White,
-			bottomColor: engine.Black,
-			upDelta:     +1,
-			downDelta:   -1,
-			topRow:      engine.BoardSize - 1,
-			bottomRow:   0,
-		}
-	}
-	return layout{
-		topColor:    engine.Black,
-		bottomColor: engine.White,
-		upDelta:     -1,
-		downDelta:   +1,
-		topRow:      0,
-		bottomRow:   engine.BoardSize - 1,
-	}
-}
-
 type Model struct {
 	Game             *engine.Game
-	CursorOnBoard    bool
 	SelectedPiece    *engine.Piece
-	BoardCursor      BoardCursor
-	PanelCursor      PanelCursor
+	Cursor           *Cursor
 	LastErrorMessage string
 	ShowStatus       bool
 	ShowRules        bool
@@ -86,7 +56,8 @@ type Model struct {
 
 func InitialModel() Model {
 	return Model{
-		Game: engine.NewGame(),
+		Game:   engine.NewGame(),
+		Cursor: NewCursor(),
 	}
 }
 
@@ -107,7 +78,7 @@ func (m Model) Init() tea.Cmd {
 // Must be returned from every Update path in online mode, otherwise the model
 // stops receiving messages and the UI freezes.
 func (m Model) nextCmd() tea.Cmd {
-	if m.Mode != ModeOnline {
+	if !m.online() {
 		return nil
 	}
 	return m.waitForIncoming()
@@ -149,7 +120,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Game = &game
 		m.SelectedPiece = nil
 
-		m.CursorOnBoard = false
 		m.resetCursor()
 		return m, m.nextCmd()
 
@@ -176,7 +146,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.nextCmd()
 
 		case "n":
-			if m.Game.Status == engine.GameOver && m.Mode != ModeOnline {
+			if m.gameOver() && !m.online() {
 				schemeIdx := m.SchemeIdx
 				m = InitialModel()
 				m.SchemeIdx = schemeIdx
@@ -193,91 +163,79 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// block all other input when game is over
-		if m.Game.Status == engine.GameOver {
+		if m.gameOver() {
+			return m, m.nextCmd()
+		}
+
+		// block all input when not your turn
+		if m.online() && !m.myTurn() {
 			return m, m.nextCmd()
 		}
 
 		switch msg.String() {
 		case "up", "k":
 			lay := m.layout()
-			if m.CursorOnBoard {
-				if m.BoardCursor.Row != lay.topRow {
-					m.BoardCursor = BoardCursor(engine.Cell{Row: m.BoardCursor.Row + lay.upDelta, Col: m.BoardCursor.Col})
+			if m.cursorOnBoard() {
+				if m.Cursor.BoardCursor.Row != lay.topRow {
+					m.Cursor.moveVertically(lay.upDelta)
 				} else if m.Game.Turn == lay.topColor {
 					cursor, ok := m.pickUnusedPanelPiece()
 					if ok {
-						m.PanelCursor = cursor
-						m.CursorOnBoard = false
+						m.Cursor.enterPanel(cursor)
 					}
 				}
 			} else {
 				if m.Game.Turn == lay.bottomColor {
-					m.CursorOnBoard = true
-					m.BoardCursor = BoardCursor(engine.Cell{Row: lay.bottomRow, Col: int(m.PanelCursor)})
+					m.Cursor.enterBoard(lay.bottomRow, *m.Cursor.PanelIndex)
 				}
 			}
 
 		case "down", "j":
 			lay := m.layout()
-			if m.CursorOnBoard {
-				if m.BoardCursor.Row != lay.bottomRow {
-					m.BoardCursor = BoardCursor(engine.Cell{Row: m.BoardCursor.Row + lay.downDelta, Col: m.BoardCursor.Col})
+			if m.cursorOnBoard() {
+				if m.Cursor.BoardCursor.Row != lay.bottomRow {
+					m.Cursor.moveVertically(lay.downDelta)
 				} else if m.Game.Turn == lay.bottomColor {
-					m.CursorOnBoard = false
-					m.PanelCursor = PanelCursor(m.BoardCursor.Col)
+					cursor, ok := m.pickUnusedPanelPiece()
+					if ok {
+						m.Cursor.enterPanel(cursor)
+					}
 				}
 			} else {
 				if m.Game.Turn == lay.topColor {
-					m.CursorOnBoard = true
-					m.BoardCursor = BoardCursor(engine.Cell{Row: lay.topRow, Col: int(m.PanelCursor)})
+					m.Cursor.enterBoard(lay.topRow, *m.Cursor.PanelIndex)
 				}
 			}
 
 		case "right", "l":
-			if m.CursorOnBoard {
-				if m.BoardCursor.Col < engine.BoardSize-1 {
-					m.BoardCursor = BoardCursor(engine.Cell{Row: m.BoardCursor.Row, Col: m.BoardCursor.Col + 1})
-				}
-			} else {
-				if m.PanelCursor < engine.BoardSize-1 {
-					m.PanelCursor++
-				}
+			if m.Cursor.col() < engine.BoardSize-1 {
+				m.Cursor.moveHorizontally(+1)
 			}
 
 		case "left", "h":
-			if m.CursorOnBoard {
-				if m.BoardCursor.Col > 0 {
-					m.BoardCursor = BoardCursor(engine.Cell{Row: m.BoardCursor.Row, Col: m.BoardCursor.Col - 1})
-				}
-			} else {
-				if m.PanelCursor > 0 {
-					m.PanelCursor--
-				}
+			if m.Cursor.col() > 0 {
+				m.Cursor.moveHorizontally(-1)
 			}
 
 		case "enter", " ":
-			// In online mode, only allow input on your turn
-			if m.Mode == ModeOnline && m.Game.Turn != m.MyColor {
-				return m, m.nextCmd()
-			}
-
-			if m.CursorOnBoard {
+			if m.cursorOnBoard() {
 				if m.SelectedPiece == nil {
-					piece := m.Game.Board.At(engine.Cell(m.BoardCursor))
+					piece := m.Game.Board.At(*m.Cursor.BoardCursor)
 					if piece != nil && piece.Color == m.Game.Turn {
 						m.SelectedPiece = piece
 					}
 				} else {
-					piece := m.Game.Board.At(engine.Cell(m.BoardCursor))
+					piece := m.Game.Board.At(*m.Cursor.BoardCursor)
 					if piece != nil && piece.Color == m.Game.Turn {
 						m.SelectedPiece = piece
 					} else {
-						return m.executeMove(*m.SelectedPiece, engine.Cell(m.BoardCursor))
+						return m.executeMove(*m.SelectedPiece, *m.Cursor.BoardCursor)
 					}
 				}
-			} else {
-				piece := m.Game.Pieces.Get(m.Game.Turn, Kinds[m.PanelCursor])
-				if piece != nil && piece.Color == m.Game.Turn {
+			} else { // cursor on hand panel
+				piece := m.Game.Pieces.Get(m.Game.Turn, Kinds[*m.Cursor.PanelIndex])
+
+				if piece != nil && piece.Color == m.Game.Turn && !m.Game.PieceOnBoard(*piece) {
 					m.SelectedPiece = piece
 				}
 			}
@@ -288,7 +246,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) executeMove(piece engine.Piece, cell engine.Cell) (tea.Model, tea.Cmd) {
-	if m.Mode == ModeOnline {
+	if m.online() {
 		m.SelectedPiece = nil
 		incoming := m.Incoming
 
@@ -313,7 +271,6 @@ func (m Model) executeMove(piece engine.Piece, cell engine.Cell) (tea.Model, tea
 		return m, nil
 	}
 	m.SelectedPiece = nil
-	m.CursorOnBoard = false
 	m.resetCursor()
 	return m, nil
 }
@@ -324,32 +281,104 @@ func (m *Model) resetCursor() {
 		_, onBoard := m.Game.Board.Find(piece)
 
 		if !onBoard {
-			m.PanelCursor = PanelCursor(i)
-			m.CursorOnBoard = false
+			m.Cursor.enterPanel(i)
 			return
 		}
 	}
 
-	m.CursorOnBoard = true
+	// All pieces on board — place cursor on the first own piece,
+	// scanning from the player's bottom row upward.
+	lay := m.layout()
+	row := lay.bottomRow
+	for range engine.BoardSize {
+		for col := range engine.BoardSize {
+			p := m.Game.Board.At(engine.Cell{Row: row, Col: col})
+			if p != nil && p.Color == m.Game.Turn {
+				m.Cursor.enterBoard(row, col)
+				return
+			}
+		}
+		row += lay.upDelta
+	}
 }
 
-func (m *Model) pickUnusedPanelPiece() (PanelCursor, bool) {
-	sameCol := Kinds[m.BoardCursor.Col]
-	piece := m.Game.Pieces.Get(m.Game.Turn, sameCol)
-	_, onBoard := m.Game.Board.Find(piece)
+func (m *Model) pickUnusedPanelPiece() (int, bool) {
+	if m.cursorOnBoard() {
+		kind := Kinds[m.Cursor.col()]
+		piece := m.Game.Pieces.Get(m.Game.Turn, kind)
 
-	if !onBoard {
-		return PanelCursor(m.BoardCursor.Col), true
+		if m.Game.PieceInHand(*piece) {
+			return m.Cursor.col(), true
+		}
 	}
 
-	for i, kind := range Kinds {
+	for col, kind := range Kinds {
 		piece := m.Game.Pieces.Get(m.Game.Turn, kind)
-		_, onBoard := m.Game.Board.Find(piece)
 
-		if !onBoard {
-			return PanelCursor(i), true
+		if m.Game.PieceInHand(*piece) {
+			return col, true
 		}
 	}
 
 	return 0, false
+}
+
+func (m *Model) gameOver() bool {
+	return m.Game != nil && m.Game.Status == engine.GameOver
+}
+
+func (m *Model) draw() bool {
+	return m.gameOver() && m.winner() == nil
+}
+
+func (m *Model) winner() *engine.Color {
+	return m.Game.Winner
+}
+
+func (m *Model) online() bool {
+	return m.Mode == ModeOnline
+}
+
+func (m *Model) localGame() bool {
+	return m.Mode == ModeLocal
+}
+
+func (m *Model) myTurn() bool {
+	return m.Game != nil && m.Game.Turn == m.MyColor
+}
+
+func (m *Model) colorScheme() ColorScheme {
+	return ColorSchemes[m.SchemeIdx]
+}
+
+func (m *Model) shouldFlip() bool {
+	return m.online() && m.MyColor == engine.Black
+}
+
+func (m *Model) cursorOnBoard() bool {
+	return m.Cursor.onBoard()
+}
+
+func (m *Model) layout() layout {
+	if m.shouldFlip() { // if my color is black, flip the board
+		// white on top, black on bottom
+		return layout{
+			topColor:    engine.White,
+			bottomColor: engine.Black,
+			upDelta:     +1,
+			downDelta:   -1,
+			topRow:      engine.BoardSize - 1,
+			bottomRow:   0,
+		}
+	}
+
+	// black on top, white on bottom
+	return layout{
+		topColor:    engine.Black,
+		bottomColor: engine.White,
+		upDelta:     -1,
+		downDelta:   +1,
+		topRow:      0,
+		bottomRow:   engine.BoardSize - 1,
+	}
 }

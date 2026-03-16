@@ -190,6 +190,15 @@ func (g *Game) Piece(p Piece) *Piece {
 	return g.Pieces.Get(p.Color, p.Kind)
 }
 
+func (g *Game) PieceOnBoard(piece Piece) bool {
+	_, onBoard := g.Board.Find(g.Piece(piece))
+	return onBoard
+}
+
+func (g *Game) PieceInHand(piece Piece) bool {
+	return !g.PieceOnBoard(piece)
+}
+
 // --- Private helpers ---
 
 func (g *Game) movePiece(piece *Piece, cell Cell) error {

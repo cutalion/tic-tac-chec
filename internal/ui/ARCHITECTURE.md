@@ -13,9 +13,9 @@ state, and broadcasts results.
 ┌──────────────────────┐            ┌──────────────────────┐
 │   Bubble Tea Model   │            │   Bubble Tea Model   │
 │                      │            │                      │
-│  Moves (chan<-)  ────┼──┐    ┌──┼──── Moves (chan<-)    │
-│  Incoming (<-chan) ◄──┼┐ │    │ ┌┼──► Incoming (<-chan)  │
-└──────────────────────┘│ │    │ │└──────────────────────┘
+│  Moves (chan<-)  ────┼──┐    ┌────┼──── Moves (chan<-)   │
+│  Incoming (<-chan) ◄─┼┐ │    │ ┌──┼──► Incoming (<-chan) │
+└──────────────────────┘│ │    │ │  └──────────────────────┘
                         │ │    │ │
                         │ ▼    ▼ │
                       ┌─┴────────┴──┐
