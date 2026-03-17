@@ -137,7 +137,28 @@ Browser ──WebSocket──► cmd/web/
 
 ---
 
-## Milestone 5 (future): Cross-transport play
+## Milestone 5: AI Agent Arena
+
+**Idea:** Run AI agents that play tic-tac-chec against humans (and each other) via the web UI. Track game results to compare how different agents perform and how they improve over time as their skill prompts evolve.
+
+**Basic flow:**
+1. An AI agent runs on the server (in a Docker container), connects to the web server as a player
+2. Human opens the web UI and gets paired with the agent (or another human)
+3. Game results (winner, moves, agent identity/version) are persisted
+4. A stats dashboard shows win rates, agent comparisons, and performance over time
+
+**The interesting question:** Can an agent "learn" by iterating on its skill prompt? Play N games → analyze losses → update prompt → play again → measure improvement.
+
+**Open design questions (to revisit):**
+- Agent runtime: Claude Code with skill, Claude Agent SDK, or direct API calls?
+- How agents connect: WebSocket client, HTTP API, or in-process?
+- Matchmaking: "Play vs AI" button, separate lobby, or automated batch games?
+- Storage: SQLite, PostgreSQL, or flat files?
+- Dashboard: server-rendered or static JS?
+
+---
+
+## Milestone 6 (future): Cross-transport play
 
 - Shared room registry between SSH and web servers
 - Adapter layer between Bubble Tea and channel-based rooms
@@ -160,7 +181,10 @@ Milestone 3: Web UI                          ✅ DONE
 Milestone 4: Rooms & Reconnect              ⬜ NEXT
   └─ teaches: sync.Mutex, context timeouts, session management, state machines
 
-Milestone 5: Cross-transport play            ⬜ FUTURE
+Milestone 5: AI Agent Arena                  ⬜ FUTURE
+  └─ teaches: LLM API integration, game result persistence, stats/dashboards
+
+Milestone 6: Cross-transport play            ⬜ FUTURE
   └─ teaches: adapter patterns, shared state across transports
 ```
 
