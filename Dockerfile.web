@@ -1,0 +1,11 @@
+FROM golang:1.25-alpine AS build
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go build -o /web-server ./cmd/web
+
+FROM alpine:3.20
+COPY --from=build /web-server /web-server
+WORKDIR /app
+CMD ["/web-server"]

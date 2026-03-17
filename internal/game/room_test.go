@@ -35,6 +35,10 @@ func TestRoom(t *testing.T) {
 
 	go room.Run()
 
+	// drain initial game state messages
+	<-room.Players[0].Incoming
+	<-room.Players[1].Incoming
+
 	moves[0] <- ui.MoveRequest{Piece: engine.WhiteBishop, Cell: engine.Cell{Row: 0, Col: 0}}
 	msg0 := <-room.Players[0].Incoming
 
@@ -72,6 +76,10 @@ func TestBufferedChannelDeliversMessage(t *testing.T) {
 
 	go room.Run()
 
+	// drain initial game state messages
+	<-room.Players[0].Incoming
+	<-room.Players[1].Incoming
+
 	moves[0] <- ui.MoveRequest{Piece: engine.WhiteBishop, Cell: engine.Cell{Row: 0, Col: 0}}
 
 	// expecting black to receive the message, not drop it
@@ -84,4 +92,29 @@ func TestBufferedChannelDeliversMessage(t *testing.T) {
 
 	close(moves[0])
 	close(moves[1])
+}
+
+func TestItCheckCurrentMoversColor(t *testing.T) {
+	room, moves := setupRoom()
+	defer close(moves[0])
+	defer close(moves[1])
+
+	go room.Run()
+
+	// drain initial game state messages
+	<-room.Players[0].Incoming
+	<-room.Players[1].Incoming
+
+	// white cannot move black bishop
+	moves[0] <- ui.MoveRequest{Piece: engine.BlackBishop, Cell: engine.Cell{Row: 0, Col: 0}}
+	msg0 := <-room.Players[0].Incoming
+
+	err, ok := msg0.(ui.ErrorMsg)
+	if !ok {
+		t.Fatalf("expected ErrorMsg, got: %T", msg0)
+	}
+
+	if err.Err != ErrInvalidMove {
+		t.Fatalf("expected error message: %s, got: %s", ErrInvalidMove, err.Err)
+	}
 }

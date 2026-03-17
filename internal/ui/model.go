@@ -50,7 +50,7 @@ type Model struct {
 	Phase      Phase
 	MyColor    engine.Color
 	Moves      chan<- MoveRequest  // send moves to Room
-	Incoming   <-chan tea.Msg      // receive state updates from Room
+	Incoming   <-chan any          // receive state updates from Room
 	LobbyReady <-chan engine.Color // receives assigned color when paired
 }
 

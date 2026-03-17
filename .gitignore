@@ -23,3 +23,6 @@ code-critic.md
 # Built binaries
 /tic-tac-chec
 /tic-tac-chec-cli
+
+# Air hot-reload
+tmp/

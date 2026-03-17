@@ -1,16 +1,15 @@
 package game
 
 import (
+	"errors"
 	"tic-tac-chec/engine"
 	"tic-tac-chec/internal/ui"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 type Player struct {
 	Color    engine.Color
 	Moves    <-chan ui.MoveRequest
-	Incoming chan tea.Msg
+	Incoming chan any
 }
 
 type Room struct {
@@ -18,12 +17,16 @@ type Room struct {
 	Game    *engine.Game
 }
 
+var (
+	ErrInvalidMove = errors.New("invalid move")
+)
+
 func NewPlayer(moves <-chan ui.MoveRequest) Player {
 	return Player{
 		Moves: moves,
 		// Room writes, UI reads. Bidirectional on the struct so both sides
 		// can access it. Buffered(1) to absorb timing gaps between UI Cmd dispatches.
-		Incoming: make(chan tea.Msg, 1),
+		Incoming: make(chan any, 1),
 	}
 }
 
@@ -40,6 +43,10 @@ func (r *Room) Run() {
 
 	white := r.Players[0]
 	black := r.Players[1]
+
+	for _, player := range r.Players {
+		player.Incoming <- ui.GameStateMsg{Game: *r.Game}
+	}
 
 	for {
 		select {
@@ -73,14 +80,19 @@ func (r *Room) Run() {
 
 // handleMove processes a move from mover. Returns true if the game should stop.
 func (r *Room) handleMove(mover Player, move ui.MoveRequest) (stop bool) {
+	if mover.Color != move.Piece.Color {
+		mover.Incoming <- ui.ErrorMsg{Err: ErrInvalidMove}
+		return false
+	}
+
 	err := r.Game.Move(move.Piece, move.Cell)
 	if err != nil {
-		mover.Incoming <- tea.Msg(ui.ErrorMsg{Err: err})
+		mover.Incoming <- ui.ErrorMsg{Err: err}
 		return false
 	}
 
 	for _, player := range r.Players {
-		player.Incoming <- tea.Msg(ui.GameStateMsg{Game: *r.Game})
+		player.Incoming <- ui.GameStateMsg{Game: *r.Game}
 	}
 
 	return r.Game.Status == engine.GameOver

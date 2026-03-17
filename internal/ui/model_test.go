@@ -4,7 +4,6 @@ import (
 	"testing"
 	"tic-tac-chec/engine"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"go.uber.org/goleak"
 )
 
@@ -13,7 +12,7 @@ func TestExecuteMoveOnline_ReturnsResponse(t *testing.T) {
 
 	moves := make(chan MoveRequest, 1)
 	defer close(moves)
-	incoming := make(chan tea.Msg)
+	incoming := make(chan any)
 
 	model := InitialModel()
 	model.Mode = ModeOnline
