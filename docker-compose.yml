@@ -1,0 +1,32 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+  ssh:
+    build:
+      context: .
+      dockerfile: Dockerfile.ssh
+    ports:
+      - "2222:2222"
+    volumes:
+      - ssh-keys:/app/.ssh
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: unless-stopped
+
+volumes:
+  caddy-data:
+  caddy-config:
+  ssh-keys:

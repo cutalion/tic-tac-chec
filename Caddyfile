@@ -1,0 +1,3 @@
+ttc.ctln.pw {
+	reverse_proxy web:8080
+}
