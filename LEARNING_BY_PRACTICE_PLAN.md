@@ -74,27 +74,74 @@ SSH Server (wish + bubbletea middleware)
 
 ---
 
-## Milestone 3: Web UI
+## Milestone 3: Web UI — DONE
 
-**What you build:**
-- `cmd/webserver/main.go` — HTTP + WebSocket server
-- Minimal browser client (HTML + JS) — no framework needed
-- The engine runs server-side; browser just renders state and sends moves
+**What was built:**
+- `cmd/web/main.go` — HTTP + WebSocket server with lobby and game bridge
+- `cmd/web/static/` — browser client (HTML + JS + CSS), reactive state-based rendering
+- `internal/wire/` — shared JSON serialization (extracted from CLI)
+- Build-tag based static serving (`embed.FS` prod, disk dev)
+- Decoupled `internal/game/room.go` from bubbletea (`chan tea.Msg` → `chan any`)
+- Room color validation, initial game state broadcast
+- Dockerized (`Dockerfile.web`), wss:// support for deployment
 
 **Architecture:**
 ```
-Browser ──WebSocket──► Go HTTP server ──► Game engine
-                      (net/http)
-                      one goroutine per WS connection
-                      channels connect players in a room
+Browser (HTML+JS) ──WebSocket──► cmd/web/ (HTTP server)
+                                  ├── embedded static files (embed.FS + fs.Sub)
+                                  ├── /ws endpoint (WebSocket upgrade)
+                                  ├── lobby goroutine (pairs players)
+                                  └── Room.Run() (reused from internal/game)
+
+WebSocket handler: read goroutine + write loop
+  read:  browser JSON → parse.Piece/Square → moves channel → Room
+  write: Room → player.Incoming → JSON envelope → browser
+  coordination: done channel + sync.Once for clean shutdown
 ```
 
 **Go concepts learned:**
-- `net/http` — handlers, middleware, routing
-- WebSockets — full-duplex, `gorilla/websocket` or stdlib
-- JSON as wire protocol
-- Graceful shutdown with `context.Context`
-- CORS and HTTP basics
+- `net/http` — ServeMux, handlers, request context lifecycle
+- WebSockets — HTTP upgrade, bidirectional messaging (`coder/websocket`)
+- `embed.FS` + `fs.Sub` — single-binary static file serving
+- Build tags — compile-time dev/prod switching
+- Goroutine coordination — `done` channels, `sync.Once`, read/write loop pattern
+- `-race` flag for detecting concurrent access bugs
+- Air hot-reload for development
+
+---
+
+## Milestone 4: Rooms & Reconnect (web only)
+
+**What to build:**
+- Room registry — persistent rooms that outlive WebSocket disconnects
+- Lobby auto-pairs into named rooms (room gets an ID, shareable URL)
+- Reconnect — player token, re-attach WebSocket to existing room/slot
+- Room lifecycle: waiting → playing → finished, with timeout cleanup
+
+**Architecture:**
+```
+Browser ──WebSocket──► cmd/web/
+                        ├── Lobby: auto-pairs → creates named room in registry
+                        ├── Registry: map[string]*ManagedRoom (sync.Mutex)
+                        │     └── ManagedRoom: ID, Room, player slots, state, timeout
+                        ├── Reconnect: token in sessionStorage → re-attach to room
+                        └── Direct join: /?room=abc123 → skip lobby, join existing room
+```
+
+**Go concepts to learn:**
+- `sync.Mutex` — protecting shared state (room registry)
+- `context.WithTimeout` — room cleanup after abandonment
+- Session management — token-based player identity
+- State machines — room lifecycle management
+- Map access patterns — concurrent-safe registry
+
+---
+
+## Milestone 5 (future): Cross-transport play
+
+- Shared room registry between SSH and web servers
+- Adapter layer between Bubble Tea and channel-based rooms
+- SSH player paired with web player in the same room
 
 ---
 
@@ -107,8 +154,14 @@ Milestone 1: CLI + Claude skill              ✅ DONE
 Milestone 2: SSH server                      ✅ DONE
   └─ learned: goroutines, channels, select, wish, CSP, deployment
 
-Milestone 3: Web UI                          ⬜ NEXT
-  └─ teaches: net/http, WebSockets, context, JSON API
+Milestone 3: Web UI                          ✅ DONE
+  └─ learned: net/http, WebSockets, embed.FS, build tags, goroutine coordination
+
+Milestone 4: Rooms & Reconnect              ⬜ NEXT
+  └─ teaches: sync.Mutex, context timeouts, session management, state machines
+
+Milestone 5: Cross-transport play            ⬜ FUTURE
+  └─ teaches: adapter patterns, shared state across transports
 ```
 
 Each milestone leaves the engine untouched — it's pure logic.
@@ -127,10 +180,3 @@ The transport layer (CLI / SSH / HTTP) is always a separate cmd/.
 - Installs binary to `~/.local/bin/ttt-chec` (in $PATH)
 - Copies skill to `~/.claude/skills/ttt-chec.md`
 - Skill references binary by name, not hardcoded path
-
----
-
-## Next Up: Milestone 3
-
-Build the Web UI — HTTP server + WebSocket + minimal browser client.
-Reuse the `internal/game` Room/Player pattern from the SSH server, with a WebSocket transport instead of SSH sessions.
