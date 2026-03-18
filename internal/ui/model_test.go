@@ -12,17 +12,17 @@ func TestExecuteMoveOnline_ReturnsResponse(t *testing.T) {
 
 	moves := make(chan MoveRequest, 1)
 	defer close(moves)
-	incoming := make(chan any)
+	updates := make(chan any)
 
 	model := InitialModel()
 	model.Mode = ModeOnline
 	model.Moves = moves
-	model.Incoming = incoming
+	model.Updates = updates
 
 	// fake Room.Run goroutine, in order to process move
 	go func() {
 		<-moves                    // read move
-		incoming <- GameStateMsg{} // send some state back
+		updates <- GameStateMsg{} // send some state back
 	}()
 
 	piece := engine.WhiteBishop

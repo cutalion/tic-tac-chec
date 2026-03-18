@@ -14,7 +14,7 @@ state, and broadcasts results.
 │   Bubble Tea Model   │            │   Bubble Tea Model   │
 │                      │            │                      │
 │  Moves (chan<-)  ────┼──┐    ┌────┼──── Moves (chan<-)   │
-│  Incoming (<-chan) ◄─┼┐ │    │ ┌──┼──► Incoming (<-chan) │
+│  Updates (<-chan) ◄─┼┐ │    │ ┌──┼──► Updates (<-chan) │
 └──────────────────────┘│ │    │ │  └──────────────────────┘
                         │ │    │ │
                         │ ▼    ▼ │
@@ -33,8 +33,8 @@ All channels are **unbuffered**. This means every send blocks until the
 receiver is ready, and vice versa.
 
 - `Moves (chan MoveRequest)` — Player → Room. Model sends a move, Room reads it.
-- `Incoming (chan tea.Msg)` — Room → Player. Room sends GameStateMsg/ErrorMsg,
-  Model's waitForIncoming() reads it.
+- `Updates (chan tea.Msg)` — Room → Player. Room sends GameStateMsg/ErrorMsg,
+  Model's waitForUpdates() reads it.
 
 ## Message Flow: A Single Move
 
@@ -47,14 +47,14 @@ receiver is ready, and vice versa.
    └─► Closure sends MoveRequest on Moves channel
        └─► Room.Run() receives it via select{}
            └─► Room calls engine.Game.Move()
-               ├─► Error? Send ErrorMsg on mover's Incoming
-               └─► Success? Send GameStateMsg on BOTH players' Incoming
+               ├─► Error? Send ErrorMsg on mover's Updates
+               └─► Success? Send GameStateMsg on BOTH players' Updates
 
-3. The same closure reads from Incoming (the Room's response)
+3. The same closure reads from Updates (the Room's response)
    └─► Returns the tea.Msg to Bubble Tea
        └─► Bubble Tea calls Update(GameStateMsg)
            └─► Model updates game state, returns nextCmd()
-               └─► New waitForIncoming goroutine spawned
+               └─► New waitForUpdates goroutine spawned
 ```
 
 ## The Stale Listener Problem
@@ -66,15 +66,15 @@ goroutine**. There is no way to cancel a previously returned Cmd.
 
 ### What Happens
 
-In online mode, `nextCmd()` returns `waitForIncoming()` on every Update return.
-Each call spawns a goroutine that blocks on `<-incoming`:
+In online mode, `nextCmd()` returns `waitForUpdates()` on every Update return.
+Each call spawns a goroutine that blocks on `<-updates`:
 
 ```
-Key press "up"    → Update returns nextCmd() → goroutine #1 blocks on <-incoming
-Key press "down"  → Update returns nextCmd() → goroutine #2 blocks on <-incoming
-Key press "left"  → Update returns nextCmd() → goroutine #3 blocks on <-incoming
-GameStateMsg arrives on incoming   → goroutine #1 receives it (others stay blocked)
-Key press "right" → Update returns nextCmd() → goroutine #4 blocks on <-incoming
+Key press "up"    → Update returns nextCmd() → goroutine #1 blocks on <-updates
+Key press "down"  → Update returns nextCmd() → goroutine #2 blocks on <-updates
+Key press "left"  → Update returns nextCmd() → goroutine #3 blocks on <-updates
+GameStateMsg arrives on updates   → goroutine #1 receives it (others stay blocked)
+Key press "right" → Update returns nextCmd() → goroutine #4 blocks on <-updates
 ...
 ```
 
@@ -105,7 +105,7 @@ return a new listener every time, even though the old one is still alive.
 
 executeMove() is special: its Cmd sends a move AND reads the response in a
 single closure. This avoids spawning an extra stale listener — without this,
-the Cmd would return nil after sending, and a stale waitForIncoming goroutine
+the Cmd would return nil after sending, and a stale waitForUpdates goroutine
 would accidentally pick up the Room's response. It would work, but it's
 fragile and wastes a goroutine.
 

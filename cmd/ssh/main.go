@@ -87,7 +87,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	model.Mode = ui.ModeOnline
 	model.Phase = ui.PhaseWaiting
 	model.Moves = moves
-	model.Incoming = player.Incoming
+	model.Updates = player.Updates
 	model.LobbyReady = ready
 
 	return model, nil

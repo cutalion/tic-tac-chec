@@ -50,7 +50,7 @@ type Model struct {
 	Phase      Phase
 	MyColor    engine.Color
 	Moves      chan<- MoveRequest  // send moves to Room
-	Incoming   <-chan any          // receive state updates from Room
+	Updates   <-chan any          // receive state updates from Room
 	LobbyReady <-chan engine.Color // receives assigned color when paired
 }
 
@@ -74,30 +74,30 @@ func (m Model) Init() tea.Cmd {
 
 // nextCmd returns the appropriate tea.Cmd for the current mode.
 // In local mode, returns nil (no async messages to listen for).
-// In online mode, returns waitForIncoming() to keep listening for Room messages.
+// In online mode, returns waitForUpdates() to keep listening for Room messages.
 // Must be returned from every Update path in online mode, otherwise the model
 // stops receiving messages and the UI freezes.
 func (m Model) nextCmd() tea.Cmd {
 	if !m.online() {
 		return nil
 	}
-	return m.waitForIncoming()
+	return m.waitForUpdates()
 }
 
-// waitForIncoming returns a tea.Cmd that blocks until a message arrives on
-// the Incoming channel, then delivers it to the Bubble Tea runtime.
+// waitForUpdates returns a tea.Cmd that blocks until a message arrives on
+// the Updates channel, then delivers it to the Bubble Tea runtime.
 //
 // Bubble Tea runs each tea.Cmd in a goroutine. Every call to nextCmd() spawns
-// a new goroutine blocked on <-incoming. When a message arrives, only one
+// a new goroutine blocked on <-updates. When a message arrives, only one
 // goroutine receives it — the rest remain blocked until the channel closes
 // (on SSH session end). This means we accumulate ~1 stale goroutine per
 // Update call in online mode. This is a Bubble Tea architectural limitation:
 // there's no way to cancel a previous Cmd. The leak is bounded per session
 // (~2-4KB per goroutine) and cleaned up when the session ends.
-func (m Model) waitForIncoming() tea.Cmd {
-	incoming := m.Incoming
+func (m Model) waitForUpdates() tea.Cmd {
+	updates := m.Updates
 	return func() tea.Msg {
-		msg, ok := <-incoming
+		msg, ok := <-updates
 		if !ok {
 			return OpponentDisconnectedMsg{}
 		}
@@ -248,16 +248,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) executeMove(piece engine.Piece, cell engine.Cell) (tea.Model, tea.Cmd) {
 	if m.online() {
 		m.SelectedPiece = nil
-		incoming := m.Incoming
+		updates := m.Updates
 
 		// This cmd sends the move AND waits for the Room's response in one
-		// closure. This avoids relying on a stale waitForIncoming goroutine
+		// closure. This avoids relying on a stale waitForUpdates goroutine
 		// to pick up the response (which would work by accident but wastes
 		// a goroutine slot). After the Room processes the move, it sends
-		// either GameStateMsg or ErrorMsg back on incoming.
+		// either GameStateMsg or ErrorMsg back on updates.
 		return m, func() tea.Msg {
 			m.Moves <- MoveRequest{Piece: piece, Cell: cell}
-			msg, ok := <-incoming
+			msg, ok := <-updates
 			if !ok {
 				return OpponentDisconnectedMsg{}
 			}

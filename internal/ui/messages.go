@@ -21,6 +21,12 @@ type ErrorMsg struct {
 // OpponentDisconnectedMsg is received when the other player leaves.
 type OpponentDisconnectedMsg struct{}
 
+// OpponentReconnectedMsg is received when the other player reconnects.
+type OpponentReconnectedMsg struct{}
+
+// OpponentAwayMsg is received when the other player is no longer connected.
+type OpponentAwayMsg struct{}
+
 // PairedMsg is delivered when the lobby pairs this player with an opponent.
 type PairedMsg struct {
 	Color engine.Color

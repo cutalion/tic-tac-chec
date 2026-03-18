@@ -143,14 +143,14 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	// write loop
 	for {
-		msg, ok := <-player.Incoming
+		msg, ok := <-player.Updates
 		if !ok {
 			close(done) // signal the read loop to exit
 			ws.Close(websocket.StatusNormalClosure, "")
 			return
 		}
 
-		log.Printf("Incoming message %v of type %T", msg, msg)
+		log.Printf("Updates message %v of type %T", msg, msg)
 
 		switch msg := msg.(type) {
 		case ui.GameStateMsg:
