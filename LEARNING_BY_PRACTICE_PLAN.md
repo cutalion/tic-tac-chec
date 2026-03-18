@@ -112,28 +112,112 @@ WebSocket handler: read goroutine + write loop
 
 ## Milestone 4: Rooms & Reconnect (web only)
 
-**What to build:**
-- Room registry — persistent rooms that outlive WebSocket disconnects
-- Lobby auto-pairs into named rooms (room gets an ID, shareable URL)
-- Reconnect — player token, re-attach WebSocket to existing room/slot
-- Room lifecycle: waiting → playing → finished, with timeout cleanup
+**Goal:** Games survive network disconnects — subway tunnels, elevators, closing
+laptop and reopening. A player can lose connection and resume their game.
 
-**Architecture:**
+**Acknowledged limitation:** All state is in-memory. Server restart = all games lost.
+Acceptable for now.
+
+### Step 1: Room.Run() survives disconnects
+
+The core change. Currently, when a player's `Moves` channel closes, `Room.Run()` exits
+and the game is lost. Instead:
+
+**Nil channel pattern:** When a player disconnects, set **both** their `Moves` and
+`Incoming` to `nil`. Nil channels block forever in `select`, disabling that case.
+All sends to Incoming must be nil-guarded (skip if nil) to prevent deadlocks — otherwise
+Room.Run() blocks trying to send GameStateMsg to a disconnected player and never reaches
+the reconnect select case.
+
+**Reconnect channels:** Room.Run() selects on two additional unbuffered channels (one per
+player slot) that receive reconnection events. A reconnect event carries both a new Moves
+channel and a new Incoming channel. On reconnect, close the old Incoming (so any lingering
+goroutines reading it can drain) before swapping in the new one. Then send current
+GameState to the reconnected player.
+
+**Opponent notifications:** When a player disconnects, send `opponentAway` to the other
+player (only if their Incoming is non-nil). When they reconnect, send `opponentReturned`
+to the other player + current `GameState` to both.
+
 ```
-Browser ──WebSocket──► cmd/web/
-                        ├── Lobby: auto-pairs → creates named room in registry
-                        ├── Registry: map[string]*ManagedRoom (sync.Mutex)
-                        │     └── ManagedRoom: ID, Room, player slots, state, timeout
-                        ├── Reconnect: token in sessionStorage → re-attach to room
-                        └── Direct join: /?room=abc123 → skip lobby, join existing room
+Room.Run() select cases:
+  - white.Moves        (nil when disconnected)
+  - black.Moves        (nil when disconnected)
+  - white.Reconnect    (receives new Moves + Incoming channels)
+  - black.Reconnect    (receives new Moves + Incoming channels)
 ```
 
-**Go concepts to learn:**
-- `sync.Mutex` — protecting shared state (room registry)
-- `context.WithTimeout` — room cleanup after abandonment
-- Session management — token-based player identity
-- State machines — room lifecycle management
-- Map access patterns — concurrent-safe registry
+### Step 2: Registry
+
+Simple `map[token]*Room` protected by `sync.Mutex` in `cmd/web/`.
+Two tokens per room (one per player). Lookup by token returns room + color.
+Tokens are 16-byte random hex strings via `crypto/rand`.
+
+No room IDs in URLs for now — token-only reconnect is sufficient.
+Room IDs / shareable URLs can be added later if needed.
+
+### Step 3: WebSocket handler
+
+Single `/ws` endpoint. Client sends a first message to indicate intent:
+- `{"type": "join"}` → enter lobby → get paired → receive `{token, color, gameState}`
+- `{"type": "reconnect", "token": "..."}` → look up room → reattach → receive `{color, gameState}`
+
+If reconnect fails (room expired, invalid token), server sends `{type: "roomExpired"}`.
+Client clears stored token and can start a new game.
+
+If the token's slot already has an active connection (e.g., two tabs), reject the second
+connection with `{type: "alreadyConnected"}` — client shows "Game is open in another tab."
+The active-connection check should go through Room.Run() via the reconnect channel
+response (not by peeking at state from the handler), keeping Room.Run() as the single
+owner of player state.
+
+**Lobby disconnect:** If a player disconnects while waiting in the lobby (before being
+paired), they have no room and no token. Use `select` with context cancellation when
+sending to the lobby channel so the goroutine doesn't leak. On reconnect with no token,
+they simply join the lobby again as a fresh player.
+
+Both paths converge into the same read/write loop, attached to the room's player slot.
+
+### Step 4: Client (JS)
+
+- Store `{token, color}` in **localStorage** (not sessionStorage — sessionStorage
+  doesn't survive tab close, which breaks the core use case)
+- On page load: if token exists in localStorage, send reconnect message
+- If reconnect fails, clear localStorage, send join
+- **Reconnect triggers:** Both `WebSocket.onclose`/`onerror` AND `visibilitychange`
+  (page becomes visible → check if WS is alive) should trigger reconnect. Without
+  `visibilitychange`, mobile feels broken (browser can take 30-60s to fire `onclose`).
+  Without `onclose`, WiFi drops mid-game go undetected until a tab switch.
+- Reconnect with exponential backoff. After N failures, show "Could not reconnect.
+  [Try again]" button.
+- UI states: "Waiting for opponent..." (lobby), "Opponent reconnecting..." (opponentAway),
+  "Reconnected!" (opponentReturned), "Game expired" (roomExpired),
+  "Game is open in another tab" (alreadyConnected)
+- Delay the "opponent reconnecting" banner by ~1s to avoid flashing on flaky connections.
+  If opponent reconnects within that window, skip the banner entirely.
+- Client-side opponent timeout: after ~60s of "opponent reconnecting," show "Opponent
+  appears to have left. [Start a new game]" — a stopgap until server TTL exists.
+- On game over: clear localStorage, offer "Play again" (fresh matchmake via lobby,
+  not a rematch with same opponent)
+
+### Follow-up (not in initial scope)
+
+- **Room cleanup with TTL:** Timer starts when both players disconnect. Sends on a
+  channel that Room.Run() selects on (timer goroutine must never directly mutate state).
+  ~30 min TTL for abandoned rooms. Until then, server restart is the only cleanup.
+  Add a quit channel to Room.Run() select when implementing this.
+- **Room IDs / shareable URLs:** `/?room=abc` for direct join or spectating.
+- **Lobby timeout:** Cancel waiting after N minutes if no opponent shows up.
+- **AFK / move timeout:** Notify opponent when the other player has been idle too long.
+- **Rematch:** "Play again with same opponent" (reuse room, reset game state).
+
+### Go concepts to learn
+
+- **Nil channel in select** — dynamically disabling select cases
+- **`sync.Mutex`** — protecting the registry (shared map across goroutines)
+- **`crypto/rand`** — generating secure random tokens
+- **Channel of channels** — reconnect channel carries new channels as payload
+- **Goroutine lifecycle** — Room.Run() as single owner of all state transitions
 
 ---
 
@@ -179,7 +263,7 @@ Milestone 3: Web UI                          ✅ DONE
   └─ learned: net/http, WebSockets, embed.FS, build tags, goroutine coordination
 
 Milestone 4: Rooms & Reconnect              ⬜ NEXT
-  └─ teaches: sync.Mutex, context timeouts, session management, state machines
+  └─ teaches: nil channel pattern, sync.Mutex, channel of channels, goroutine lifecycle
 
 Milestone 5: AI Agent Arena                  ⬜ FUTURE
   └─ teaches: LLM API integration, game result persistence, stats/dashboards
