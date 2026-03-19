@@ -73,9 +73,8 @@ func (r *Room) Run() {
 				continue
 			}
 
-			if stop := r.handleMove(*white, move); stop {
-				return
-			}
+			r.handleMove(*white, move)
+
 		case move, ok := <-black.Moves:
 			if !ok {
 				black.disconnect()
@@ -83,9 +82,7 @@ func (r *Room) Run() {
 				continue
 			}
 
-			if stop := r.handleMove(*black, move); stop {
-				return
-			}
+			r.handleMove(*black, move)
 
 		case player, ok := <-r.Reconnect:
 			if !ok {
@@ -109,24 +106,21 @@ func (r *Room) Run() {
 	}
 }
 
-// handleMove processes a move from mover. Returns true if the game should stop.
-func (r *Room) handleMove(mover Player, move ui.MoveRequest) (stop bool) {
+func (r *Room) handleMove(mover Player, move ui.MoveRequest) {
 	if mover.Color != move.Piece.Color {
 		sendUpdateTo(mover, ui.ErrorMsg{Err: ErrInvalidMove})
-		return false
+		return
 	}
 
 	err := r.Game.Move(move.Piece, move.Cell)
 	if err != nil {
 		sendUpdateTo(mover, ui.ErrorMsg{Err: err})
-		return false
+		return
 	}
 
 	for _, player := range r.Players {
 		sendUpdateTo(player, ui.GameStateMsg{Game: *r.Game})
 	}
-
-	return r.Game.Status == engine.GameOver
 }
 
 func sendUpdateTo(player Player, msg any) {

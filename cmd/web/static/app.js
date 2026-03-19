@@ -294,7 +294,12 @@ function connect() {
     state.phase = "waiting";
     render();
 
-    ws.send(JSON.stringify({ type: "join" }));
+    const token = localStorage.getItem("token");
+    if (token) {
+      ws.send(JSON.stringify({ type: "reconnect", token }));
+    } else {
+      ws.send(JSON.stringify({ type: "join" }));
+    }
   });
 
   ws.addEventListener("close", () => {
@@ -311,6 +316,7 @@ function connect() {
       case "paired":
         state.myColor = data.color;
         state.phase = "playing";
+        localStorage.setItem("token", data.token);
         render();
         break;
 
@@ -336,6 +342,23 @@ function connect() {
       case "opponentDisconnected":
         state.phase = "disconnected";
         render();
+        break;
+
+      case "opponentAway":
+        state.phase = "waiting";
+        render();
+        break;
+
+      case "opponentReconnected":
+        state.phase = "playing";
+        render();
+        break;
+
+      case "tokenExpired":
+        state.phase = "waiting";
+        localStorage.removeItem("token");
+        ws.close();
+        connect();
         break;
     }
   });
