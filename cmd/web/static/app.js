@@ -96,7 +96,6 @@ function renderError() {
   errorMessage.textContent = state.error || "";
 }
 
-
 function renderGameArea() {
   if (!state.board) {
     gameArea.innerHTML = "";
@@ -110,9 +109,17 @@ function renderGameArea() {
   gameArea.innerHTML = "";
   gameArea.appendChild(renderHand(topColor));
   gameArea.appendChild(renderColLabels());
-  gameArea.appendChild(renderBoard(flipped));
+  const boardEl = renderBoard(flipped);
+  gameArea.appendChild(boardEl);
   gameArea.appendChild(renderColLabels());
   gameArea.appendChild(renderHand(bottomColor));
+
+  if (state.winner) {
+    const winLine = findWinLine(state.board, state.winner);
+    if (winLine) {
+      requestAnimationFrame(() => drawWinLine(boardEl, winLine, state.winner));
+    }
+  }
 }
 
 function renderHand(color) {
@@ -181,6 +188,8 @@ function renderBoard(flipped) {
     for (let col = 0; col < 4; col++) {
       const cell = document.createElement("div");
       cell.className = "board-cell";
+      cell.dataset.row = engineRow;
+      cell.dataset.col = col;
 
       const piece = state.board[engineRow][col];
       if (piece) {
@@ -260,6 +269,75 @@ function renderColLabels() {
 }
 
 // --- Helpers ---
+
+function drawWinLine(boardEl, winLine, color) {
+  const first = winLine[0];
+  const last = winLine[winLine.length - 1];
+  const firstCell = boardEl.querySelector(
+    `[data-row="${first.row}"][data-col="${first.col}"]`,
+  );
+  const lastCell = boardEl.querySelector(
+    `[data-row="${last.row}"][data-col="${last.col}"]`,
+  );
+  if (!firstCell || !lastCell) return;
+
+  const boardRect = boardEl.getBoundingClientRect();
+  const r1 = firstCell.getBoundingClientRect();
+  const r2 = lastCell.getBoundingClientRect();
+
+  let x1 = r1.left + r1.width / 2 - boardRect.left;
+  let y1 = r1.top + r1.height / 2 - boardRect.top;
+  let x2 = r2.left + r2.width / 2 - boardRect.left;
+  let y2 = r2.top + r2.height / 2 - boardRect.top;
+
+  // extend line beyond cell centers
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const extend = r1.width * 0.4;
+  x1 -= (dx / len) * extend;
+  y1 -= (dy / len) * extend;
+  x2 += (dx / len) * extend;
+  y2 += (dy / len) * extend;
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "win-line piece-" + color);
+  svg.setAttribute("width", boardRect.width);
+  svg.setAttribute("height", boardRect.height);
+
+  const shadow = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  shadow.setAttribute("class", "shadow");
+  shadow.setAttribute("x1", x1);
+  shadow.setAttribute("y1", y1);
+  shadow.setAttribute("x2", x2);
+  shadow.setAttribute("y2", y2);
+  svg.appendChild(shadow);
+
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("class", "main");
+  line.setAttribute("x1", x1);
+  line.setAttribute("y1", y1);
+  line.setAttribute("x2", x2);
+  line.setAttribute("y2", y2);
+  svg.appendChild(line);
+  boardEl.appendChild(svg);
+}
+
+function findWinLine(board, color) {
+  let line = [];
+
+  board.forEach((row, rowIndex) => {
+    row.forEach((piece, colIndex) => {
+      if (piece && piece.color === color) {
+        line.push({ row: rowIndex, col: colIndex });
+      }
+    });
+  });
+
+  if (line.length < 4) return null;
+
+  return line;
+}
 
 function isPieceOnBoard(color, kind) {
   if (!state.board) return false;
@@ -359,8 +437,10 @@ function isDark() {
   return document.documentElement.getAttribute("data-theme") === "dark";
 }
 
-const sunSVG = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-const moonSVG = '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
+const sunSVG =
+  '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const moonSVG =
+  '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
 
 function applyTheme(dark) {
   if (dark) {

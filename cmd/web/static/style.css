@@ -224,6 +224,7 @@ h1 {
 /* ---------- Board ---------- */
 
 .board {
+  position: relative;
   display: grid;
   grid-template-columns: 28px repeat(4, 1fr) 28px;
   gap: 12px;
@@ -268,6 +269,32 @@ h1 {
 
 .board-cell.target {
   border-color: var(--target);
+}
+
+.win-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.win-line line.shadow {
+  stroke: rgba(0, 0, 0, 0.3);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.win-line line.main {
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.win-line.piece-white line.main {
+  stroke: var(--white-piece);
+}
+
+.win-line.piece-black line.main {
+  stroke: var(--black-piece);
 }
 
 /* ---------- Piece Colors ---------- */
