@@ -140,7 +140,7 @@ function renderHand(color) {
       cell.appendChild(span);
 
       cell.addEventListener("click", () => {
-        if (state.turn != color) {
+        if (state.turn !== state.myColor || color !== state.myColor) {
           return;
         }
 
@@ -351,9 +351,38 @@ function connect() {
   });
 }
 
+// --- Theme ---
+
+const themeToggle = document.getElementById("theme-toggle");
+
+function isDark() {
+  return document.documentElement.getAttribute("data-theme") === "dark";
+}
+
+function applyTheme(dark) {
+  if (dark) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
+  themeToggle.textContent = dark ? "\u2600\uFE0F" : "\uD83C\uDF19";
+}
+
+themeToggle.addEventListener("click", () => {
+  const dark = !isDark();
+  applyTheme(dark);
+  localStorage.setItem("theme", dark ? "dark" : "light");
+});
+
 // --- Init ---
 
 document.addEventListener("DOMContentLoaded", () => {
+  const saved = localStorage.getItem("theme");
+  if (saved) {
+    applyTheme(saved === "dark");
+  } else {
+    applyTheme(window.matchMedia("(prefers-color-scheme: dark)").matches);
+  }
   render();
   connect();
 });
