@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -17,7 +19,14 @@ import (
 
 type playerConn struct {
 	player game.Player
-	ready  chan engine.Color
+	ready  chan Participant
+}
+
+type jsonMsg struct {
+	Type  string `json:"type"`
+	Piece string `json:"piece"`
+	Cell  string `json:"cell"`
+	Token string `json:"token"`
 }
 
 type msgError struct {
@@ -37,9 +46,15 @@ type msgGameState struct {
 type msgPaired struct {
 	Type  string `json:"type"`
 	Color string `json:"color"`
+	Token string `json:"token"`
 }
 
 var lobby = make(chan playerConn)
+var participants = NewParticipants()
+
+var (
+	ErrUnsupportedMessageType = errors.New("unsupported message type")
+)
 
 func main() {
 	mux := http.NewServeMux()
@@ -65,35 +80,32 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close(websocket.StatusInternalError, "")
 
+	ready := make(chan Participant, 1)
 	moves := make(chan ui.MoveRequest)
-	ready := make(chan engine.Color, 1)
 	player := game.NewPlayer(moves)
+	done := make(chan struct{})
 
 	var closeOnce sync.Once
 	closeMoves := func() { closeOnce.Do(func() { close(moves) }) }
 	defer closeMoves()
 
-	go func() {
-		lobby <- playerConn{player: player, ready: ready}
-	}()
+	for {
+		if r.Context().Err() != nil {
+			return
+		}
 
-	select {
-	case color := <-ready:
-		paired, err := json.Marshal(newMsgPaired(color))
-		if err != nil {
-			log.Println(err)
+		err := awaitJoinOrReconnect(ws, r, player, ready)
+
+		switch {
+		case errors.Is(err, ErrUnsupportedMessageType):
+			continue // unsupported message type, skip and wait for next message
+		case err != nil:
+			log.Println(err) // we cannot handle this error, return from handleWebSocket
 			return
 		}
-		err = ws.Write(r.Context(), websocket.MessageText, paired)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-	case <-r.Context().Done():
-		return
+
+		break
 	}
-
-	done := make(chan struct{})
 
 	// read loop
 	go func() {
@@ -106,25 +118,27 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			var command struct {
-				Type  string `json:"type"`
-				Piece string `json:"piece"`
-				Cell  string `json:"cell"`
+			log.Printf("Received message of type %s: %s", msgType, data)
+			if msgType != websocket.MessageText {
+				log.Println("Not a text message. Skipping")
+				continue
 			}
-			switch msgType {
-			case websocket.MessageText:
-				if err := json.Unmarshal(data, &command); err != nil {
-					log.Println(err)
-					continue
-				}
 
-				cell, err := parse.Square(command.Cell)
+			var msg jsonMsg
+			if err := json.Unmarshal(data, &msg); err != nil {
+				log.Println(err)
+				continue
+			}
+
+			switch msg.Type {
+			case "move":
+				cell, err := parse.Square(msg.Cell)
 				if err != nil {
 					log.Println(err)
 					continue
 				}
 
-				piece, err := parse.Piece(command.Piece)
+				piece, err := parse.Piece(msg.Piece)
 				if err != nil {
 					log.Println(err)
 					continue
@@ -135,9 +149,11 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				case <-done:
 					return
 				}
-			}
 
-			log.Printf("Received message of type %s: %s", msgType, data)
+			default:
+				log.Println("Unknown message type:", msg.Type)
+				continue
+			}
 		}
 	}()
 
@@ -207,11 +223,13 @@ func lobbyLoop(lobby chan playerConn) {
 		black.player.Color = engine.Black
 
 		room := game.NewRoom(white.player, black.player)
+		whiteParticipantToken := participants.register(&room, engine.White)
+		blackParticipantToken := participants.register(&room, engine.Black)
 
 		go room.Run()
 
-		white.ready <- white.player.Color
-		black.ready <- black.player.Color
+		white.ready <- Participant{color: engine.White, token: whiteParticipantToken}
+		black.ready <- Participant{color: engine.Black, token: blackParticipantToken}
 	}
 }
 
@@ -227,6 +245,59 @@ func newMsgOpponentDisconnected() msgOpponentDisconnected {
 	return msgOpponentDisconnected{Type: "opponentDisconnected"}
 }
 
-func newMsgPaired(color engine.Color) msgPaired {
-	return msgPaired{Type: "paired", Color: wire.ColorToString(color)}
+func newMsgPaired(color engine.Color, token string) msgPaired {
+	return msgPaired{Type: "paired", Color: wire.ColorToString(color), Token: token}
+}
+
+func awaitJoinOrReconnect(ws *websocket.Conn, r *http.Request, player game.Player, ready chan Participant) error {
+	msgType, data, err := ws.Read(r.Context())
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Received message of type %s: %s", msgType, data)
+	if msgType != websocket.MessageText {
+		return ErrUnsupportedMessageType
+	}
+
+	var msg jsonMsg
+	if err := json.Unmarshal(data, &msg); err != nil {
+		log.Println(err)
+		return err
+	}
+
+	switch msg.Type {
+	case "join":
+		// send the player to the lobby
+		// the lobby will assign a color and send it back through the "ready" channel
+		// when the second player joins
+		go func() {
+			lobby <- playerConn{player: player, ready: ready}
+		}()
+
+		// lobby assigns color and sends it to the "ready" channel
+		// we read the color, assign it to the player, and send "paired" response to the client
+		select {
+		case participant := <-ready:
+			paired, err := json.Marshal(newMsgPaired(participant.color, participant.token))
+			if err != nil {
+				return err
+			}
+
+			err = ws.Write(r.Context(), websocket.MessageText, paired)
+			if err != nil {
+				return err
+			}
+		case <-r.Context().Done():
+			return r.Context().Err() // exit from handleWebSocket
+		}
+
+		return nil
+	case "reconnect":
+		// todo
+	default:
+		log.Println("unknown message type")
+	}
+
+	return fmt.Errorf("unknown message type")
 }

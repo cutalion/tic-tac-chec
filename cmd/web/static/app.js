@@ -293,6 +293,8 @@ function connect() {
   ws.addEventListener("open", () => {
     state.phase = "waiting";
     render();
+
+    ws.send(JSON.stringify({ type: "join" }));
   });
 
   ws.addEventListener("close", () => {
