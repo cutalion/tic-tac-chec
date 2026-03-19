@@ -3,7 +3,9 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o /ssh-server ./cmd/ssh
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    go build -o /ssh-server ./cmd/ssh
 
 FROM alpine:3.20
 RUN apk add --no-cache ncurses-terminfo-base
