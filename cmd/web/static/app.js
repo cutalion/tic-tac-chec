@@ -38,7 +38,6 @@ let ws = null;
 const gameArea = document.getElementById("game-area");
 const turnIndicator = document.getElementById("turn-indicator");
 const errorMessage = document.getElementById("error-message");
-const gameOverEl = document.getElementById("game-over");
 const overlay = document.getElementById("overlay");
 
 // --- Render ---
@@ -46,7 +45,6 @@ const overlay = document.getElementById("overlay");
 function render() {
   renderTurnIndicator();
   renderError();
-  renderGameOver();
   renderOverlay();
   renderGameArea();
 }
@@ -75,11 +73,17 @@ function renderOverlay() {
 }
 
 function renderTurnIndicator() {
-  if (!state.turn) {
-    turnIndicator.textContent = "";
+  if (state.status === "over") {
+    if (state.winner) {
+      turnIndicator.textContent =
+        state.winner === state.myColor ? "You win!" : "You lose!";
+    } else {
+      turnIndicator.textContent = "Draw!";
+    }
+    turnIndicator.className = "game-result";
     return;
   }
-  if (state.status === "over") {
+  if (!state.turn) {
     turnIndicator.textContent = "";
     return;
   }
@@ -92,20 +96,6 @@ function renderError() {
   errorMessage.textContent = state.error || "";
 }
 
-function renderGameOver() {
-  if (state.status !== "over") {
-    gameOverEl.textContent = "";
-    return;
-  }
-  if (state.winner) {
-    gameOverEl.textContent =
-      state.winner === state.myColor ? "You win!" : "You lose!";
-    gameOverEl.className = "piece-" + state.winner;
-  } else {
-    gameOverEl.textContent = "Draw!";
-    gameOverEl.className = "";
-  }
-}
 
 function renderGameArea() {
   if (!state.board) {
@@ -129,10 +119,7 @@ function renderHand(color) {
   const panel = document.createElement("div");
   panel.className = "hand-panel";
 
-  const label = document.createElement("span");
-  label.className = "hand-label";
-  label.textContent = color === "white" ? "W" : "B";
-  panel.appendChild(label);
+  panel.appendChild(document.createElement("span")); // left spacer
 
   for (const kind of KINDS) {
     const cell = document.createElement("div");
@@ -173,8 +160,8 @@ function renderHand(color) {
     panel.appendChild(cell);
   }
 
-  const spacer = document.createElement("span");
-  panel.appendChild(spacer);
+  panel.appendChild(document.createElement("span")); // right spacer
+
   return panel;
 }
 
