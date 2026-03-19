@@ -359,13 +359,16 @@ function isDark() {
   return document.documentElement.getAttribute("data-theme") === "dark";
 }
 
+const sunSVG = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const moonSVG = '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
+
 function applyTheme(dark) {
   if (dark) {
     document.documentElement.setAttribute("data-theme", "dark");
   } else {
     document.documentElement.removeAttribute("data-theme");
   }
-  themeToggle.textContent = dark ? "\u2600\uFE0F" : "\uD83C\uDF19";
+  themeToggle.innerHTML = dark ? sunSVG : moonSVG;
 }
 
 themeToggle.addEventListener("click", () => {
