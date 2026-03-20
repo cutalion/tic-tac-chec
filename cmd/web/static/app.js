@@ -42,6 +42,7 @@ const gameArea = document.getElementById("game-area");
 const turnIndicator = document.getElementById("turn-indicator");
 const errorMessage = document.getElementById("error-message");
 const overlay = document.getElementById("overlay");
+const exitBtn = document.getElementById("exit-btn");
 
 // --- Render ---
 
@@ -50,6 +51,12 @@ function render() {
   renderError();
   renderOverlay();
   renderGameArea();
+
+  if (state.phase === "playing" || state.phase === "gameOver") {
+    exitBtn.classList.add("visible");
+  } else {
+    exitBtn.classList.remove("visible");
+  }
 }
 
 function renderOverlay() {
@@ -527,6 +534,8 @@ function applyTheme(dark) {
   }
   themeToggle.innerHTML = dark ? sunSVG : moonSVG;
 }
+
+exitBtn.addEventListener("click", leaveRoom);
 
 themeToggle.addEventListener("click", () => {
   const dark = !isDark();
