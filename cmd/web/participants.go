@@ -4,14 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"sync"
-	"tic-tac-chec/engine"
 	"tic-tac-chec/internal/game"
 )
 
 type Participant struct {
-	room  *game.Room
-	color engine.Color
-	token string
+	room      *game.Room
+	playerIdx int // 0 or 1
+	token     string
 }
 
 type Participants struct {
@@ -25,18 +24,18 @@ func NewParticipants() *Participants {
 	}
 }
 
-func (p *Participants) register(room *game.Room, color engine.Color) (token string) {
+func (p *Participants) register(room *game.Room, playerIdx int) (token string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	for {
-		token = p.generateToken()
+		token = newParticipantToken()
 		if _, exists := p.entries[token]; !exists {
 			break
 		}
 	}
 
-	p.entries[token] = &Participant{room: room, color: color}
+	p.entries[token] = &Participant{room: room, playerIdx: playerIdx, token: token}
 
 	return token
 }
@@ -49,7 +48,7 @@ func (p *Participants) lookup(token string) (*Participant, bool) {
 	return participant, exists
 }
 
-func (p *Participants) generateToken() (token string) {
+func newParticipantToken() (token string) {
 	tokenBytes := make([]byte, 32)
 	rand.Read(tokenBytes)
 	token = base64.URLEncoding.EncodeToString(tokenBytes)

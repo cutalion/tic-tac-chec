@@ -29,6 +29,8 @@ const state = {
   winner: null, // "white" | "black" | null
   selectedPiece: null, // { code: "WP", kind: "pawn", color: "white", source: "hand" | "board" }
   error: null,
+  rematchSent: false,
+  opponentWantsRematch: false,
 };
 
 let ws = null;
@@ -74,13 +76,38 @@ function renderOverlay() {
 
 function renderTurnIndicator() {
   if (state.status === "over") {
+    turnIndicator.innerHTML = "";
+    turnIndicator.className = "game-result";
+
+    const result = document.createElement("div");
     if (state.winner) {
-      turnIndicator.textContent =
+      result.textContent =
         state.winner === state.myColor ? "You win!" : "You lose!";
     } else {
-      turnIndicator.textContent = "Draw!";
+      result.textContent = "Draw!";
     }
-    turnIndicator.className = "game-result";
+    turnIndicator.appendChild(result);
+
+    const rematchArea = document.createElement("div");
+    rematchArea.className = "rematch-area";
+
+    if (state.rematchSent) {
+      rematchArea.textContent = "Waiting for opponent...";
+    } else if (state.opponentWantsRematch) {
+      rematchArea.textContent = "Opponent wants rematch!";
+      const btn = document.createElement("button");
+      btn.className = "rematch-btn";
+      btn.textContent = "Accept";
+      btn.addEventListener("click", sendRematch);
+      rematchArea.appendChild(btn);
+    } else {
+      const btn = document.createElement("button");
+      btn.className = "rematch-btn";
+      btn.textContent = "Rematch";
+      btn.addEventListener("click", sendRematch);
+      rematchArea.appendChild(btn);
+    }
+    turnIndicator.appendChild(rematchArea);
     return;
   }
   if (!state.turn) {
@@ -339,6 +366,12 @@ function findWinLine(board, color) {
   return line;
 }
 
+function sendRematch() {
+  ws.send(JSON.stringify({ type: "rematch" }));
+  state.rematchSent = true;
+  render();
+}
+
 function isPieceOnBoard(color, kind) {
   if (!state.board) return false;
   for (const row of state.board) {
@@ -385,13 +418,32 @@ function connect() {
         render();
         break;
 
+      case "rematchStarted":
+        state.phase = "playing";
+        state.myColor = data.color;
+        state.board = null;
+        state.turn = null;
+        state.status = null;
+        state.winner = null;
+        state.selectedPiece = null;
+        state.rematchSent = false;
+        state.opponentWantsRematch = false;
+        render();
+        break;
+
       case "gameState":
         state.board = data.state.board;
         state.turn = data.state.turn;
         state.status = data.state.status;
         state.winner = data.state.winner;
         state.selectedPiece = null;
-        if (state.status === "over") state.phase = "gameOver";
+        state.rematchSent = false;
+        state.opponentWantsRematch = false;
+        if (state.status === "over") {
+          state.phase = "gameOver";
+        } else {
+          state.phase = "playing";
+        }
         render();
         break;
 
@@ -416,6 +468,11 @@ function connect() {
 
       case "opponentReconnected":
         state.phase = "playing";
+        render();
+        break;
+
+      case "rematchRequested":
+        state.opponentWantsRematch = true;
         render();
         break;
 

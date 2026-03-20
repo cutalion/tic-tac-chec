@@ -17,9 +17,13 @@ func setupRoom() (Room, [2]chan ui.MoveRequest) {
 		make(chan ui.MoveRequest),
 		make(chan ui.MoveRequest),
 	}
+	rematch := [2]chan ui.RematchRequest{
+		make(chan ui.RematchRequest),
+		make(chan ui.RematchRequest),
+	}
 
-	whitePlayer := NewPlayer(moves[0])
-	blackPlayer := NewPlayer(moves[1])
+	whitePlayer := NewPlayer(moves[0], rematch[0])
+	blackPlayer := NewPlayer(moves[1], rematch[1])
 
 	room := NewRoom(whitePlayer, blackPlayer)
 
@@ -70,8 +74,13 @@ func TestBufferedChannelDeliversMessage(t *testing.T) {
 		make(chan ui.MoveRequest),
 	}
 
-	whitePlayer := NewPlayer(moves[0])
-	blackPlayer := NewPlayer(moves[1])
+	rematch := [2]chan ui.RematchRequest{
+		make(chan ui.RematchRequest),
+		make(chan ui.RematchRequest),
+	}
+
+	whitePlayer := NewPlayer(moves[0], rematch[0])
+	blackPlayer := NewPlayer(moves[1], rematch[1])
 
 	room := NewRoom(whitePlayer, blackPlayer)
 	defer close(room.Quit)
@@ -165,8 +174,10 @@ func TestReconnectToRoom(t *testing.T) {
 
 	newMoves := make(chan ui.MoveRequest, 1)
 	defer close(newMoves)
+	newRematch := make(chan ui.RematchRequest, 1)
+	defer close(newRematch)
 
-	newBlack := NewPlayer(newMoves)
+	newBlack := NewPlayer(newMoves, newRematch)
 	newBlack.Color = engine.Black
 	room.Reconnect <- newBlack
 

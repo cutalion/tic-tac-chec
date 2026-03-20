@@ -19,7 +19,12 @@ import (
 
 type playerConn struct {
 	player game.Player
-	ready  chan Participant
+	ready  chan readyMsg
+}
+
+type readyMsg struct {
+	token string
+	color engine.Color
 }
 
 type jsonMsg struct {
@@ -61,6 +66,15 @@ type msgTokenExpired struct {
 	Type string `json:"type"`
 }
 
+type msgRematchRequested struct {
+	Type string `json:"type"`
+}
+
+type msgRematchStarted struct {
+	Type  string `json:"type"`
+	Color string `json:"color"`
+}
+
 var lobby = make(chan playerConn)
 var participants = NewParticipants()
 
@@ -92,9 +106,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close(websocket.StatusInternalError, "")
 
-	ready := make(chan Participant, 1)
+	ready := make(chan readyMsg, 1)
 	moves := make(chan ui.MoveRequest)
-	player := game.NewPlayer(moves)
+	rematch := make(chan ui.RematchRequest)
+	player := game.NewPlayer(moves, rematch)
 	done := make(chan struct{})
 
 	var closeOnce sync.Once
@@ -162,6 +177,13 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
+			case "rematch":
+				select {
+				case rematch <- ui.RematchRequest{}:
+				case <-done:
+					return
+				}
+
 			default:
 				log.Println("Unknown message type:", msg.Type)
 				continue
@@ -178,7 +200,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("Received update %v of type %T", update, update)
+		log.Printf("Received update of type %T", update)
 
 		var msg any
 		switch update := update.(type) {
@@ -193,6 +215,13 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			msg = newMsgOpponentAway()
 		case ui.OpponentReconnectedMsg:
 			msg = newMsgOpponentReconnected()
+		case ui.RematchRequestedMsg:
+			msg = newMsgRematchRequested()
+		case ui.PairedMsg:
+			msg = newMsgRematchStarted(update.Color)
+		default:
+			log.Println("Unknown update type:", update)
+			continue
 		}
 
 		if msg == nil {
@@ -223,17 +252,18 @@ func lobbyLoop(lobby chan playerConn) {
 		black.player.Color = engine.Black
 
 		room := game.NewRoom(white.player, black.player)
-		whiteParticipantToken := participants.register(&room, engine.White)
-		blackParticipantToken := participants.register(&room, engine.Black)
+		whiteParticipantToken := participants.register(&room, 0)
+		blackParticipantToken := participants.register(&room, 1)
 
+		log.Printf("Room created: white=%s, black=%s\n", whiteParticipantToken, blackParticipantToken)
 		go room.Run()
 
-		white.ready <- Participant{color: engine.White, token: whiteParticipantToken}
-		black.ready <- Participant{color: engine.Black, token: blackParticipantToken}
+		white.ready <- readyMsg{color: engine.White, token: whiteParticipantToken}
+		black.ready <- readyMsg{color: engine.Black, token: blackParticipantToken}
 	}
 }
 
-func awaitJoinOrReconnect(ws *websocket.Conn, r *http.Request, player game.Player, ready chan Participant) error {
+func awaitJoinOrReconnect(ws *websocket.Conn, r *http.Request, player game.Player, ready chan readyMsg) error {
 	msgType, data, err := ws.Read(r.Context())
 	if err != nil {
 		return err
@@ -262,8 +292,8 @@ func awaitJoinOrReconnect(ws *websocket.Conn, r *http.Request, player game.Playe
 		// lobby assigns color and sends it to the "ready" channel
 		// we read the color, assign it to the player, and send "paired" response to the client
 		select {
-		case participant := <-ready:
-			return sendJSON(ws, r, newMsgPaired(participant.color, participant.token))
+		case msg := <-ready:
+			return sendJSON(ws, r, newMsgPaired(msg.color, msg.token))
 		case <-r.Context().Done():
 			return r.Context().Err() // exit from handleWebSocket
 		}
@@ -274,7 +304,8 @@ func awaitJoinOrReconnect(ws *websocket.Conn, r *http.Request, player game.Playe
 			return sendJSON(ws, r, newMsgTokenExpired())
 		}
 
-		player.Color = participant.color
+		color := participant.room.Players[participant.playerIdx].Color
+		player.Color = color
 
 		select {
 		case participant.room.Reconnect <- player:
@@ -282,7 +313,7 @@ func awaitJoinOrReconnect(ws *websocket.Conn, r *http.Request, player game.Playe
 			return r.Context().Err()
 		}
 
-		return sendJSON(ws, r, newMsgPaired(participant.color, token))
+		return sendJSON(ws, r, newMsgPaired(color, token))
 	default:
 		log.Println("unknown message type")
 	}
@@ -325,4 +356,12 @@ func newMsgPaired(color engine.Color, token string) msgPaired {
 
 func newMsgTokenExpired() msgTokenExpired {
 	return msgTokenExpired{Type: "tokenExpired"}
+}
+
+func newMsgRematchRequested() msgRematchRequested {
+	return msgRematchRequested{Type: "rematchRequested"}
+}
+
+func newMsgRematchStarted(color engine.Color) msgRematchStarted {
+	return msgRematchStarted{Type: "rematchStarted", Color: wire.ColorToString(color)}
 }

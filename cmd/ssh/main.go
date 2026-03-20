@@ -77,7 +77,8 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		close(moves)
 	}(s)
 
-	player := game.NewPlayer(moves)
+	rematch := make(chan ui.RematchRequest)
+	player := game.NewPlayer(moves, rematch)
 
 	go func() {
 		lobby <- playerConn{player: player, ready: ready}

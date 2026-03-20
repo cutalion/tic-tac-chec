@@ -27,6 +27,11 @@ type OpponentReconnectedMsg struct{}
 // OpponentAwayMsg is received when the other player is no longer connected.
 type OpponentAwayMsg struct{}
 
+// RematchRequest is sent when the player requests a rematch.
+type RematchRequest struct{}
+
+type RematchRequestedMsg struct{}
+
 // PairedMsg is delivered when the lobby pairs this player with an opponent.
 type PairedMsg struct {
 	Color engine.Color
