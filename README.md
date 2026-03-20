@@ -27,6 +27,11 @@ go run ./cmd/tui/
 
 Open [ttc.ctln.pw](https://ttc.ctln.pw) in a browser — no install needed.
 
+<p align="center">
+  <img src="light.png" width="45%" />
+  <img src="dark.png" width="45%" />
+</p>
+
 - Auto-pairing lobby
 - Reconnection support (survives network drops, tab close/reopen)
 - Rematch with color swap
