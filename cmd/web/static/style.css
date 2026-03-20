@@ -1,336 +1,358 @@
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 /* ---------- Themes ---------- */
 
 :root {
-  --bg: #FDF8EC;
-  --text: #1A1005;
-  --cell-bg: #F0E6C8;
-  --cell-border: #A08030;
-  --cell-active: #E0D4A8;
-  --label: #6B5520;
-  --overlay-bg: rgba(26, 16, 5, 0.8);
-  --overlay-text: #FDF8EC;
-  --error: #C02010;
-  --white-piece: #C02818;
-  --black-piece: #082E5C;
-  --selected: #1A1005;
-  --target: #186830;
-  --result: #C02818;
-  --win-shadow: #1A1005;
+    --bg: #fdf8ec;
+    --text: #1a1005;
+    --cell-bg: #f0e6c8;
+    --cell-border: #a08030;
+    --cell-active: #e0d4a8;
+    --label: #6b5520;
+    --overlay-bg: rgba(26, 16, 5, 0.8);
+    --overlay-text: #fdf8ec;
+    --error: #c02010;
+    --white-piece: #c02818;
+    --black-piece: #082e5c;
+    --selected: #1a1005;
+    --target: #186830;
+    --result: #c02818;
+    --win-shadow: #ffffff;
+    --win-shadow-width: 6;
 }
 
 [data-theme="dark"] {
-  --bg: #0a0a12;
-  --text: #e0e0f0;
-  --cell-bg: #1a1a2e;
-  --cell-border: #2a2a44;
-  --cell-active: #2a2a44;
-  --label: #5a5a7a;
-  --overlay-bg: rgba(10, 10, 18, 0.92);
-  --overlay-text: #8888aa;
-  --error: #ff6b8a;
-  --white-piece: #ff6b8a;
-  --black-piece: #6bb3ff;
-  --selected: #ffd966;
-  --target: #66cc99;
-  --result: #ffd966;
-  --win-shadow: rgba(0, 0, 0, 0.3);
+    --bg: #0a0a12;
+    --text: #e0e0f0;
+    --cell-bg: #1a1a2e;
+    --cell-border: #2a2a44;
+    --cell-active: #2a2a44;
+    --label: #5a5a7a;
+    --overlay-bg: rgba(10, 10, 18, 0.92);
+    --overlay-text: #8888aa;
+    --error: #ff6b8a;
+    --white-piece: #ff6b8a;
+    --black-piece: #6bb3ff;
+    --selected: #ffd966;
+    --target: #66cc99;
+    --result: #ffd966;
+    --win-shadow: rgba(0, 0, 0, 0.3);
+    --win-shadow-width: 7;
 }
 
 /* ---------- Base ---------- */
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
+    background: var(--bg);
+    color: var(--text);
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        Arial,
+        sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 
 h1 {
-  position: fixed;
-  top: 16px;
-  left: 0;
-  width: 100%;
-  text-align: center;
-  line-height: 36px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    line-height: 36px;
+    padding: 16px 0 8px;
+    background: var(--bg);
+    z-index: 5;
 }
 
 @media (max-width: 480px) {
-  #app {
-    max-width: none;
-    padding: 12px 16px;
-  }
+    #app {
+        max-width: none;
+        padding: 12px 16px;
+    }
 }
 
 #app {
-  width: 100%;
-  max-width: 420px;
-  padding: 12px 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  position: relative;
+    width: 100%;
+    max-width: 420px;
+    padding: 56px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
 }
 
 /* ---------- Title & Status ---------- */
 
 h1 {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  margin-bottom: 4px;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
 }
 
 #turn-indicator {
-  font-size: 15px;
-  min-height: 20px;
-  margin-bottom: 4px;
-  text-align: center;
+    font-size: 15px;
+    min-height: 20px;
+    margin-bottom: 4px;
+    text-align: center;
 }
 
 .rematch-area {
-  margin-top: 8px;
-  font-size: 14px;
-  color: var(--label);
-  text-align: center;
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--label);
+    text-align: center;
 }
 
 .rematch-btn {
-  background: var(--cell-bg);
-  border: 1px solid var(--cell-border);
-  color: var(--text);
-  padding: 10px 28px;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 16px;
-  cursor: pointer;
-  margin-left: 8px;
+    background: var(--cell-bg);
+    border: 1px solid var(--cell-border);
+    color: var(--text);
+    padding: 10px 28px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 8px;
 }
 
 .rematch-btn:active {
-  background: var(--cell-active);
+    background: var(--cell-active);
+}
+
+.leave-btn {
+    background: transparent;
+    border-color: transparent;
+    font-size: 14px;
+    color: var(--label);
+    padding: 8px 16px;
 }
 
 #error-message {
-  font-size: 13px;
-  min-height: 18px;
-  color: var(--error);
+    font-size: 13px;
+    min-height: 18px;
+    color: var(--error);
 }
 
 /* ---------- Theme Switcher ---------- */
 
 #theme-toggle {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 20;
-  background: transparent;
-  border: 1px solid var(--label);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s, border-color 0.2s;
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 20;
+    background: transparent;
+    border: 1px solid var(--label);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        background 0.2s,
+        border-color 0.2s;
 }
 
 #theme-toggle svg {
-  width: 18px;
-  height: 18px;
-  fill: var(--label);
-  color: var(--label);
+    width: 18px;
+    height: 18px;
+    fill: var(--label);
+    color: var(--label);
 }
 
 /* ---------- Overlays ---------- */
 
 #overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  font-size: 16px;
-  color: var(--overlay-text);
+    position: fixed;
+    inset: 0;
+    background: var(--overlay-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    font-size: 16px;
+    color: var(--overlay-text);
 }
 
 #overlay.hidden {
-  display: none;
+    display: none;
 }
 
 /* ---------- Game Area ---------- */
 
 #game-area {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 #game-area .hand-panel:first-child {
-  margin-bottom: 8px;
+    margin-bottom: 8px;
 }
 
 #game-area .hand-panel:last-child {
-  margin-top: 8px;
+    margin-top: 8px;
 }
 
 /* ---------- Hand Panels ---------- */
 
 .hand-panel {
-  display: grid;
-  grid-template-columns: 28px repeat(4, 1fr) 28px;
-  gap: 12px;
-  align-items: center;
-  width: 100%;
-  padding: 0 4px;
+    display: grid;
+    grid-template-columns: 28px repeat(4, 1fr) 28px;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+    padding: 0 4px;
 }
 
 .hand-cell {
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--cell-border);
-  border-radius: 8px;
-  background: var(--cell-bg);
-  font-size: 46px;
-  cursor: pointer;
-  transition: border-color 0.15s;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--cell-border);
+    border-radius: 8px;
+    background: var(--cell-bg);
+    font-size: 46px;
+    cursor: pointer;
+    transition: border-color 0.15s;
 }
 
 .hand-cell:active {
-  background: var(--cell-active);
+    background: var(--cell-active);
 }
 
 .hand-cell.selected {
-  border-color: var(--selected);
+    border-color: var(--selected);
 }
 
 .hand-cell.empty {
-  cursor: default;
+    cursor: default;
 }
 
 .hand-cell.empty:active {
-  background: var(--cell-bg);
+    background: var(--cell-bg);
 }
 
 /* ---------- Column Labels ---------- */
 
 .col-labels {
-  display: grid;
-  grid-template-columns: 28px repeat(4, 1fr) 28px;
-  gap: 12px;
-  width: 100%;
-  padding: 0 4px;
+    display: grid;
+    grid-template-columns: 28px repeat(4, 1fr) 28px;
+    gap: 12px;
+    width: 100%;
+    padding: 0 4px;
 }
 
 .col-labels span {
-  text-align: center;
-  font-size: 13px;
-  color: var(--label);
+    text-align: center;
+    font-size: 13px;
+    color: var(--label);
 }
 
 /* ---------- Board ---------- */
 
 .board {
-  position: relative;
-  display: grid;
-  grid-template-columns: 28px repeat(4, 1fr) 28px;
-  gap: 12px;
-  align-items: center;
-  width: 100%;
-  padding: 0 4px;
+    position: relative;
+    display: grid;
+    grid-template-columns: 28px repeat(4, 1fr) 28px;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+    padding: 0 4px;
 }
 
 .row-label {
-  font-size: 13px;
-  color: var(--label);
+    font-size: 13px;
+    color: var(--label);
 }
 
 .row-label:nth-child(6n + 1) {
-  text-align: right;
+    text-align: right;
 }
 
 .row-label:nth-child(6n) {
-  text-align: left;
+    text-align: left;
 }
 
 .board-cell {
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--cell-border);
-  border-radius: 8px;
-  background: var(--cell-bg);
-  font-size: 46px;
-  cursor: pointer;
-  transition: border-color 0.15s;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--cell-border);
+    border-radius: 8px;
+    background: var(--cell-bg);
+    font-size: 46px;
+    cursor: pointer;
+    transition: border-color 0.15s;
 }
 
 .board-cell:active {
-  background: var(--cell-active);
+    background: var(--cell-active);
 }
 
 .board-cell.selected {
-  border-color: var(--selected);
+    border-color: var(--selected);
 }
 
 .board-cell.target {
-  border-color: var(--target);
+    border-color: var(--target);
 }
 
 .win-line {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
 }
 
 .win-line line.shadow {
-  stroke: var(--win-shadow);
-  stroke-width: 7;
-  stroke-linecap: round;
+    stroke: var(--win-shadow);
+    stroke-width: var(--win-shadow-width);
+    stroke-linecap: round;
 }
 
 .win-line line.main {
-  stroke-width: 4;
-  stroke-linecap: round;
+    stroke-width: 4;
+    stroke-linecap: round;
 }
 
 .win-line.piece-white line.main {
-  stroke: var(--white-piece);
+    stroke: var(--white-piece);
 }
 
 .win-line.piece-black line.main {
-  stroke: var(--black-piece);
+    stroke: var(--black-piece);
 }
 
 /* ---------- Piece Colors ---------- */
 
 .piece-white {
-  color: var(--white-piece);
+    color: var(--white-piece);
 }
 
 .piece-black {
-  color: var(--black-piece);
+    color: var(--black-piece);
 }
 
 .game-result {
-  color: var(--result);
+    color: var(--result);
 }

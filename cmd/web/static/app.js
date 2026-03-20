@@ -31,6 +31,7 @@ const state = {
   error: null,
   rematchSent: false,
   opponentWantsRematch: false,
+  opponentStatus: null, // null | "away" | "disconnected"
 };
 
 let ws = null;
@@ -59,10 +60,6 @@ function renderOverlay() {
       break;
     case "waiting":
       overlay.textContent = "Waiting for opponent...";
-      overlay.classList.remove("hidden");
-      break;
-    case "disconnected":
-      overlay.textContent = "Opponent disconnected";
       overlay.classList.remove("hidden");
       break;
     case "connectionLost":
@@ -107,11 +104,26 @@ function renderTurnIndicator() {
       btn.addEventListener("click", sendRematch);
       rematchArea.appendChild(btn);
     }
+
+    const leaveBtn = document.createElement("button");
+    leaveBtn.className = "rematch-btn leave-btn";
+    leaveBtn.textContent = "Exit to lobby";
+    leaveBtn.addEventListener("click", leaveRoom);
+    rematchArea.appendChild(leaveBtn);
+
     turnIndicator.appendChild(rematchArea);
     return;
   }
   if (!state.turn) {
     turnIndicator.textContent = "";
+    return;
+  }
+  if (state.opponentStatus) {
+    turnIndicator.textContent =
+      state.opponentStatus === "away"
+        ? "Opponent away..."
+        : "Opponent disconnected";
+    turnIndicator.className = "";
     return;
   }
   const isMyTurn = state.turn === state.myColor;
@@ -372,6 +384,12 @@ function sendRematch() {
   render();
 }
 
+function leaveRoom() {
+  localStorage.removeItem("token");
+  ws.close();
+  connect();
+}
+
 function isPieceOnBoard(color, kind) {
   if (!state.board) return false;
   for (const row of state.board) {
@@ -428,6 +446,7 @@ function connect() {
         state.selectedPiece = null;
         state.rematchSent = false;
         state.opponentWantsRematch = false;
+        state.opponentStatus = null;
         render();
         break;
 
@@ -439,6 +458,7 @@ function connect() {
         state.selectedPiece = null;
         state.rematchSent = false;
         state.opponentWantsRematch = false;
+        state.opponentStatus = null;
         if (state.status === "over") {
           state.phase = "gameOver";
         } else {
@@ -457,17 +477,17 @@ function connect() {
         break;
 
       case "opponentDisconnected":
-        state.phase = "disconnected";
+        state.opponentStatus = "disconnected";
         render();
         break;
 
       case "opponentAway":
-        state.phase = "waiting";
+        state.opponentStatus = "away";
         render();
         break;
 
       case "opponentReconnected":
-        state.phase = "playing";
+        state.opponentStatus = null;
         render();
         break;
 
