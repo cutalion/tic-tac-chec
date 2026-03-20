@@ -6,10 +6,10 @@ const PIECE_CODES = {
 };
 
 const PIECE_SYMBOLS = {
-  pawn: "\u265F",
-  rook: "\u265C",
-  bishop: "\u265D",
-  knight: "\u265E",
+  pawn: "\u265F\uFE0E",
+  rook: "\u265C\uFE0E",
+  bishop: "\u265D\uFE0E",
+  knight: "\u265E\uFE0E",
 };
 
 const KINDS = ["pawn", "rook", "bishop", "knight"];
