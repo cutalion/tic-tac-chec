@@ -45,7 +45,7 @@ Play order is designed so each milestone builds on the previous one.
 - `internal/game/room.go` — Room type multiplexes moves from both players via channels
 - `internal/ui/` — Bubble Tea TUI with online mode, board flipping, color schemes
 - Lobby auto-pairing, disconnect handling, host key management
-- Deployed to Railway at `tramway.proxy.rlwy.net:17014`
+- Deployed to `ttc.ctln.pw` (Docker Compose + Caddy on VPS)
 
 **Architecture:**
 ```
@@ -110,7 +110,7 @@ WebSocket handler: read goroutine + write loop
 
 ---
 
-## Milestone 4: Rooms & Reconnect (web only)
+## Milestone 4: Rooms & Reconnect (web only) — IN PROGRESS
 
 **Goal:** Games survive network disconnects — subway tunnels, elevators, closing
 laptop and reopening. A player can lose connection and resume their game.
@@ -200,18 +200,30 @@ Both paths converge into the same read/write loop, attached to the room's player
 - On game over: clear localStorage, offer "Play again" (fresh matchmake via lobby,
   not a rematch with same opponent)
 
-### Follow-up (not in initial scope)
+### Remaining (M4.5)
 
 - **Room cleanup with TTL:** Timer starts when both players disconnect. Sends on a
   channel that Room.Run() selects on (timer goroutine must never directly mutate state).
   ~30 min TTL for abandoned rooms. Until then, server restart is the only cleanup.
   Add a quit channel to Room.Run() select when implementing this.
-- **Room IDs / shareable URLs:** `/?room=abc` for direct join or spectating.
 - **Lobby timeout:** Cancel waiting after N minutes if no opponent shows up.
 - **AFK / move timeout:** Notify opponent when the other player has been idle too long.
-- **Rematch:** "Play again with same opponent" (reuse room, reset game state).
+- **Reconnect backoff:** Exponential backoff on client, visibilitychange handler,
+  opponent timeout banner (~60s).
 
-### Go concepts to learn
+### Deferred
+
+- **Room IDs / shareable URLs:** `/?room=abc` for direct join or spectating.
+
+### Completed
+
+- ✅ Step 1: Room.Run() survives disconnects (nil channel pattern, reconnect channels)
+- ✅ Step 2: Registry (token-based lookup, `crypto/rand`)
+- ✅ Step 3: WebSocket handler (join/reconnect first message)
+- ✅ Step 4: Client JS (localStorage token, basic reconnect)
+- ✅ Rematch with color swap and stable participant tokens
+
+### Go concepts learned
 
 - **Nil channel in select** — dynamically disabling select cases
 - **`sync.Mutex`** — protecting the registry (shared map across goroutines)
@@ -221,7 +233,38 @@ Both paths converge into the same read/write loop, attached to the room's player
 
 ---
 
-## Milestone 5: AI Agent Arena
+## Milestone 5: Web API Redesign & SPA
+
+**Goal:** Separate the Go server into a pure API server and the frontend into
+a standalone SPA. Design a clean REST + WebSocket protocol reusable by mobile apps.
+
+**Design document:** [WEB_API_DESIGN.md](WEB_API_DESIGN.md)
+
+**Key changes from Milestone 3/4:**
+- Client identity token (one token per player, works across rooms)
+- Room IDs in URLs (`/room/:id`) — shareable, bookmarkable
+- REST API for room CRUD + WebSocket for real-time (lobby, gameplay)
+- Separate API and SPA servers (Caddy serves static, proxies API)
+- SPA with client-side routing (landing, lobby, room pages)
+
+**What to build:**
+- `cmd/api/` — pure REST + WebSocket API server (replaces `cmd/web/`)
+- `web/` — SPA frontend (HTML + JS + CSS, served by Caddy)
+- Updated `Caddyfile` — static files + `/api/` reverse proxy
+- Client registry, room registry with proper ID generation
+- Lobby as dedicated WebSocket endpoint
+- Room join flow (create → share link → friend joins)
+
+**Go concepts to learn:**
+- **`net/http` routing** — ServeMux patterns with path parameters (`/api/rooms/{id}`)
+- **UUIDv7** — time-sortable unique IDs, base62 encoding
+- **HTTP middleware** — auth token extraction, CORS
+- **Clean API design** — REST semantics, status codes, error responses
+- **Separating concerns** — API server vs static serving
+
+---
+
+## Milestone 6: AI Agent Arena (moved from M5)
 
 **Idea:** Run AI agents that play tic-tac-chec against humans (and each other) via the web UI. Track game results to compare how different agents perform and how they improve over time as their skill prompts evolve.
 
@@ -242,7 +285,7 @@ Both paths converge into the same read/write loop, attached to the room's player
 
 ---
 
-## Milestone 6 (future): Cross-transport play
+## Milestone 7 (future): Cross-transport play
 
 - Shared room registry between SSH and web servers
 - Adapter layer between Bubble Tea and channel-based rooms
@@ -262,13 +305,17 @@ Milestone 2: SSH server                      ✅ DONE
 Milestone 3: Web UI                          ✅ DONE
   └─ learned: net/http, WebSockets, embed.FS, build tags, goroutine coordination
 
-Milestone 4: Rooms & Reconnect              ⬜ NEXT
-  └─ teaches: nil channel pattern, sync.Mutex, channel of channels, goroutine lifecycle
+Milestone 4: Rooms & Reconnect              🔧 IN PROGRESS
+  └─ learned: nil channel pattern, sync.Mutex, crypto/rand, channel of channels, goroutine lifecycle
+  └─ remaining: Room TTL, lobby timeout, AFK detection, reconnect backoff
 
-Milestone 5: AI Agent Arena                  ⬜ FUTURE
+Milestone 5: Web API Redesign & SPA          ⬜ NEXT
+  └─ teaches: REST API design, UUIDv7, HTTP middleware, SPA routing, separation of concerns
+
+Milestone 6: AI Agent Arena                  ⬜ FUTURE
   └─ teaches: LLM API integration, game result persistence, stats/dashboards
 
-Milestone 6: Cross-transport play            ⬜ FUTURE
+Milestone 7: Cross-transport play            ⬜ FUTURE
   └─ teaches: adapter patterns, shared state across transports
 ```
 

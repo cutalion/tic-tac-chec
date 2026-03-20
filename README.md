@@ -23,38 +23,41 @@ go run ./cmd/tui/
 
 ## Play Online
 
+### Web
+
+Open [ttc.ctln.pw](https://ttc.ctln.pw) in a browser — no install needed.
+
+- Auto-pairing lobby
+- Reconnection support (survives network drops, tab close/reopen)
+- Rematch with color swap
+
+### SSH
+
 [![SSH play demo](ssh-play.png)](https://asciinema.org/a/y841iuATvfSxSNDF)
 
-Connect via SSH — no install needed:
-
 ```bash
-ssh tramway.proxy.rlwy.net -p 17014
+ssh ttc.ctln.pw -p 2222
 ```
 
-You'll be paired with the next player who connects. Features:
 - Auto-pairing lobby
 - Turn indicator and board flip (Black sees the board from their side)
 - In-game rules screen (`?`)
 
 ## Self-Hosting
 
-Run the SSH server with Docker:
+Run both servers with Docker Compose (includes Caddy reverse proxy for HTTPS):
 
 ```bash
-docker build -t tic-tac-chec .
-docker run -p 2222:2222 tic-tac-chec
+docker compose up -d
 ```
 
-Players connect with `ssh localhost -p 2222`.
+This starts:
+- **Web server** on port 80/443 (via Caddy reverse proxy)
+- **SSH server** on port 2222
 
-To keep the host key stable across redeploys, set the `HOST_KEY_PEM` env var to an Ed25519 private key in PEM format:
+Configure your domain in `Caddyfile`. Players connect via browser or `ssh your-host -p 2222`.
 
-```bash
-ssh-keygen -t ed25519 -f host_key -N "" && rm host_key.pub
-docker run -p 2222:2222 -e HOST_KEY_PEM="$(cat host_key)" tic-tac-chec
-```
-
-Without `HOST_KEY_PEM`, keys are auto-generated on startup (clients will see a host key change warning after each redeploy).
+SSH host keys are persisted in a Docker volume across redeploys.
 
 ## Claude Code Skill
 
