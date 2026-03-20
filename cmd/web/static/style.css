@@ -18,9 +18,10 @@
   --error: #C02010;
   --white-piece: #C02818;
   --black-piece: #082E5C;
-  --selected: #B07800;
+  --selected: #1A1005;
   --target: #186830;
-  --result: #906000;
+  --result: #C02818;
+  --win-shadow: #1A1005;
 }
 
 [data-theme="dark"] {
@@ -38,6 +39,7 @@
   --selected: #ffd966;
   --target: #66cc99;
   --result: #ffd966;
+  --win-shadow: rgba(0, 0, 0, 0.3);
 }
 
 /* ---------- Base ---------- */
@@ -54,21 +56,19 @@ body {
   user-select: none;
 }
 
+h1 {
+  position: fixed;
+  top: 16px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  line-height: 36px;
+}
+
 @media (max-width: 480px) {
-  body {
-    align-items: flex-end;
-  }
   #app {
     max-width: none;
     padding: 12px 16px;
-  }
-  h1 {
-    position: fixed;
-    top: 16px;
-    left: 0;
-    width: 100%;
-    text-align: center;
-    line-height: 36px;
   }
 }
 
@@ -303,13 +303,13 @@ h1 {
 }
 
 .win-line line.shadow {
-  stroke: rgba(0, 0, 0, 0.3);
-  stroke-width: 10;
+  stroke: var(--win-shadow);
+  stroke-width: 7;
   stroke-linecap: round;
 }
 
 .win-line line.main {
-  stroke-width: 5;
+  stroke-width: 4;
   stroke-linecap: round;
 }
 
