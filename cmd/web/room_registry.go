@@ -42,7 +42,7 @@ func (rr *roomRegistry) Create(pairing Pairing) RoomEntry {
 	room := game.NewRoom(p1, p2)
 
 	entry := RoomEntry{
-		Room: &room,
+		Room: room,
 		Participants: [2]Participant{
 			Participant{ClientID: pairing.Players[0], PlayerID: p1.ID},
 			Participant{ClientID: pairing.Players[1], PlayerID: p2.ID},

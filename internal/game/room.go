@@ -57,8 +57,8 @@ func NewPlayer(commands <-chan Command) Player {
 	}
 }
 
-func NewRoom(white, black Player) Room {
-	return Room{
+func NewRoom(white, black Player) *Room {
+	return &Room{
 		ID:                    RoomID(uuid.New().String()),
 		Game:                  engine.NewGame(),
 		Players:               [2]Player{white, black},

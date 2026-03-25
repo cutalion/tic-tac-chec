@@ -9,7 +9,7 @@ import (
 	"go.uber.org/goleak"
 )
 
-func setupRoom() (Room, [2]chan Command) {
+func setupRoom() (*Room, [2]chan Command) {
 	// create bi-directional channels, so we can manually read/write in tests
 	// readonly would be impractical
 	commands := [2]chan Command{
