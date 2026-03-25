@@ -2,6 +2,7 @@
 /main
 /tui
 /cli
+/web
 
 # Go build cache
 *.test
