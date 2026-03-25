@@ -2,6 +2,7 @@ package ui
 
 import (
 	"tic-tac-chec/engine"
+	"tic-tac-chec/internal/game"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -49,8 +50,8 @@ type Model struct {
 	Mode       Mode
 	Phase      Phase
 	MyColor    engine.Color
-	Moves      chan<- MoveRequest  // send moves to Room
-	Updates   <-chan any          // receive state updates from Room
+	Commands   chan<- game.Command // send commands to Room
+	Updates    <-chan game.Event   // receive state updates from Room
 	LobbyReady <-chan engine.Color // receives assigned color when paired
 }
 
@@ -115,7 +116,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.MyColor = msg.Color
 		return m, m.nextCmd()
 
-	case GameStateMsg:
+	case game.SnapshotEvent:
 		game := msg.Game
 		m.Game = &game
 		m.SelectedPiece = nil
@@ -256,7 +257,7 @@ func (m Model) executeMove(piece engine.Piece, cell engine.Cell) (tea.Model, tea
 		// a goroutine slot). After the Room processes the move, it sends
 		// either GameStateMsg or ErrorMsg back on updates.
 		return m, func() tea.Msg {
-			m.Moves <- MoveRequest{Piece: piece, Cell: cell}
+			m.Commands <- game.MoveCommand{Piece: piece, To: cell}
 			msg, ok := <-updates
 			if !ok {
 				return OpponentDisconnectedMsg{}

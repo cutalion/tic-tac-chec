@@ -3,126 +3,225 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/coder/websocket"
 )
 
-var server *httptest.Server
-
-func TestMain(m *testing.M) {
-	lobby = make(chan playerConn)
-	go lobbyLoop(lobby)
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /ws", handleWebSocket)
-	server = httptest.NewServer(mux)
-
-	code := m.Run()
-	server.Close()
-	os.Exit(code)
+type fakeClientService struct {
+	nextID atomic.Uint32
 }
 
-func TestJoinFlow(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (f *fakeClientService) Create() *Client {
+	id := f.nextID.Add(1)
+	return &Client{ID: ClientID(fmt.Sprintf("c_%04d", id))}
+}
+
+func (f *fakeClientService) lookup(id ClientID) (*Client, bool) {
+	return &Client{ID: id}, true
+}
+
+func FakeClientService() ClientService {
+	return &fakeClientService{nextID: atomic.Uint32{}}
+}
+
+func setupAppServer(t *testing.T) (*http.ServeMux, *App) {
+	t.Helper()
+
+	clients := FakeClientService()
+	app := NewApp(clients)
+
+	router := http.NewServeMux()
+	router.HandleFunc("/api/clients", app.CreateClient)
+	router.HandleFunc("/api/me", app.Me)
+
+	return router, app
+}
+
+func TestCreateClientRespondsWithToken(t *testing.T) {
+	router, _ := setupAppServer(t)
+
+	req, err := http.NewRequest("POST", "/api/clients", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if http.StatusCreated != rr.Code {
+		t.Errorf("expected status %d, got %d", http.StatusCreated, rr.Code)
+	}
+
+	expectedBody := "{\"token\":\"c_0001\"}\n"
+	if expectedBody != rr.Body.String() {
+		t.Errorf("expected body %s, got '%s'", expectedBody, rr.Body.String())
+	}
+}
+
+func TestMeRespondsWithClient(t *testing.T) {
+	router, app := setupAppServer(t)
+
+	client := app.clients.Create()
+
+	req, err := http.NewRequest("GET", "/api/me", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+string(client.ID))
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if http.StatusOK != rr.Code {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+
+	expectedBody := "{\"token\":\"" + string(client.ID) + "\"}\n"
+	if expectedBody != rr.Body.String() {
+		t.Errorf("expected body %s, got '%s'", expectedBody, rr.Body.String())
+	}
+}
+
+func TestLobbyPairsClients(t *testing.T) {
+	router, app := setupAppServer(t)
+	router.HandleFunc("/ws/lobby", app.Lobby)
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	client := app.clients.Create()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	ws1, _, _ := websocket.Dial(ctx, server.URL+"/ws", nil)
-	ws1.Write(ctx, websocket.MessageText, []byte(`{"type": "join"}`))
-	defer ws1.Close(200, "closing")
+	ws, _, _ := connectWs(t, ctx, server.URL+"/ws/lobby", client)
+	defer ws.Close(200, "closing")
 
-	ws2, _, _ := websocket.Dial(ctx, server.URL+"/ws", nil)
-	ws2.Write(ctx, websocket.MessageText, []byte(`{"type": "join"}`))
+	got := readJSON[lobbyWaitMessage](t, ctx, ws)
+	if got.Type != "waiting" {
+		t.Errorf("expected type %s, got %s", "waiting", got.Type)
+	}
+
+	client2 := app.clients.Create()
+
+	if client2.ID == client.ID {
+		t.Fatal("client2 should have a different ID")
+	}
+
+	ws2, _, _ := connectWs(t, ctx, server.URL+"/ws/lobby", client2)
 	defer ws2.Close(200, "closing")
 
-	_, msg1, _ := ws1.Read(ctx)
-	_, msg2, _ := ws2.Read(ctx)
-
-	var m1, m2 map[string]any
-	json.Unmarshal(msg1, &m1)
-	json.Unmarshal(msg2, &m2)
-
-	if m1["color"] == m2["color"] {
-		t.Errorf("colors should be opposite")
+	got2 := readJSON[lobbyWaitMessage](t, ctx, ws2)
+	if got2.Type != "waiting" {
+		t.Errorf("expected type %s, got %s", "waiting", got2.Type)
 	}
-	if m1["token"] == m2["token"] {
-		t.Errorf("tokens should be different")
+
+	matched1 := readJSON[lobbyMatchedMessage](t, ctx, ws)
+	if matched1.Type != "matched" {
+		t.Errorf("expected type %s, got %s", "matched", matched1.Type)
 	}
-	if m1["token"] == "" || m2["token"] == "" {
-		t.Errorf("tokens should be non-empty")
+
+	matched2 := readJSON[lobbyMatchedMessage](t, ctx, ws2)
+	if matched2.Type != "matched" {
+		t.Errorf("expected type %s, got %s", "matched", matched2.Type)
+	}
+	if matched1.RoomID == "" {
+		t.Fatal("room ID should not be empty")
+	}
+	if matched2.RoomID == "" {
+		t.Fatal("room ID should not be empty")
+	}
+	if matched1.RoomID != matched2.RoomID {
+		t.Errorf("expected room IDs to be the same, got %s and %s", matched1.RoomID, matched2.RoomID)
 	}
 }
 
-func TestReconnectFlow(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func TestRoomJoinClientNotParticipant(t *testing.T) {
+	router, app := setupAppServer(t)
+	router.HandleFunc("/ws/room/{id}", app.Room)
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	client1 := app.clients.Create()
+	client2 := app.clients.Create()
+	client3 := app.clients.Create()
+
+	roomRegistry := app.roomRegistry.Create(Pairing{Players: [2]ClientID{client1.ID, client2.ID}})
+	go roomRegistry.Room.Run()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	ws1 := join(t, server, ctx)
-	defer ws1.Close(200, "closing")
-
-	ws2 := join(t, server, ctx)
-	token2 := readToken(t, ws2, ctx)
-	ws2.Close(200, "closing") // close, emulate disconnect
-
-	ws3 := reconnect(t, server, ctx, token2)
-	defer ws3.Close(200, "closing")
-
-	token3 := readToken(t, ws3, ctx)
-	if token3 != token2 {
-		t.Errorf("reconnected token should match original")
+	_, resp, err := connectWs(t, ctx, server.URL+"/ws/room/"+string(roomRegistry.Room.ID), client3)
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected status %d, got %d", http.StatusForbidden, resp.StatusCode)
+	}
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
 }
 
-func join(t *testing.T, server *httptest.Server, ctx context.Context) *websocket.Conn {
+func TestRoomJoinClientParticipant(t *testing.T) {
+	router, app := setupAppServer(t)
+	router.HandleFunc("/ws/room/{id}", app.Room)
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	client1 := app.clients.Create()
+	client2 := app.clients.Create()
+
+	roomRegistry := app.roomRegistry.Create(Pairing{Players: [2]ClientID{client1.ID, client2.ID}})
+	go roomRegistry.Room.Run()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	ws, _, _ := connectWs(t, ctx, server.URL+"/ws/room/"+string(roomRegistry.Room.ID), client1)
+	defer ws.Close(200, "closing")
+
+	got := readJSON[roomJoinedMessage](t, ctx, ws)
+	if got.RoomID != roomRegistry.Room.ID {
+		t.Errorf("expected room ID to be %s, got %s", roomRegistry.Room.ID, got.RoomID)
+	}
+}
+
+func readJSON[T any](t *testing.T, ctx context.Context, ws *websocket.Conn) T {
 	t.Helper()
 
-	ws, _, err := websocket.Dial(ctx, server.URL+"/ws", nil)
+	_, msg, err := ws.Read(ctx)
 	if err != nil {
-		t.Fatalf("dial error: %v", err)
-	}
-	ws.Write(ctx, websocket.MessageText, []byte(`{"type": "join"}`))
-
-	return ws
-}
-
-func readToken(t *testing.T, ws *websocket.Conn, ctx context.Context) (token string) {
-	t.Helper()
-
-	for range 3 {
-		_, msg, err := ws.Read(ctx)
-
-		if err != nil {
-			t.Fatalf("read error: %v", err)
-		}
-
-		var m map[string]any
-		json.Unmarshal(msg, &m)
-
-		if m["token"] != nil {
-			token = m["token"].(string)
-			break
-		}
+		t.Fatal(err)
 	}
 
-	if token == "" {
-		t.Fatal("token should be non-empty")
-	}
-
-	return token
-}
-
-func reconnect(t *testing.T, server *httptest.Server, ctx context.Context, token string) *websocket.Conn {
-	t.Helper()
-
-	ws, _, err := websocket.Dial(ctx, server.URL+"/ws", nil)
+	var got T
+	err = json.Unmarshal(msg, &got)
 	if err != nil {
-		t.Fatalf("dial error: %v", err)
+		t.Fatal(err)
 	}
-	ws.Write(ctx, websocket.MessageText, []byte(`{"type": "reconnect", "token": "`+token+`"}`))
 
-	return ws
+	return got
+}
+
+func connectWs(t *testing.T, ctx context.Context, url string, client *Client) (*websocket.Conn, *http.Response, error) {
+	t.Helper()
+
+	opts := &websocket.DialOptions{
+		HTTPHeader: http.Header{
+			"Authorization": []string{"Bearer " + string(client.ID)},
+		},
+	}
+
+	return websocket.Dial(ctx, wsURL(url), opts)
+}
+
+func wsURL(httpURL string) string {
+	return strings.Replace(httpURL, "http://", "ws://", 1)
 }

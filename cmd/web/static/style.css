@@ -4,8 +4,6 @@
     box-sizing: border-box;
 }
 
-/* ---------- Themes ---------- */
-
 :root {
     --bg: #fdf8ec;
     --text: #1a1005;
@@ -44,8 +42,6 @@
     --win-shadow-width: 7;
 }
 
-/* ---------- Base ---------- */
-
 body {
     background: var(--bg);
     color: var(--text);
@@ -75,6 +71,15 @@ h1 {
     padding: 16px 0 8px;
     background: var(--bg);
     z-index: 5;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.title-link {
+    color: inherit;
+    text-decoration: none;
 }
 
 @media (max-width: 480px) {
@@ -95,13 +100,59 @@ h1 {
     position: relative;
 }
 
-/* ---------- Title & Status ---------- */
+.home-view {
+    width: 100%;
+}
 
-h1 {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
+.home-view.hidden {
+    display: none;
+}
+
+.home-kicker {
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--label);
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.rules-card {
+    background: var(--cell-bg);
+    border: 2px solid var(--cell-border);
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.rules-card p {
+    line-height: 1.5;
+}
+
+.rules-list {
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--label);
+}
+
+.primary-action {
+    align-self: stretch;
+    background: var(--text);
+    color: var(--bg);
+    border: 1px solid var(--text);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font: inherit;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.primary-action:active {
+    opacity: 0.9;
 }
 
 #turn-indicator {
@@ -109,6 +160,12 @@ h1 {
     min-height: 20px;
     margin-bottom: 4px;
     text-align: center;
+}
+
+#turn-indicator.hidden,
+#game-area.hidden,
+#error-message.hidden {
+    display: none;
 }
 
 .rematch-area {
@@ -147,8 +204,6 @@ h1 {
     min-height: 18px;
     color: var(--error);
 }
-
-/* ---------- Theme Switcher ---------- */
 
 #exit-btn {
     position: fixed;
@@ -199,8 +254,6 @@ h1 {
     color: var(--label);
 }
 
-/* ---------- Overlays ---------- */
-
 #overlay {
     position: fixed;
     inset: 0;
@@ -217,8 +270,6 @@ h1 {
     display: none;
 }
 
-/* ---------- Game Area ---------- */
-
 #game-area {
     width: 100%;
     display: flex;
@@ -233,8 +284,6 @@ h1 {
 #game-area .hand-panel:last-child {
     margin-top: 8px;
 }
-
-/* ---------- Hand Panels ---------- */
 
 .hand-panel {
     display: grid;
@@ -274,8 +323,6 @@ h1 {
     background: var(--cell-bg);
 }
 
-/* ---------- Column Labels ---------- */
-
 .col-labels {
     display: grid;
     grid-template-columns: 28px repeat(4, 1fr) 28px;
@@ -289,8 +336,6 @@ h1 {
     font-size: 13px;
     color: var(--label);
 }
-
-/* ---------- Board ---------- */
 
 .board {
     position: relative;
@@ -365,8 +410,6 @@ h1 {
 .win-line.piece-black line.main {
     stroke: var(--black-piece);
 }
-
-/* ---------- Piece Colors ---------- */
 
 .piece-white {
     color: var(--white-piece);

@@ -10,7 +10,23 @@
         <button id="exit-btn" aria-label="Exit to lobby">✕</button>
         <button id="theme-toggle" aria-label="Toggle dark mode"></button>
         <div id="app">
-            <h1>Tic Tac Chec</h1>
+            <h1><a href="/" class="title-link">Tic Tac Chec</a></h1>
+            <div id="home-view" class="home-view">
+                <p class="home-kicker">Quick Rules</p>
+                <div class="rules-card">
+                    <p>
+                        Place or move one of your four pieces each turn. First color with
+                        four pieces on the board wins.
+                    </p>
+                    <ul class="rules-list">
+                        <li>You only play pieces of your color.</li>
+                        <li>A piece can be placed from hand onto any empty square.</li>
+                        <li>Once on the board, it moves like its chess counterpart.</li>
+                        <li>Pawns reverse direction at the far edge.</li>
+                    </ul>
+                    <button id="join-lobby-btn" class="primary-action">Join Lobby</button>
+                </div>
+            </div>
             <div id="turn-indicator"></div>
             <div id="game-area"></div>
             <div id="error-message"></div>

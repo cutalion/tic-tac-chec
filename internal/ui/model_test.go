@@ -3,6 +3,7 @@ package ui
 import (
 	"testing"
 	"tic-tac-chec/engine"
+	"tic-tac-chec/internal/game"
 
 	"go.uber.org/goleak"
 )
@@ -10,19 +11,19 @@ import (
 func TestExecuteMoveOnline_ReturnsResponse(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	moves := make(chan MoveRequest, 1)
-	defer close(moves)
-	updates := make(chan any)
+	commands := make(chan game.Command, 1)
+	defer close(commands)
+	updates := make(chan game.Event)
 
 	model := InitialModel()
 	model.Mode = ModeOnline
-	model.Moves = moves
+	model.Commands = commands
 	model.Updates = updates
 
 	// fake Room.Run goroutine, in order to process move
 	go func() {
-		<-moves                    // read move
-		updates <- GameStateMsg{} // send some state back
+		<-commands                                             // read command (moves/rematch)
+		updates <- game.SnapshotEvent{Game: *engine.NewGame()} // send some state back
 	}()
 
 	piece := engine.WhiteBishop
@@ -30,8 +31,8 @@ func TestExecuteMoveOnline_ReturnsResponse(t *testing.T) {
 	_, cmd := model.executeMove(piece, cell)
 
 	res := cmd()
-	_, ok := res.(GameStateMsg)
+	_, ok := res.(game.SnapshotEvent)
 	if !ok {
-		t.Errorf("expected GameStateMsg, got %T", res)
+		t.Errorf("expected game.SnapshotEvent, got %T", res)
 	}
 }

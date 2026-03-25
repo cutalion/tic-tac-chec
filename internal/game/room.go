@@ -3,8 +3,10 @@ package game
 import (
 	"errors"
 	"log"
+	"sync"
 	"tic-tac-chec/engine"
-	"tic-tac-chec/internal/ui"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -12,44 +14,56 @@ const (
 	Disconnected = "disconnected"
 )
 
+type RoomID string
+type PlayerID string
+
 type Player struct {
+	ID              PlayerID
 	Color           engine.Color
-	Moves           <-chan ui.MoveRequest
-	Updates         chan any
-	Rematch         <-chan ui.RematchRequest
+	Commands        <-chan Command
+	Updates         chan Event
 	ConnectionState string
 }
 
+type ReconnectInfo struct {
+	PlayerID PlayerID
+	Commands <-chan Command
+	Updates  chan Event
+}
+
 type Room struct {
+	ID                    RoomID
 	Players               [2]Player
 	Game                  *engine.Game
 	Quit                  chan struct{}
-	Reconnect             chan Player
+	Reconnect             chan ReconnectInfo
 	WhiteRematchRequested bool
 	BlackRematchRequested bool
+	mu                    sync.RWMutex
 }
 
 var (
 	ErrInvalidMove = errors.New("invalid move")
 )
 
-func NewPlayer(moves <-chan ui.MoveRequest, rematch <-chan ui.RematchRequest) Player {
+func NewPlayer(commands <-chan Command) Player {
 	return Player{
-		Moves:   moves,
-		Rematch: rematch,
+		ID:       PlayerID(uuid.New().String()),
+		Commands: commands,
 		// Room writes, UI reads. Bidirectional on the struct so both sides
 		// can access it. Buffered(1) to absorb timing gaps between UI Cmd dispatches.
-		Updates:         make(chan any, 1),
+		Updates:         make(chan Event, 1),
 		ConnectionState: Connected,
 	}
 }
 
 func NewRoom(white, black Player) Room {
 	return Room{
+		ID:                    RoomID(uuid.New().String()),
 		Game:                  engine.NewGame(),
 		Players:               [2]Player{white, black},
 		Quit:                  make(chan struct{}),
-		Reconnect:             make(chan Player),
+		Reconnect:             make(chan ReconnectInfo),
 		WhiteRematchRequested: false,
 		BlackRematchRequested: false,
 	}
@@ -65,7 +79,7 @@ func (r *Room) Run() {
 	}()
 
 	for _, player := range r.Players {
-		player.Updates <- ui.GameStateMsg{Game: *r.Game}
+		player.Updates <- SnapshotEvent{RoomID: r.ID, Game: *r.Game}
 	}
 
 	for {
@@ -74,48 +88,51 @@ func (r *Room) Run() {
 		}
 
 		select {
-		case move, ok := <-r.white().Moves:
+		case command, ok := <-r.white().Commands:
 			if !ok {
-				r.white().disconnect()
-				sendUpdateTo(*r.black(), ui.OpponentAwayMsg{})
+				r.disconnect(r.white())
+				sendUpdateTo(*r.black(), OpponentAwayEvent{PlayerID: r.white().ID})
 				continue
 			}
 
-			r.handleMove(*r.white(), move)
+			switch command := command.(type) {
+			case MoveCommand:
+				r.handleMove(*r.white(), command)
+			case RematchCommand:
+				r.handleRematch(*r.white())
+			}
 
-		case move, ok := <-r.black().Moves:
+		case command, ok := <-r.black().Commands:
 			if !ok {
-				r.black().disconnect()
-				sendUpdateTo(*r.white(), ui.OpponentAwayMsg{})
+				r.disconnect(r.black())
+				sendUpdateTo(*r.white(), OpponentAwayEvent{PlayerID: r.black().ID})
 				continue
 			}
 
-			r.handleMove(*r.black(), move)
+			switch command := command.(type) {
+			case MoveCommand:
+				r.handleMove(*r.black(), command)
+			case RematchCommand:
+				r.handleRematch(*r.black())
+			}
 
-		case <-r.white().Rematch:
-			r.WhiteRematchRequested = true
-			if !r.BlackRematchRequested {
-				sendUpdateTo(*r.black(), ui.RematchRequestedMsg{})
-			}
-		case <-r.black().Rematch:
-			r.BlackRematchRequested = true
-			if !r.WhiteRematchRequested {
-				sendUpdateTo(*r.white(), ui.RematchRequestedMsg{})
-			}
 		case player, ok := <-r.Reconnect:
 			if !ok {
 				continue
 			}
 
-			if player.Color == engine.White {
-				r.white().reconnect(player.Moves, player.Rematch, player.Updates)
-				sendUpdateTo(*r.black(), ui.OpponentReconnectedMsg{})
+			if player.PlayerID == r.white().ID {
+				r.reconnect(r.white(), player.Commands, player.Updates)
+				sendUpdateTo(*r.white(), SnapshotEvent{RoomID: r.ID, Game: *r.Game})
+				sendUpdateTo(*r.black(), OpponentReconnectedEvent{PlayerID: r.white().ID})
+			} else if player.PlayerID == r.black().ID {
+				r.reconnect(r.black(), player.Commands, player.Updates)
+				sendUpdateTo(*r.black(), SnapshotEvent{RoomID: r.ID, Game: *r.Game})
+				sendUpdateTo(*r.white(), OpponentReconnectedEvent{PlayerID: r.black().ID})
 			} else {
-				r.black().reconnect(player.Moves, player.Rematch, player.Updates)
-				sendUpdateTo(*r.white(), ui.OpponentReconnectedMsg{})
+				// ignore reconnect for unknown player
+				continue
 			}
-
-			sendUpdateTo(player, ui.GameStateMsg{Game: *r.Game})
 
 		case <-r.Quit:
 			// quit signal received, exit the loop
@@ -124,24 +141,44 @@ func (r *Room) Run() {
 	}
 }
 
-func (r *Room) handleMove(mover Player, move ui.MoveRequest) {
+func (r *Room) handleMove(mover Player, move MoveCommand) {
 	if mover.Color != move.Piece.Color {
-		sendUpdateTo(mover, ui.ErrorMsg{Err: ErrInvalidMove})
+		sendUpdateTo(mover, ErrorEvent{Error: ErrInvalidMove})
 		return
 	}
 
-	err := r.Game.Move(move.Piece, move.Cell)
+	err := r.Game.Move(move.Piece, move.To)
 	if err != nil {
-		sendUpdateTo(mover, ui.ErrorMsg{Err: err})
+		sendUpdateTo(mover, ErrorEvent{Error: err})
 		return
 	}
 
 	for _, player := range r.Players {
-		sendUpdateTo(player, ui.GameStateMsg{Game: *r.Game})
+		sendUpdateTo(player, SnapshotEvent{RoomID: r.ID, Game: *r.Game})
+	}
+}
+
+func (r *Room) handleRematch(mover Player) {
+	switch mover.Color {
+	case engine.White:
+		r.WhiteRematchRequested = true
+		if !r.BlackRematchRequested {
+			sendUpdateTo(*r.black(), RematchRequestedEvent{PlayerID: r.white().ID})
+		}
+	case engine.Black:
+		r.BlackRematchRequested = true
+		if !r.WhiteRematchRequested {
+			sendUpdateTo(*r.white(), RematchRequestedEvent{PlayerID: r.black().ID})
+		}
+	default:
+		panic("invalid color")
 	}
 }
 
 func (r *Room) startRematch() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	r.Game = engine.NewGame()
 	r.WhiteRematchRequested = false
 	r.BlackRematchRequested = false
@@ -150,41 +187,49 @@ func (r *Room) startRematch() {
 	r.Players[0].Color, r.Players[1].Color = r.Players[1].Color, r.Players[0].Color
 
 	for _, player := range r.Players {
-		sendUpdateTo(player, ui.PairedMsg{Color: player.Color})
-		sendUpdateTo(player, ui.GameStateMsg{Game: *r.Game})
+		sendUpdateTo(player, PairedEvent{PlayerID: player.ID, Color: player.Color})
+		sendUpdateTo(player, SnapshotEvent{RoomID: r.ID, Game: *r.Game})
 	}
 }
 
-func sendUpdateTo(player Player, msg any) {
-	if player.Updates == nil {
-		return
-	}
+func (r *Room) disconnect(p *Player) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	// non-blocking send - if nobody listens, the message is dropped
-	// otherwise it would block the sender until the message is consumed
-	select {
-	case player.Updates <- msg:
-	default: // skip if nobody listens
-		log.Printf("dropping message: %v", msg)
-	}
-}
-
-func (p *Player) disconnect() {
 	p.ConnectionState = Disconnected
-	p.Moves = nil
-	p.Rematch = nil
+
+	if p.Updates != nil {
+		close(p.Updates)
+	}
+
+	p.Commands = nil
 	p.Updates = nil
 }
 
-func (p *Player) reconnect(moves <-chan ui.MoveRequest, rematch <-chan ui.RematchRequest, updates chan any) {
+func (r *Room) reconnect(p *Player, commands <-chan Command, updates chan Event) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	if p.Updates != nil {
 		close(p.Updates)
 	}
 
 	p.ConnectionState = Connected
-	p.Moves = moves
-	p.Rematch = rematch
+	p.Commands = commands // TODO: should we close the old commands channel?
 	p.Updates = updates
+}
+
+func (r *Room) PlayerColor(playerID PlayerID) engine.Color {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for i := range r.Players {
+		if r.Players[i].ID == playerID {
+			return r.Players[i].Color
+		}
+	}
+
+	panic("player not found")
 }
 
 func (r *Room) white() *Player {
@@ -199,4 +244,18 @@ func (r *Room) black() *Player {
 		return &r.Players[0]
 	}
 	return &r.Players[1]
+}
+
+func sendUpdateTo(player Player, msg any) {
+	if player.Updates == nil {
+		return
+	}
+
+	// non-blocking send - if nobody listens, the message is dropped
+	// otherwise it would block the sender until the message is consumed
+	select {
+	case player.Updates <- msg:
+	default: // skip if nobody listens
+		log.Printf("dropping message: %v", msg)
+	}
 }

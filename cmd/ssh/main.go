@@ -66,7 +66,7 @@ func main() {
 }
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-	moves := make(chan ui.MoveRequest)
+	commands := make(chan game.Command)
 	ready := make(chan engine.Color)
 
 	// when player quits/disconnects, close its channel
@@ -74,11 +74,10 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	// and send ui.OpponentDisconnectedMsg
 	go func(s ssh.Session) {
 		<-s.Context().Done()
-		close(moves)
+		close(commands)
 	}(s)
 
-	rematch := make(chan ui.RematchRequest)
-	player := game.NewPlayer(moves, rematch)
+	player := game.NewPlayer(commands)
 
 	go func() {
 		lobby <- playerConn{player: player, ready: ready}
@@ -87,7 +86,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	model := ui.InitialModel()
 	model.Mode = ui.ModeOnline
 	model.Phase = ui.PhaseWaiting
-	model.Moves = moves
+	model.Commands = commands
 	model.Updates = player.Updates
 	model.LobbyReady = ready
 
