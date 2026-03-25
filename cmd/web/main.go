@@ -1,14 +1,9 @@
 package main
 
 import (
-	"errors"
 	"log"
 	"net/http"
 	"os"
-)
-
-var (
-	ErrUnsupportedMessageType = errors.New("unsupported message type")
 )
 
 var clients = NewClientService()
