@@ -596,7 +596,7 @@ function renderHand(color) {
 
     if (inHand) {
       const span = document.createElement("span");
-      span.className = `piece-${color}`;
+      span.className = `piece-glyph piece-${color}`;
       span.textContent = PIECE_SYMBOLS[kind];
       if (state.selectedPiece && state.selectedPiece.code === PIECE_CODES[color][kind]) {
         cell.classList.add("selected");
@@ -650,7 +650,7 @@ function renderBoard(flipped) {
       const piece = state.board[engineRow][col];
       if (piece) {
         const span = document.createElement("span");
-        span.className = `piece-${piece.color}`;
+        span.className = `piece-glyph piece-${piece.color}`;
         span.textContent = PIECE_SYMBOLS[piece.kind];
 
         if (
