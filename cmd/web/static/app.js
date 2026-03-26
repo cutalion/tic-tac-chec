@@ -32,9 +32,11 @@ const state = {
   rematchSent: false,
   opponentWantsRematch: false,
   opponentStatus: null,
+  installMessage: null,
 };
 
 let ws = null;
+let deferredInstallPrompt = null;
 
 const gameArea = document.getElementById("game-area");
 const turnIndicator = document.getElementById("turn-indicator");
@@ -46,7 +48,10 @@ const homeView = document.getElementById("home-view");
 const joinLobbyBtn = document.getElementById("join-lobby-btn");
 const inviteFriendBtn = document.getElementById("invite-friend-btn");
 const inviteStatus = document.getElementById("invite-status");
+const installAppBtn = document.getElementById("install-app-btn");
+const installStatus = document.getElementById("install-status");
 const titleLink = document.querySelector(".title-link");
+const themeColorMeta = document.querySelector('meta[name="theme-color"]');
 
 const sunSVG =
   '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
@@ -66,6 +71,8 @@ async function init() {
   bindTheme();
   bindExit();
   bindHistory();
+  bindInstall();
+  registerServiceWorker();
   state.token = await ensureClientToken();
   syncRoute();
 }
@@ -341,6 +348,7 @@ function render() {
   renderError();
   renderOverlay();
   renderGameArea();
+  renderInstallCTA();
 
   if (state.route !== "home") {
     exitBtn.classList.add("visible");
@@ -353,9 +361,35 @@ function renderRoute() {
   const showHome = state.route === "home";
   homeView.classList.toggle("hidden", !showHome);
   inviteStatus.textContent = showHome ? inviteStatus.textContent : "";
+  installStatus.textContent = showHome ? state.installMessage || "" : "";
+  installStatus.classList.toggle("hidden", !showHome || !state.installMessage);
   turnIndicator.classList.toggle("hidden", showHome);
   gameArea.classList.toggle("hidden", showHome);
   errorMessage.classList.toggle("hidden", showHome);
+}
+
+function renderInstallCTA() {
+  const showButton = state.route === "home" && !isStandalone() && !!deferredInstallPrompt;
+  installAppBtn.classList.toggle("hidden", !showButton);
+
+  if (state.route !== "home" || state.installMessage) {
+    return;
+  }
+
+  if (isStandalone()) {
+    installStatus.textContent = "Installed on home screen.";
+    installStatus.classList.remove("hidden");
+    return;
+  }
+
+  if (isIOS()) {
+    installStatus.textContent = 'On iPhone, tap Share and choose "Add to Home Screen".';
+    installStatus.classList.remove("hidden");
+    return;
+  }
+
+  installStatus.textContent = "";
+  installStatus.classList.add("hidden");
 }
 
 function renderOverlay() {
@@ -938,6 +972,7 @@ function applyTheme(dark) {
   }
 
   themeToggle.innerHTML = dark ? sunSVG : moonSVG;
+  themeColorMeta?.setAttribute("content", dark ? "#0a0a12" : "#fdf8ec");
 }
 
 function bindTheme() {
@@ -959,6 +994,73 @@ function bindHistory() {
   window.addEventListener("popstate", () => {
     syncRoute();
   });
+}
+
+function bindInstall() {
+  installAppBtn.addEventListener("click", () => {
+    promptInstall();
+  });
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    state.installMessage = null;
+    render();
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    state.installMessage = "App added to your home screen.";
+    render();
+  });
+
+  const standaloneQuery = window.matchMedia("(display-mode: standalone)");
+  const handleStandaloneChange = () => {
+    render();
+  };
+  if (standaloneQuery.addEventListener) {
+    standaloneQuery.addEventListener("change", handleStandaloneChange);
+  } else if (standaloneQuery.addListener) {
+    standaloneQuery.addListener(handleStandaloneChange);
+  }
+}
+
+async function promptInstall() {
+  if (!deferredInstallPrompt) {
+    return;
+  }
+
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+
+  if (outcome === "accepted") {
+    state.installMessage = "App added to your home screen.";
+  } else {
+    state.installMessage = "Install dismissed. You can still use the browser menu later.";
+  }
+
+  render();
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  navigator.serviceWorker.register("/sw.js").catch((error) => {
+    console.warn("service worker registration failed", error);
+  });
+}
+
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function isIOS() {
+  const ua = window.navigator.userAgent.toLowerCase();
+  const touchMac = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  return /iphone|ipad|ipod/.test(ua) || touchMac;
 }
 
 function bindExit() {

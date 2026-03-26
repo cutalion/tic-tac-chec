@@ -3,7 +3,14 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#fdf8ec" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="Tic Tac Chec" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <title>Tic Tac Chec</title>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="stylesheet" href="/style.css" />
     </head>
     <body>
@@ -29,8 +36,12 @@
                         <button id="invite-friend-btn" class="secondary-action">
                             Invite Friend
                         </button>
+                        <button id="install-app-btn" class="secondary-action hidden">
+                            Add to Home Screen
+                        </button>
                     </div>
                     <p id="invite-status" class="invite-status" aria-live="polite"></p>
+                    <p id="install-status" class="install-status hidden" aria-live="polite"></p>
                 </div>
             </div>
             <div id="turn-indicator"></div>

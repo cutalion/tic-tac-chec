@@ -18,6 +18,13 @@ func main() {
 	mux.Handle("GET /room/{id}", indexHandler())
 	mux.Handle("GET /app.js", staticHandler())
 	mux.Handle("GET /style.css", staticHandler())
+	mux.Handle("GET /manifest.json", staticHandler())
+	mux.Handle("GET /sw.js", staticHandler())
+	mux.Handle("GET /icon.svg", staticHandler())
+	mux.Handle("GET /icon-192.png", staticHandler())
+	mux.Handle("GET /icon-512.png", staticHandler())
+	mux.Handle("GET /apple-touch-icon.png", staticHandler())
+	mux.Handle("GET /favicon.ico", staticHandler())
 
 	// api
 	mux.HandleFunc("POST /api/clients", app.CreateClient)
