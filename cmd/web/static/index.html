@@ -8,10 +8,10 @@
         <meta name="apple-mobile-web-app-title" content="Tic Tac Chec" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <title>Tic Tac Chec</title>
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="stylesheet" href="/style.css" />
+        <link rel="manifest" href="/manifest.json?v=__ASSET_VERSION__" />
+        <link rel="icon" href="/favicon.ico?v=__ASSET_VERSION__" sizes="any" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=__ASSET_VERSION__" />
+        <link rel="stylesheet" href="/style.css?v=__ASSET_VERSION__" />
     </head>
     <body>
         <button id="exit-btn" aria-label="Go to home page">✕</button>
@@ -50,6 +50,9 @@
             <div id="overlay">Connecting...</div>
         </div>
 
-        <script src="/app.js"></script>
+        <script>
+            window.__ASSET_VERSION__ = "__ASSET_VERSION__";
+        </script>
+        <script src="/app.js?v=__ASSET_VERSION__"></script>
     </body>
 </html>

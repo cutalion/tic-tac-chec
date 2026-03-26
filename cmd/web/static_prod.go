@@ -4,7 +4,6 @@ package main
 
 import (
 	"embed"
-	"io"
 	"io/fs"
 	"net/http"
 )
@@ -19,14 +18,24 @@ func staticHandler() http.Handler {
 
 func indexHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		file, err := staticFiles.Open("static/index.html")
+		raw, err := staticFiles.ReadFile("static/index.html")
 		if err != nil {
 			http.Error(w, "index not found", http.StatusInternalServerError)
 			return
 		}
-		defer file.Close()
 
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		io.Copy(w, file)
+		writeTemplatedAsset(w, "text/html; charset=utf-8", raw)
+	})
+}
+
+func serviceWorkerHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, err := staticFiles.ReadFile("static/sw.js")
+		if err != nil {
+			http.Error(w, "service worker not found", http.StatusInternalServerError)
+			return
+		}
+
+		writeTemplatedAsset(w, "application/javascript; charset=utf-8", raw)
 	})
 }

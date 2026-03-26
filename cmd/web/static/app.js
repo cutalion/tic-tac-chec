@@ -1,4 +1,5 @@
 const tokenKey = "ttc-client-token";
+const ASSET_VERSION = window.__ASSET_VERSION__ || "dev";
 
 const PIECE_CODES = {
   white: { pawn: "WP", rook: "WR", bishop: "WB", knight: "WN" },
@@ -1048,7 +1049,7 @@ function registerServiceWorker() {
     return;
   }
 
-  navigator.serviceWorker.register("/sw.js").catch((error) => {
+  navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(ASSET_VERSION)}`).catch((error) => {
     console.warn("service worker registration failed", error);
   });
 }

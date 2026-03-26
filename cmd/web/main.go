@@ -4,9 +4,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 )
 
 var clients = NewClientService()
+var assetVersion = resolveAssetVersion()
 
 func main() {
 	app := NewApp(clients)
@@ -19,7 +22,7 @@ func main() {
 	mux.Handle("GET /app.js", staticHandler())
 	mux.Handle("GET /style.css", staticHandler())
 	mux.Handle("GET /manifest.json", staticHandler())
-	mux.Handle("GET /sw.js", staticHandler())
+	mux.Handle("GET /sw.js", serviceWorkerHandler())
 	mux.Handle("GET /icon.svg", staticHandler())
 	mux.Handle("GET /icon-192.png", staticHandler())
 	mux.Handle("GET /icon-512.png", staticHandler())
@@ -43,4 +46,12 @@ func main() {
 
 	log.Println("Listening on :" + port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
+}
+
+func resolveAssetVersion() string {
+	if version := os.Getenv("ASSET_VERSION"); version != "" {
+		return version
+	}
+
+	return strconv.FormatInt(time.Now().UTC().Unix(), 10)
 }
