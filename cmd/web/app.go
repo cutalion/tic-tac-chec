@@ -19,16 +19,20 @@ var (
 )
 
 type App struct {
-	clients      ClientService
-	matchmaker   Matchmaker
-	roomRegistry RoomRegistry
+	clients       ClientService
+	lobbyRegistry LobbyRegistry
+	roomRegistry  RoomRegistry
 }
 
 func NewApp(clients ClientService) *App {
 	roomRegistry := NewRoomRegistry()
-	matchmaker := NewMatchmaker(roomRegistry)
+	lobbyRegistry := NewLobbyRegistry(roomRegistry)
 
-	return &App{clients: clients, matchmaker: matchmaker, roomRegistry: roomRegistry}
+	return &App{
+		clients:       clients,
+		lobbyRegistry: lobbyRegistry,
+		roomRegistry:  roomRegistry,
+	}
 }
 
 func (a *App) CreateClient(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +53,20 @@ func (a *App) Me(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(clientResponse{Token: string(client.ID)})
 }
 
+func (a *App) CreateLobby(w http.ResponseWriter, r *http.Request) {
+	lobby := a.lobbyRegistry.Create()
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(lobbyResponse{ID: string(lobby.ID)})
+}
+
 func (a *App) Lobby(w http.ResponseWriter, r *http.Request) {
+	lobbyID := r.PathValue("id")
+	if lobbyID == "" {
+		http.Error(w, "lobbyId is required", http.StatusBadRequest)
+		return
+	}
+
 	client, err := a.authenticate(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -60,14 +77,20 @@ func (a *App) Lobby(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	defer ws.Close(websocket.StatusNormalClosure, "bye")
+	defer ws.Close(websocket.StatusNormalClosure, "we're closing. bye!")
 
-	results, err := a.matchmaker.Join(client.ID)
+	lobby := a.lobbyRegistry.Find(LobbyID(lobbyID))
+	if lobby == nil {
+		ws.Close(websocket.StatusPolicyViolation, "lobby not found")
+		return
+	}
+
+	results, err := lobby.Join(client.ID)
 	if err != nil {
 		ws.Close(websocket.StatusPolicyViolation, err.Error())
 		return
 	}
-	defer a.matchmaker.Leave(client.ID)
+	defer lobby.Leave(client.ID)
 
 	if err := a.sendMessage(ws, lobbyWaitMessage{Type: "waiting"}); err != nil {
 		return
@@ -75,13 +98,59 @@ func (a *App) Lobby(w http.ResponseWriter, r *http.Request) {
 
 	select {
 	case result := <-results:
+		log.Println("received pairing result", result)
 		roomEntry := result.RoomEntry
-		msg := lobbyMatchedMessage{
-			Type:   "matched",
+		msg := lobbyPairedMessage{
+			Type:   "paired",
 			RoomID: roomEntry.Room.ID,
 		}
 
+		log.Println("sending lobby paired message", msg)
 		if err := a.sendMessage(ws, msg); err != nil {
+			log.Println("error sending lobby paired message:", err)
+			return
+		}
+	case <-r.Context().Done():
+		return
+	}
+}
+
+func (a *App) DefaultLobby(w http.ResponseWriter, r *http.Request) {
+	client, err := a.authenticate(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	ws, err := websocket.Accept(w, r, nil)
+	if err != nil {
+		return
+	}
+	defer ws.Close(websocket.StatusNormalClosure, "we're closing. bye!")
+
+	results, err := a.lobbyRegistry.DefaultLobby().Join(client.ID)
+	if err != nil {
+		ws.Close(websocket.StatusPolicyViolation, err.Error())
+		return
+	}
+	defer a.lobbyRegistry.DefaultLobby().Leave(client.ID)
+
+	if err := a.sendMessage(ws, lobbyWaitMessage{Type: "waiting"}); err != nil {
+		return
+	}
+
+	select {
+	case result := <-results:
+		log.Println("received pairing result", result)
+		roomEntry := result.RoomEntry
+		msg := lobbyPairedMessage{
+			Type:   "paired",
+			RoomID: roomEntry.Room.ID,
+		}
+
+		log.Println("sending lobby paired message", msg)
+		if err := a.sendMessage(ws, msg); err != nil {
+			log.Println("error sending lobby paired message:", err)
 			return
 		}
 	case <-r.Context().Done():
@@ -259,11 +328,15 @@ type clientResponse struct {
 	Token string `json:"token"`
 }
 
+type lobbyResponse struct {
+	ID string `json:"id"`
+}
+
 type lobbyWaitMessage struct {
 	Type string `json:"type"`
 }
 
-type lobbyMatchedMessage struct {
+type lobbyPairedMessage struct {
 	Type   string      `json:"type"`
 	RoomID game.RoomID `json:"roomId"`
 }

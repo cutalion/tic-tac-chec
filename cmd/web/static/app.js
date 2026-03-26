@@ -18,6 +18,8 @@ const state = {
   phase: "connecting",
   route: "home",
   token: null,
+  lobbyId: null,
+  lobbyShareStatus: null,
   roomId: null,
   roomReady: false,
   myColor: null,
@@ -42,6 +44,9 @@ const exitBtn = document.getElementById("exit-btn");
 const themeToggle = document.getElementById("theme-toggle");
 const homeView = document.getElementById("home-view");
 const joinLobbyBtn = document.getElementById("join-lobby-btn");
+const inviteFriendBtn = document.getElementById("invite-friend-btn");
+const inviteStatus = document.getElementById("invite-status");
+const titleLink = document.querySelector(".title-link");
 
 const sunSVG =
   '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
@@ -60,18 +65,9 @@ document.addEventListener("DOMContentLoaded", () => {
 async function init() {
   bindTheme();
   bindExit();
-  detectRoute();
+  bindHistory();
   state.token = await ensureClientToken();
-  render();
-
-  if (state.route === "room") {
-    connectRoom();
-  } else if (state.route === "lobby") {
-    connectLobby();
-  } else {
-    state.phase = "idle";
-    render();
-  }
+  syncRoute();
 }
 
 function detectRoute() {
@@ -79,17 +75,52 @@ function detectRoute() {
   if (roomMatch) {
     state.route = "room";
     state.roomId = decodeURIComponent(roomMatch[1]);
+    state.lobbyId = null;
+    state.lobbyShareStatus = null;
+    return;
+  }
+
+  const namedLobbyMatch = location.pathname.match(/^\/lobby\/([^/]+)$/);
+  if (namedLobbyMatch) {
+    state.route = "lobby";
+    state.lobbyId = decodeURIComponent(namedLobbyMatch[1]);
+    state.lobbyShareStatus = null;
+    state.roomId = null;
     return;
   }
 
   if (location.pathname === "/lobby") {
     state.route = "lobby";
+    state.lobbyId = null;
+    state.lobbyShareStatus = null;
     state.roomId = null;
     return;
   }
 
   state.route = "home";
+  state.lobbyId = null;
+  state.lobbyShareStatus = null;
   state.roomId = null;
+}
+
+function syncRoute() {
+  detectRoute();
+
+  if (state.route === "room") {
+    connectRoom();
+    return;
+  }
+
+  if (state.route === "lobby") {
+    connectLobby();
+    return;
+  }
+
+  disconnectSocket();
+  resetBoardState();
+  state.error = null;
+  state.phase = "idle";
+  render();
 }
 
 async function ensureClientToken() {
@@ -129,25 +160,33 @@ function connectLobby() {
   state.error = null;
   render();
 
-  ws = new WebSocket(wsURL(`/ws/lobby?token=${encodeURIComponent(state.token)}`));
+  const lobbyPath = state.lobbyId
+    ? `/ws/lobby/${encodeURIComponent(state.lobbyId)}`
+    : "/ws/lobby";
+  const socket = new WebSocket(wsURL(`${lobbyPath}?token=${encodeURIComponent(state.token)}`));
+  ws = socket;
 
-  ws.addEventListener("open", () => {
+  socket.addEventListener("open", () => {
+    if (ws !== socket) {
+      return;
+    }
     console.debug("lobby ws open");
-    state.phase = "waiting";
-    render();
   });
 
-  ws.addEventListener("message", (event) => {
+  socket.addEventListener("message", (event) => {
+    if (ws !== socket) {
+      return;
+    }
     const data = JSON.parse(event.data);
-    console.debug("lobby message", data);
 
     switch (data.type) {
       case "waiting":
         state.phase = "waiting";
         render();
         break;
-      case "matched":
+      case "paired":
         if (data.roomId) {
+          disconnectSocket();
           navigateToRoom(data.roomId);
         }
         break;
@@ -159,7 +198,12 @@ function connectLobby() {
     }
   });
 
-  ws.addEventListener("close", (event) => {
+  socket.addEventListener("close", (event) => {
+    if (ws !== socket) {
+      return;
+    }
+
+    ws = null;
     console.debug("lobby ws close", event.code, event.reason);
     if (state.route === "lobby") {
       state.phase = "connectionLost";
@@ -167,7 +211,10 @@ function connectLobby() {
     }
   });
 
-  ws.addEventListener("error", (event) => {
+  socket.addEventListener("error", (event) => {
+    if (ws !== socket) {
+      return;
+    }
     console.error("lobby ws error", event);
   });
 }
@@ -184,21 +231,33 @@ function connectRoom() {
   state.error = null;
   render();
 
-  ws = new WebSocket(
+  const socket = new WebSocket(
     wsURL(`/ws/room/${encodeURIComponent(state.roomId)}?token=${encodeURIComponent(state.token)}`),
   );
+  ws = socket;
 
-  ws.addEventListener("open", () => {
+  socket.addEventListener("open", () => {
+    if (ws !== socket) {
+      return;
+    }
     console.debug("room ws open", state.roomId);
   });
 
-  ws.addEventListener("message", (event) => {
+  socket.addEventListener("message", (event) => {
+    if (ws !== socket) {
+      return;
+    }
     const data = JSON.parse(event.data);
     console.debug("room message", data);
     handleRoomMessage(data);
   });
 
-  ws.addEventListener("close", (event) => {
+  socket.addEventListener("close", (event) => {
+    if (ws !== socket) {
+      return;
+    }
+
+    ws = null;
     console.debug("room ws close", event.code, event.reason);
 
     if (state.route !== "room") {
@@ -216,7 +275,10 @@ function connectRoom() {
     }
   });
 
-  ws.addEventListener("error", (event) => {
+  socket.addEventListener("error", (event) => {
+    if (ws !== socket) {
+      return;
+    }
     console.error("room ws error", event);
   });
 }
@@ -225,8 +287,6 @@ function handleRoomMessage(data) {
   switch (data.type) {
     case "roomJoined":
       state.myColor = data.color;
-      state.roomReady = true;
-      state.phase = "playing";
       render();
       break;
     case "gameState":
@@ -282,7 +342,7 @@ function render() {
   renderOverlay();
   renderGameArea();
 
-  if (state.route === "room" && (state.phase === "playing" || state.phase === "gameOver")) {
+  if (state.route !== "home") {
     exitBtn.classList.add("visible");
   } else {
     exitBtn.classList.remove("visible");
@@ -292,6 +352,7 @@ function render() {
 function renderRoute() {
   const showHome = state.route === "home";
   homeView.classList.toggle("hidden", !showHome);
+  inviteStatus.textContent = showHome ? inviteStatus.textContent : "";
   turnIndicator.classList.toggle("hidden", showHome);
   gameArea.classList.toggle("hidden", showHome);
   errorMessage.classList.toggle("hidden", showHome);
@@ -299,26 +360,39 @@ function renderRoute() {
 
 function renderOverlay() {
   if (state.route === "home") {
-    overlay.classList.add("hidden");
+    hideOverlay();
     return;
   }
 
   switch (state.phase) {
     case "connecting":
-      overlay.textContent = state.route === "lobby" ? "Connecting..." : "Joining room...";
-      overlay.classList.remove("hidden");
+      showOverlay(state.route === "room" ? "Joining room..." : "Connecting...");
       break;
     case "waiting":
-      overlay.textContent = "Waiting for opponent...";
-      overlay.classList.remove("hidden");
+      if (state.lobbyId) {
+        hideOverlay();
+        break;
+      }
+      showOverlay("Waiting for opponent...");
       break;
     case "connectionLost":
-      overlay.textContent = "Connection lost";
-      overlay.classList.remove("hidden");
+      showOverlay("Connection lost", "error");
       break;
     default:
-      overlay.classList.add("hidden");
+      hideOverlay();
   }
+}
+
+function showOverlay(message, mode = "busy") {
+  overlay.textContent = message;
+  overlay.dataset.mode = mode;
+  overlay.classList.remove("hidden");
+}
+
+function hideOverlay() {
+  overlay.textContent = "";
+  overlay.dataset.mode = "";
+  overlay.classList.add("hidden");
 }
 
 function renderTurnIndicator() {
@@ -328,7 +402,7 @@ function renderTurnIndicator() {
   }
 
   if (state.route === "lobby") {
-    turnIndicator.textContent = "Matchmaking";
+    turnIndicator.textContent = state.lobbyId ? "Private Lobby" : "Matchmaking";
     turnIndicator.className = "";
     return;
   }
@@ -362,7 +436,7 @@ function renderTurnIndicator() {
       rematchArea.appendChild(rematchButton("Rematch", sendRematch));
     }
 
-    rematchArea.appendChild(rematchButton("Exit to lobby", leaveRoom, "leave-btn"));
+    rematchArea.appendChild(rematchButton("Exit to lobby", leaveGameToLobby, "leave-btn"));
     turnIndicator.appendChild(rematchArea);
     return;
   }
@@ -389,6 +463,12 @@ function renderError() {
 }
 
 function renderGameArea() {
+  if (state.route === "lobby" && state.lobbyId) {
+    gameArea.innerHTML = "";
+    gameArea.appendChild(renderInviteLobby());
+    return;
+  }
+
   if (state.route !== "room" || !state.board) {
     gameArea.innerHTML = "";
     return;
@@ -412,6 +492,60 @@ function renderGameArea() {
       requestAnimationFrame(() => drawWinLine(boardEl, winLine, state.winner));
     }
   }
+}
+
+function renderInviteLobby() {
+  const card = document.createElement("div");
+  card.className = "invite-card";
+
+  const title = document.createElement("h2");
+  title.className = "invite-card-title";
+  title.textContent = state.phase === "connecting" ? "Preparing Invite" : "Invite a Friend";
+  card.appendChild(title);
+
+  const howTo = document.createElement("p");
+  howTo.className = "invite-card-text";
+  howTo.textContent = "Send this link to your friend. Once they open it, the game will start automatically.";
+  card.appendChild(howTo);
+
+  const linkBox = document.createElement("div");
+  linkBox.className = "invite-link-box";
+
+  const link = document.createElement("code");
+  link.className = "invite-link";
+  link.textContent = inviteLobbyURL();
+  linkBox.appendChild(link);
+
+  const copyButton = document.createElement("button");
+  copyButton.className = "secondary-action";
+  copyButton.textContent = "Copy Link";
+  copyButton.addEventListener("click", async () => {
+    try {
+      await copyInviteLink(inviteLobbyURL());
+      state.lobbyShareStatus = "Link copied to clipboard.";
+      render();
+    } catch (error) {
+      console.error("copy invite link failed", error);
+      state.lobbyShareStatus = "Could not copy link.";
+      render();
+    }
+  });
+  linkBox.appendChild(copyButton);
+
+  card.appendChild(linkBox);
+
+  const waitingText = document.createElement("p");
+  waitingText.className = "invite-card-text invite-card-note";
+  waitingText.textContent =
+    state.phase === "connecting" ? "Connecting you to the private lobby..." : "Waiting for your friend to join...";
+  card.appendChild(waitingText);
+
+  const status = document.createElement("p");
+  status.className = "invite-copy-status";
+  status.textContent = state.lobbyShareStatus || "";
+  card.appendChild(status);
+
+  return card;
 }
 
 function renderHand(color) {
@@ -630,24 +764,101 @@ function sendRematch() {
   render();
 }
 
-function leaveRoom() {
+function leaveCurrentPage() {
+  disconnectSocket();
+  resetBoardState();
+  state.phase = "idle";
+  navigateToHome();
+}
+
+function leaveGameToLobby() {
   disconnectSocket();
   navigateToLobby();
 }
 
 function disconnectSocket() {
   if (ws) {
-    ws.close();
+    const socket = ws;
     ws = null;
+    socket.close();
   }
 }
 
+function navigateToHome() {
+  navigate("/");
+}
+
 function navigateToLobby() {
-  window.location.assign("/lobby");
+  navigate("/lobby");
+}
+
+function navigateToNamedLobby(lobbyId) {
+  navigate(`/lobby/${encodeURIComponent(lobbyId)}`);
 }
 
 function navigateToRoom(roomId) {
-  window.location.assign(`/room/${encodeURIComponent(roomId)}`);
+  navigate(`/room/${encodeURIComponent(roomId)}`);
+}
+
+function navigate(path, { replace = false } = {}) {
+  if (location.pathname === path) {
+    syncRoute();
+    return;
+  }
+
+  if (replace) {
+    window.history.replaceState({}, "", path);
+  } else {
+    window.history.pushState({}, "", path);
+  }
+
+  syncRoute();
+}
+
+async function createInviteLobby() {
+  inviteStatus.textContent = "Creating invite link...";
+
+  try {
+    const response = await fetch("/api/lobbies", { method: "POST" });
+    if (!response.ok) {
+      throw new Error("failed to create invite link");
+    }
+
+    const payload = await response.json();
+    if (!payload.id) {
+      throw new Error("invite link is missing lobby id");
+    }
+
+    navigateToNamedLobby(payload.id);
+  } catch (error) {
+    console.error("create invite lobby failed", error);
+    inviteStatus.textContent = "Could not create invite link.";
+  }
+}
+
+function inviteLobbyURL() {
+  return new URL(`/lobby/${encodeURIComponent(state.lobbyId)}`, location.origin).toString();
+}
+
+async function copyInviteLink(inviteURL) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(inviteURL);
+    return;
+  }
+
+  const input = document.createElement("input");
+  input.value = inviteURL;
+  input.setAttribute("readonly", "");
+  input.style.position = "absolute";
+  input.style.left = "-9999px";
+  document.body.appendChild(input);
+  input.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(input);
+
+  if (!copied) {
+    throw new Error("clipboard copy failed");
+  }
 }
 
 function resetBoardState() {
@@ -744,7 +955,21 @@ function bindTheme() {
   });
 }
 
+function bindHistory() {
+  window.addEventListener("popstate", () => {
+    syncRoute();
+  });
+}
+
 function bindExit() {
-  exitBtn.addEventListener("click", leaveRoom);
+  exitBtn.addEventListener("click", leaveCurrentPage);
   joinLobbyBtn.addEventListener("click", navigateToLobby);
+  inviteFriendBtn.addEventListener("click", () => {
+    createInviteLobby();
+  });
+  titleLink.addEventListener("click", (event) => {
+    event.preventDefault();
+    disconnectSocket();
+    navigateToHome();
+  });
 }

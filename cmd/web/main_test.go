@@ -91,7 +91,7 @@ func TestMeRespondsWithClient(t *testing.T) {
 
 func TestLobbyPairsClients(t *testing.T) {
 	router, app := setupAppServer(t)
-	router.HandleFunc("/ws/lobby", app.Lobby)
+	router.HandleFunc("/ws/lobby", app.DefaultLobby)
 
 	server := httptest.NewServer(router)
 	defer server.Close()
@@ -122,23 +122,80 @@ func TestLobbyPairsClients(t *testing.T) {
 		t.Errorf("expected type %s, got %s", "waiting", got2.Type)
 	}
 
-	matched1 := readJSON[lobbyMatchedMessage](t, ctx, ws)
-	if matched1.Type != "matched" {
-		t.Errorf("expected type %s, got %s", "matched", matched1.Type)
+	paired1 := readJSON[lobbyPairedMessage](t, ctx, ws)
+	if paired1.Type != "paired" {
+		t.Errorf("expected type %s, got %s", "paired", paired1.Type)
 	}
 
-	matched2 := readJSON[lobbyMatchedMessage](t, ctx, ws2)
-	if matched2.Type != "matched" {
-		t.Errorf("expected type %s, got %s", "matched", matched2.Type)
+	paired2 := readJSON[lobbyPairedMessage](t, ctx, ws2)
+	if paired2.Type != "paired" {
+		t.Errorf("expected type %s, got %s", "paired", paired2.Type)
 	}
-	if matched1.RoomID == "" {
+	if paired1.RoomID == "" {
 		t.Fatal("room ID should not be empty")
 	}
-	if matched2.RoomID == "" {
+	if paired2.RoomID == "" {
 		t.Fatal("room ID should not be empty")
 	}
-	if matched1.RoomID != matched2.RoomID {
-		t.Errorf("expected room IDs to be the same, got %s and %s", matched1.RoomID, matched2.RoomID)
+	if paired1.RoomID != paired2.RoomID {
+		t.Errorf("expected room IDs to be the same, got %s and %s", paired1.RoomID, paired2.RoomID)
+	}
+}
+
+func TestLobbyWithIDPairsClients(t *testing.T) {
+	router, app := setupAppServer(t)
+	router.HandleFunc("/ws/lobby/{id}", app.Lobby)
+
+	lobby := app.lobbyRegistry.Create()
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	client := app.clients.Create()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	lobbyURL := server.URL + "/ws/lobby/" + string(lobby.ID)
+
+	ws, _, _ := connectWs(t, ctx, lobbyURL, client)
+	defer ws.Close(200, "closing")
+
+	got := readJSON[lobbyWaitMessage](t, ctx, ws)
+	if got.Type != "waiting" {
+		t.Errorf("expected type %s, got %s", "waiting", got.Type)
+	}
+
+	client2 := app.clients.Create()
+
+	if client2.ID == client.ID {
+		t.Fatal("client2 should have a different ID")
+	}
+
+	ws2, _, _ := connectWs(t, ctx, lobbyURL, client2)
+	defer ws2.Close(200, "closing")
+
+	got2 := readJSON[lobbyWaitMessage](t, ctx, ws2)
+	if got2.Type != "waiting" {
+		t.Errorf("expected type %s, got %s", "waiting", got2.Type)
+	}
+
+	paired1 := readJSON[lobbyPairedMessage](t, ctx, ws)
+	if paired1.Type != "paired" {
+		t.Errorf("expected type %s, got %s", "paired", paired1.Type)
+	}
+
+	paired2 := readJSON[lobbyPairedMessage](t, ctx, ws2)
+	if paired2.Type != "paired" {
+		t.Errorf("expected type %s, got %s", "paired", paired2.Type)
+	}
+	if paired1.RoomID == "" {
+		t.Fatal("room ID should not be empty")
+	}
+	if paired2.RoomID == "" {
+		t.Fatal("room ID should not be empty")
+	}
+	if paired1.RoomID != paired2.RoomID {
+		t.Errorf("expected room IDs to be the same, got %s and %s", paired1.RoomID, paired2.RoomID)
 	}
 }
 

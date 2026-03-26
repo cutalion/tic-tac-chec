@@ -7,7 +7,7 @@
         <link rel="stylesheet" href="/style.css" />
     </head>
     <body>
-        <button id="exit-btn" aria-label="Exit to lobby">✕</button>
+        <button id="exit-btn" aria-label="Go to home page">✕</button>
         <button id="theme-toggle" aria-label="Toggle dark mode"></button>
         <div id="app">
             <h1><a href="/" class="title-link">Tic Tac Chec</a></h1>
@@ -24,7 +24,13 @@
                         <li>Once on the board, it moves like its chess counterpart.</li>
                         <li>Pawns reverse direction at the far edge.</li>
                     </ul>
-                    <button id="join-lobby-btn" class="primary-action">Join Lobby</button>
+                    <div class="home-actions">
+                        <button id="join-lobby-btn" class="primary-action">Join Lobby</button>
+                        <button id="invite-friend-btn" class="secondary-action">
+                            Invite Friend
+                        </button>
+                    </div>
+                    <p id="invite-status" class="invite-status" aria-live="polite"></p>
                 </div>
             </div>
             <div id="turn-indicator"></div>
