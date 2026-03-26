@@ -60,9 +60,19 @@ func (l *lobby) Join(clientID ClientID) (<-chan PairingResult, error) {
 		return waiter.results, nil
 	}
 
+	// rejoin
 	if l.waiter.clientID == clientID {
+		close(l.waiter.results)
+
+		waiter := &waiter{
+			clientID: clientID,
+			results:  make(chan PairingResult, 1),
+		}
+
+		l.waiter = waiter
+
 		l.mu.Unlock()
-		return nil, ErrAlreadyInLobby
+		return waiter.results, nil
 	}
 
 	waiter := l.waiter

@@ -97,7 +97,11 @@ func (a *App) Lobby(w http.ResponseWriter, r *http.Request) {
 	}
 
 	select {
-	case result := <-results:
+	case result, ok := <-results:
+		if !ok {
+			return
+		}
+
 		log.Println("received pairing result", result)
 		roomEntry := result.RoomEntry
 		msg := lobbyPairedMessage{
@@ -140,7 +144,11 @@ func (a *App) DefaultLobby(w http.ResponseWriter, r *http.Request) {
 	}
 
 	select {
-	case result := <-results:
+	case result, ok := <-results:
+		if !ok {
+			return
+		}
+
 		log.Println("received pairing result", result)
 		roomEntry := result.RoomEntry
 		msg := lobbyPairedMessage{
