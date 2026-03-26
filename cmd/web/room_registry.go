@@ -2,7 +2,6 @@ package main
 
 import (
 	"sync"
-	"tic-tac-chec/engine"
 	"tic-tac-chec/internal/game"
 )
 
@@ -35,10 +34,7 @@ func (rr *roomRegistry) Create(pairing Pairing) RoomEntry {
 	defer rr.mu.Unlock()
 
 	p1 := game.NewPlayer(make(chan game.Command))
-	p1.Color = engine.White // TODO: let the room set the color before game start
-
 	p2 := game.NewPlayer(make(chan game.Command))
-	p2.Color = engine.Black
 	room := game.NewRoom(p1, p2)
 
 	entry := RoomEntry{

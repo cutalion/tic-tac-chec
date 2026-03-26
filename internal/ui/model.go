@@ -47,12 +47,11 @@ type Model struct {
 	SchemeIdx        int
 
 	// Multiplayer fields
-	Mode       Mode
-	Phase      Phase
-	MyColor    engine.Color
-	Commands   chan<- game.Command // send commands to Room
-	Updates    <-chan game.Event   // receive state updates from Room
-	LobbyReady <-chan engine.Color // receives assigned color when paired
+	Mode     Mode
+	Phase    Phase
+	MyColor  engine.Color
+	Commands chan<- game.Command // send commands to Room
+	Updates  <-chan game.Event   // receive state updates from Room
 }
 
 func InitialModel() Model {
@@ -63,13 +62,6 @@ func InitialModel() Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	if m.Phase == PhaseWaiting {
-		lobbyReady := m.LobbyReady
-		return func() tea.Msg {
-			color := <-lobbyReady
-			return PairedMsg{Color: color}
-		}
-	}
 	return m.nextCmd()
 }
 
@@ -111,7 +103,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-	case PairedMsg:
+	// return nextCmd() to keep listening for updates
+	// the rule is:
+	// every time we receive a message from the Room in online mode,
+	// we need start new listener (waitForUpdates())
+	// For the local changes (cursor movement, piece selection, etc.),
+	// we don't need to fire up new goroutine
+	case game.PairedEvent:
 		m.Phase = PhasePlaying
 		m.MyColor = msg.Color
 		return m, m.nextCmd()
@@ -124,17 +122,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.resetCursor()
 		return m, m.nextCmd()
 
-	case ErrorMsg:
-		m.LastErrorMessage = msg.Err.Error()
+	case game.ErrorEvent:
+		m.LastErrorMessage = msg.Error.Error()
 		return m, m.nextCmd()
 
-	case OpponentDisconnectedMsg:
-		m.LastErrorMessage = "Opponent disconnected"
-		return m, nil
+	case game.OpponentAwayEvent:
+		m.LastErrorMessage = "Opponent away"
+		return m, m.nextCmd()
 
 	case tea.WindowSizeMsg:
 		m.WindowWidth = msg.Width
-		return m, m.nextCmd()
+		return m, nil
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -144,7 +142,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "s":
 			m.ShowStatus = !m.ShowStatus
-			return m, m.nextCmd()
+			return m, nil
 
 		case "n":
 			if m.gameOver() && !m.online() {
@@ -152,25 +150,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m = InitialModel()
 				m.SchemeIdx = schemeIdx
 			}
-			return m, m.nextCmd()
+			return m, nil
 
 		case "c":
 			m.SchemeIdx = (m.SchemeIdx + 1) % len(ColorSchemes)
-			return m, m.nextCmd()
+			return m, nil
 
 		case "?":
 			m.ShowRules = !m.ShowRules
-			return m, m.nextCmd()
+			return m, nil
 		}
 
 		// block all other input when game is over
 		if m.gameOver() {
-			return m, m.nextCmd()
+			return m, nil
 		}
 
 		// block all input when not your turn
 		if m.online() && !m.myTurn() {
-			return m, m.nextCmd()
+			return m, nil
 		}
 
 		switch msg.String() {
@@ -230,7 +228,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if piece != nil && piece.Color == m.Game.Turn {
 						m.SelectedPiece = piece
 					} else {
-						return m.executeMove(*m.SelectedPiece, *m.Cursor.BoardCursor)
+						m.executeMove(*m.SelectedPiece, *m.Cursor.BoardCursor)
+						return m, m.nextCmd()
 					}
 				}
 			} else { // cursor on hand panel
@@ -243,37 +242,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, m.nextCmd()
+	return m, nil
 }
 
-func (m Model) executeMove(piece engine.Piece, cell engine.Cell) (tea.Model, tea.Cmd) {
-	if m.online() {
-		m.SelectedPiece = nil
-		updates := m.Updates
-
-		// This cmd sends the move AND waits for the Room's response in one
-		// closure. This avoids relying on a stale waitForUpdates goroutine
-		// to pick up the response (which would work by accident but wastes
-		// a goroutine slot). After the Room processes the move, it sends
-		// either GameStateMsg or ErrorMsg back on updates.
-		return m, func() tea.Msg {
-			m.Commands <- game.MoveCommand{Piece: piece, To: cell}
-			msg, ok := <-updates
-			if !ok {
-				return OpponentDisconnectedMsg{}
-			}
-			return msg
-		}
-	}
-
-	err := m.Game.Move(piece, cell)
-	if err != nil {
-		m.LastErrorMessage = err.Error()
-		return m, nil
-	}
+func (m Model) executeMove(piece engine.Piece, cell engine.Cell) {
 	m.SelectedPiece = nil
-	m.resetCursor()
-	return m, nil
+
+	if m.online() {
+		m.Commands <- game.MoveCommand{Piece: piece, To: cell}
+	} else {
+		err := m.Game.Move(piece, cell)
+		if err != nil {
+			m.LastErrorMessage = err.Error()
+		}
+		m.resetCursor()
+	}
 }
 
 func (m *Model) resetCursor() {

@@ -28,11 +28,11 @@ func TestExecuteMoveOnline_ReturnsResponse(t *testing.T) {
 
 	piece := engine.WhiteBishop
 	cell := engine.Cell{Row: 0, Col: 0}
-	_, cmd := model.executeMove(piece, cell)
+	model.executeMove(piece, cell)
 
-	res := cmd()
-	_, ok := res.(game.SnapshotEvent)
+	msg := <-updates
+	_, ok := msg.(game.SnapshotEvent)
 	if !ok {
-		t.Errorf("expected game.SnapshotEvent, got %T", res)
+		t.Errorf("expected game.SnapshotEvent, got %T", msg)
 	}
 }

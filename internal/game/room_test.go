@@ -62,6 +62,20 @@ func TestRoom(t *testing.T) {
 	}
 }
 
+func TestRoomRunSetsPlayerColors(t *testing.T) {
+	defer goleak.VerifyNone(t)
+	room, commands := setupRoom()
+	defer close(commands[0])
+	defer close(commands[1])
+	defer close(room.Quit)
+
+	go room.Run()
+
+	if room.Players[0].Color == room.Players[1].Color {
+		t.Fatalf("expected players to have different colors, got: %v and %v", room.Players[0].Color, room.Players[1].Color)
+	}
+}
+
 func TestBufferedChannelDeliversMessage(t *testing.T) {
 	defer goleak.VerifyNone(t)
 	commands := [2]chan Command{

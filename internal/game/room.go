@@ -57,11 +57,13 @@ func NewPlayer(commands <-chan Command) Player {
 	}
 }
 
-func NewRoom(white, black Player) *Room {
+func NewRoom(player1, player2 Player) *Room {
+	player1.Color, player2.Color = engine.White, engine.Black
+
 	return &Room{
 		ID:                    RoomID(uuid.New().String()),
 		Game:                  engine.NewGame(),
-		Players:               [2]Player{white, black},
+		Players:               [2]Player{player1, player2},
 		Quit:                  make(chan struct{}),
 		Reconnect:             make(chan ReconnectInfo),
 		WhiteRematchRequested: false,
@@ -78,8 +80,10 @@ func (r *Room) Run() {
 		}
 	}()
 
+	// before the game starts, send the paired event to the players
+	// and tell them their color
 	for _, player := range r.Players {
-		player.Updates <- SnapshotEvent{RoomID: r.ID, Game: *r.Game}
+		player.Updates <- PairedEvent{PlayerID: player.ID, Color: player.Color}
 	}
 
 	for {
@@ -183,7 +187,7 @@ func (r *Room) startRematch() {
 	r.WhiteRematchRequested = false
 	r.BlackRematchRequested = false
 
-	// swap colors, keep players at their original indices (matching participant tokens)
+	// swap colors
 	r.Players[0].Color, r.Players[1].Color = r.Players[1].Color, r.Players[0].Color
 
 	for _, player := range r.Players {

@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"tic-tac-chec/engine"
 	"tic-tac-chec/internal/game"
 	"tic-tac-chec/internal/ui"
 
@@ -24,7 +23,6 @@ var (
 
 type playerConn struct {
 	player game.Player
-	ready  chan engine.Color
 }
 
 func main() {
@@ -67,7 +65,6 @@ func main() {
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	commands := make(chan game.Command)
-	ready := make(chan engine.Color)
 
 	// when player quits/disconnects, close its channel
 	// so that other player/session can catch it
@@ -79,16 +76,15 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 
 	player := game.NewPlayer(commands)
 
-	go func() {
-		lobby <- playerConn{player: player, ready: ready}
-	}()
-
 	model := ui.InitialModel()
 	model.Mode = ui.ModeOnline
 	model.Phase = ui.PhaseWaiting
 	model.Commands = commands
 	model.Updates = player.Updates
-	model.LobbyReady = ready
+
+	go func() {
+		lobby <- playerConn{player: player}
+	}()
 
 	return model, nil
 }
@@ -105,15 +101,8 @@ func lobbyLoop(lobby chan playerConn) {
 			return
 		}
 
-		white.player.Color = engine.White
-		black.player.Color = engine.Black
-
 		room := game.NewRoom(white.player, black.player)
-
 		go room.Run()
-
-		white.ready <- white.player.Color
-		black.ready <- black.player.Color
 	}
 }
 

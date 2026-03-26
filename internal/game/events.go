@@ -11,6 +11,12 @@ type SnapshotEvent struct {
 	Game   engine.Game
 }
 
+type GameStartedEvent struct {
+	RoomID      RoomID
+	Game        engine.Game
+	PlayerColor engine.Color
+}
+
 type ErrorEvent struct {
 	Error error
 }
