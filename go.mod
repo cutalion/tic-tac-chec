@@ -10,6 +10,7 @@ require (
 	github.com/charmbracelet/wish v1.4.7
 	github.com/coder/websocket v1.8.14
 	github.com/google/go-cmp v0.7.0
+	github.com/google/uuid v1.6.0
 	github.com/muesli/termenv v0.16.0
 	go.uber.org/goleak v1.3.0
 )
@@ -31,7 +32,6 @@ require (
 	github.com/creack/pty v1.1.21 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
