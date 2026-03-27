@@ -34,6 +34,9 @@ func NewLobbyRegistry(roomRegistry RoomRegistry) *lobbyRegistry {
 }
 
 func (lr *lobbyRegistry) DefaultLobby() *lobby {
+	lr.mu.Lock()
+	defer lr.mu.Unlock()
+
 	return lr.lobbies[DefaultLobbyID]
 }
 
@@ -58,7 +61,7 @@ func (lr *lobbyRegistry) Create() *lobby {
 		return lobby
 	}
 
-	lobby := NewLobby(id, lr.roomRegistry)
+	lobby := NewLobby(id, lr.roomRegistry, EphemeralLobby)
 	lr.lobbies[id] = lobby
 	return lobby
 }
@@ -71,7 +74,7 @@ func (lr *lobbyRegistry) createDefaultLobby() {
 		return
 	}
 
-	lobby := NewLobby(DefaultLobbyID, lr.roomRegistry)
+	lobby := NewLobby(DefaultLobbyID, lr.roomRegistry, PersistentLobby)
 	lr.lobbies[DefaultLobbyID] = lobby
 }
 

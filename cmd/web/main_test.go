@@ -23,7 +23,7 @@ func (f *fakeClientService) Create() *Client {
 	return &Client{ID: ClientID(fmt.Sprintf("c_%04d", id))}
 }
 
-func (f *fakeClientService) lookup(id ClientID) (*Client, bool) {
+func (f *fakeClientService) Lookup(id ClientID) (*Client, bool) {
 	return &Client{ID: id}, true
 }
 

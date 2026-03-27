@@ -14,7 +14,7 @@ type ClientID string
 
 type ClientService interface {
 	Create() *Client
-	lookup(id ClientID) (*Client, bool)
+	Lookup(id ClientID) (*Client, bool)
 }
 
 type clientService struct {
@@ -50,6 +50,13 @@ func (s *clientService) generateID() (id ClientID) {
 	}
 
 	return id
+}
+
+func (s *clientService) Lookup(id ClientID) (*Client, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.lookup(id)
 }
 
 func (s *clientService) lookup(id ClientID) (*Client, bool) {

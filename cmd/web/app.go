@@ -73,50 +73,14 @@ func (a *App) Lobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ws, err := websocket.Accept(w, r, nil)
-	if err != nil {
-		return
-	}
-	defer ws.Close(websocket.StatusNormalClosure, "we're closing. bye!")
-
 	lobby := a.lobbyRegistry.Find(LobbyID(lobbyID))
+
 	if lobby == nil {
-		ws.Close(websocket.StatusPolicyViolation, "lobby not found")
+		http.Error(w, "lobby not found or you are not a participant", http.StatusNotFound)
 		return
 	}
 
-	results, err := lobby.Join(client.ID)
-	if err != nil {
-		ws.Close(websocket.StatusPolicyViolation, err.Error())
-		return
-	}
-	defer lobby.Leave(client.ID)
-
-	if err := a.sendMessage(ws, lobbyWaitMessage{Type: "waiting"}); err != nil {
-		return
-	}
-
-	select {
-	case result, ok := <-results:
-		if !ok {
-			return
-		}
-
-		log.Println("received pairing result", result)
-		roomEntry := result.RoomEntry
-		msg := lobbyPairedMessage{
-			Type:   "paired",
-			RoomID: roomEntry.Room.ID,
-		}
-
-		log.Println("sending lobby paired message", msg)
-		if err := a.sendMessage(ws, msg); err != nil {
-			log.Println("error sending lobby paired message:", err)
-			return
-		}
-	case <-r.Context().Done():
-		return
-	}
+	a.serveLobby(w, r, lobby, client.ID)
 }
 
 func (a *App) DefaultLobby(w http.ResponseWriter, r *http.Request) {
@@ -126,44 +90,7 @@ func (a *App) DefaultLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ws, err := websocket.Accept(w, r, nil)
-	if err != nil {
-		return
-	}
-	defer ws.Close(websocket.StatusNormalClosure, "we're closing. bye!")
-
-	results, err := a.lobbyRegistry.DefaultLobby().Join(client.ID)
-	if err != nil {
-		ws.Close(websocket.StatusPolicyViolation, err.Error())
-		return
-	}
-	defer a.lobbyRegistry.DefaultLobby().Leave(client.ID)
-
-	if err := a.sendMessage(ws, lobbyWaitMessage{Type: "waiting"}); err != nil {
-		return
-	}
-
-	select {
-	case result, ok := <-results:
-		if !ok {
-			return
-		}
-
-		log.Println("received pairing result", result)
-		roomEntry := result.RoomEntry
-		msg := lobbyPairedMessage{
-			Type:   "paired",
-			RoomID: roomEntry.Room.ID,
-		}
-
-		log.Println("sending lobby paired message", msg)
-		if err := a.sendMessage(ws, msg); err != nil {
-			log.Println("error sending lobby paired message:", err)
-			return
-		}
-	case <-r.Context().Done():
-		return
-	}
+	a.serveLobby(w, r, a.lobbyRegistry.DefaultLobby(), client.ID)
 }
 
 func (a *App) Room(w http.ResponseWriter, r *http.Request) {
@@ -311,12 +238,53 @@ func (a *App) authenticate(r *http.Request) (*Client, error) {
 		return nil, ErrUnauthorized
 	}
 
-	client, exists := a.clients.lookup(ClientID(token))
+	client, exists := a.clients.Lookup(ClientID(token))
 	if !exists {
 		return nil, ErrUnauthorized
 	}
 
 	return client, nil
+}
+
+func (a *App) serveLobby(w http.ResponseWriter, r *http.Request, lobby *lobby, clientID ClientID) {
+	ws, err := websocket.Accept(w, r, nil)
+	if err != nil {
+		return
+	}
+	defer ws.Close(websocket.StatusNormalClosure, "we're closing. bye!")
+
+	results, err := lobby.Join(clientID)
+	if err != nil {
+		ws.Close(websocket.StatusPolicyViolation, err.Error())
+		return
+	}
+	defer lobby.Leave(clientID)
+
+	if err := a.sendMessage(ws, lobbyWaitMessage{Type: "waiting"}); err != nil {
+		return
+	}
+
+	select {
+	case result, ok := <-results:
+		if !ok {
+			return
+		}
+
+		log.Println("received pairing result", result)
+		roomEntry := result.RoomEntry
+		msg := lobbyPairedMessage{
+			Type:   "paired",
+			RoomID: roomEntry.Room.ID,
+		}
+
+		log.Println("sending lobby paired message", msg)
+		if err := a.sendMessage(ws, msg); err != nil {
+			log.Println("error sending lobby paired message:", err)
+			return
+		}
+	case <-r.Context().Done():
+		return
+	}
 }
 
 func (a *App) sendMessage(ws *websocket.Conn, msg any) error {
