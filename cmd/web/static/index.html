@@ -10,8 +10,106 @@
         <title>Tic Tac Chec</title>
         <link rel="manifest" href="/manifest.json?v=__ASSET_VERSION__" />
         <link rel="icon" href="/favicon.ico?v=__ASSET_VERSION__" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=__ASSET_VERSION__" />
+        <link
+            rel="apple-touch-icon"
+            href="/apple-touch-icon.png?v=__ASSET_VERSION__"
+        />
         <link rel="stylesheet" href="/style.css?v=__ASSET_VERSION__" />
+        <script>
+            window.__analyticsConfig = {
+                enabled: __ANALYTICS_ENABLED__,
+                posthogKey: __POSTHOG_KEY__,
+                posthogHost: __POSTHOG_HOST__,
+            };
+
+            if (
+                window.__analyticsConfig.enabled &&
+                window.__analyticsConfig.posthogKey &&
+                window.__analyticsConfig.posthogHost
+            ) {
+                !(function (t, e) {
+                    var o, n, p, r;
+                    if (
+                        !e.__SV &&
+                        !(window.posthog && window.posthog.__loaded)
+                    ) {
+                        window.posthog = e;
+                        e._i = [];
+                        e.init = function (i, s, a) {
+                            function g(t2, e2) {
+                                var o2 = e2.split(".");
+                                if (o2.length === 2) {
+                                    t2 = t2[o2[0]];
+                                    e2 = o2[1];
+                                }
+                                t2[e2] = function () {
+                                    t2.push(
+                                        [e2].concat(
+                                            Array.prototype.slice.call(
+                                                arguments,
+                                                0,
+                                            ),
+                                        ),
+                                    );
+                                };
+                            }
+
+                            (p = t.createElement("script")).type =
+                                "text/javascript";
+                            p.crossOrigin = "anonymous";
+                            p.async = true;
+                            p.src =
+                                s.api_host.replace(
+                                    ".i.posthog.com",
+                                    "-assets.i.posthog.com",
+                                ) + "/static/array.js";
+                            (r =
+                                t.getElementsByTagName(
+                                    "script",
+                                )[0]).parentNode.insertBefore(p, r);
+
+                            var u = e;
+                            if (a !== void 0) {
+                                u = e[a] = [];
+                            } else {
+                                a = "posthog";
+                            }
+
+                            u.people = u.people || [];
+                            u.toString = function (t2) {
+                                var e2 = "posthog";
+                                if (a !== "posthog") {
+                                    e2 += "." + a;
+                                }
+                                if (!t2) {
+                                    e2 += " (stub)";
+                                }
+                                return e2;
+                            };
+                            u.people.toString = function () {
+                                return u.toString(1) + ".people (stub)";
+                            };
+                            o =
+                                "fi init Oi Fi ft Ii Ai Ri capture calculateEventProperties Ni register register_once register_for_session unregister unregister_for_session Hi getFeatureFlag getFeatureFlagPayload getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync qi identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException startExceptionAutocapture stopExceptionAutocapture loadToolbar get_property getSessionProperty zi Li createPersonProfile setInternalOrTestUser Bi $i Wi opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing Mi debug bt ji getPageViewId captureTraceFeedback captureTraceMetric Si".split(
+                                    " ",
+                                );
+                            for (n = 0; n < o.length; n += 1) {
+                                g(u, o[n]);
+                            }
+                            e._i.push([i, s, a]);
+                        };
+                        e.__SV = 1;
+                    }
+                })(document, window.posthog || []);
+
+                window.posthog.init(window.__analyticsConfig.posthogKey, {
+                    api_host: window.__analyticsConfig.posthogHost,
+                    ui_host: "https://eu.posthog.com", // necessary because you're using a proxy, this way links will point back to PostHog properly
+                    defaults: "2026-01-30",
+                    person_profiles: "always",
+                });
+            }
+        </script>
     </head>
     <body>
         <button id="exit-btn" aria-label="Go to home page">✕</button>
@@ -22,26 +120,45 @@
                 <p class="home-kicker">Quick Rules</p>
                 <div class="rules-card">
                     <p>
-                        Place or move one of your four pieces each turn. First color with
-                        four pieces on the board wins.
+                        Place or move one of your four pieces each turn. First
+                        color with four pieces on the board wins.
                     </p>
                     <ul class="rules-list">
                         <li>You only play pieces of your color.</li>
-                        <li>A piece can be placed from hand onto any empty square.</li>
-                        <li>Once on the board, it moves like its chess counterpart.</li>
+                        <li>
+                            A piece can be placed from hand onto any empty
+                            square.
+                        </li>
+                        <li>
+                            Once on the board, it moves like its chess
+                            counterpart.
+                        </li>
                         <li>Pawns reverse direction at the far edge.</li>
                     </ul>
                     <div class="home-actions">
-                        <button id="join-lobby-btn" class="primary-action">Join Lobby</button>
+                        <button id="join-lobby-btn" class="primary-action">
+                            Join Lobby
+                        </button>
                         <button id="invite-friend-btn" class="secondary-action">
                             Invite Friend
                         </button>
-                        <button id="install-app-btn" class="secondary-action hidden">
+                        <button
+                            id="install-app-btn"
+                            class="secondary-action hidden"
+                        >
                             Add to Home Screen
                         </button>
                     </div>
-                    <p id="invite-status" class="invite-status" aria-live="polite"></p>
-                    <p id="install-status" class="install-status hidden" aria-live="polite"></p>
+                    <p
+                        id="invite-status"
+                        class="invite-status"
+                        aria-live="polite"
+                    ></p>
+                    <p
+                        id="install-status"
+                        class="install-status hidden"
+                        aria-live="polite"
+                    ></p>
                 </div>
             </div>
             <div id="turn-indicator"></div>

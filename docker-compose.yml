@@ -14,6 +14,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.ssh
+    env_file:
+      - .env
     ports:
       - "2222:2222"
     volumes:
@@ -26,6 +28,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+    env_file:
+      - .env
     mem_limit: 64m
     mem_reservation: 32m
     restart: unless-stopped

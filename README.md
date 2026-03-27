@@ -53,6 +53,7 @@ ssh ttc.ctln.pw -p 2222
 Run both servers with Docker Compose (includes Caddy reverse proxy for HTTPS):
 
 ```bash
+cp .env.example .env
 docker compose up -d
 ```
 
@@ -63,6 +64,22 @@ This starts:
 Configure your domain in `Caddyfile`. Players connect via browser or `ssh your-host -p 2222`.
 
 SSH host keys are persisted in a Docker volume across redeploys.
+
+### Optional analytics
+
+Docker Compose loads runtime settings from `.env`. Start from the checked-in example and edit the values you need:
+
+```bash
+cp .env.example .env
+```
+
+The web app can load PostHog only when you enable it explicitly in `.env`:
+
+```bash
+ANALYTICS_ENABLED=true
+POSTHOG_KEY=phc_your_project_key
+POSTHOG_HOST=https://eu.i.posthog.com
+```
 
 ## Claude Code Skill
 

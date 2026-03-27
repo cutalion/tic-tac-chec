@@ -10,6 +10,13 @@ import (
 
 var clients = NewClientService()
 var assetVersion = resolveAssetVersion()
+var analyticsConfig = resolveAnalyticsConfig()
+
+type AnalyticsConfig struct {
+	Enabled     bool
+	PostHogKey  string
+	PostHogHost string
+}
 
 func main() {
 	app := NewApp(clients)
@@ -54,4 +61,20 @@ func resolveAssetVersion() string {
 	}
 
 	return strconv.FormatInt(time.Now().UTC().Unix(), 10)
+}
+
+func resolveAnalyticsConfig() AnalyticsConfig {
+	enabled := os.Getenv("ANALYTICS_ENABLED") == "true"
+	key := os.Getenv("POSTHOG_KEY")
+	host := os.Getenv("POSTHOG_HOST")
+
+	if !enabled || key == "" || host == "" {
+		return AnalyticsConfig{}
+	}
+
+	return AnalyticsConfig{
+		Enabled:     enabled,
+		PostHogKey:  key,
+		PostHogHost: host,
+	}
 }
