@@ -1,5 +1,5 @@
 const tokenKey = "ttc-client-token";
-const ASSET_VERSION = window.__ASSET_VERSION__ || "dev";
+const ASSET_VERSION = window.__assetVersion || "dev";
 
 const PIECE_CODES = {
   white: { pawn: "WP", rook: "WR", bishop: "WB", knight: "WN" },
@@ -132,6 +132,15 @@ function syncRoute() {
 }
 
 async function ensureClientToken() {
+  const hashParams = new URLSearchParams(location.hash.slice(1));
+  const clientId = hashParams.get("clientId");
+
+  if (clientId && (await tokenIsValid(clientId))) {
+    removeFromHashParams("clientId");
+    localStorage.setItem(tokenKey, clientId);
+    return clientId;
+  }
+
   const stored = localStorage.getItem(tokenKey);
   if (stored && (await tokenIsValid(stored))) {
     return stored;
@@ -147,6 +156,18 @@ async function ensureClientToken() {
   const payload = await response.json();
   localStorage.setItem(tokenKey, payload.token);
   return payload.token;
+}
+
+function removeFromHashParams(paramName) {
+  const hashParams = new URLSearchParams(location.hash.slice(1));
+  hashParams.delete(paramName);
+
+  const nextHash = hashParams.toString();
+  const nextURL = location.pathname +
+    location.search +
+    (nextHash ? `#${nextHash}` : "");
+
+  window.history.replaceState({}, "", nextURL);
 }
 
 async function tokenIsValid(token) {
@@ -556,8 +577,9 @@ function renderInviteLobby() {
   copyButton.textContent = "Copy Link";
   copyButton.addEventListener("click", async () => {
     try {
-      await copyInviteLink(inviteLobbyURL());
-      state.lobbyShareStatus = "Link copied to clipboard.";
+      const copyMethod = await copyInviteLink(inviteLobbyURL());
+      state.lobbyShareStatus =
+        copyMethod === "manual" ? "Clipboard unavailable. Copy the link from the dialog." : "Link copied to clipboard.";
       render();
     } catch (error) {
       console.error("copy invite link failed", error);
@@ -832,7 +854,7 @@ function navigateToNamedLobby(lobbyId) {
 }
 
 function navigateToRoom(roomId) {
-  navigate(`/room/${encodeURIComponent(roomId)}`);
+  navigate(`/room/${encodeURIComponent(roomId)}#clientId=${encodeURIComponent(state.token)}`);
 }
 
 function navigate(path, { replace = false } = {}) {
@@ -878,22 +900,16 @@ function inviteLobbyURL() {
 async function copyInviteLink(inviteURL) {
   if (navigator.clipboard && window.isSecureContext) {
     await navigator.clipboard.writeText(inviteURL);
-    return;
+    return "clipboard";
   }
 
-  const input = document.createElement("input");
-  input.value = inviteURL;
-  input.setAttribute("readonly", "");
-  input.style.position = "absolute";
-  input.style.left = "-9999px";
-  document.body.appendChild(input);
-  input.select();
-  const copied = document.execCommand("copy");
-  document.body.removeChild(input);
-
-  if (!copied) {
-    throw new Error("clipboard copy failed");
+  const promptMessage = "Copy this invite link:";
+  if (typeof window.prompt !== "function") {
+    throw new Error("clipboard copy is unavailable");
   }
+
+  window.prompt(promptMessage, inviteURL);
+  return "manual";
 }
 
 function resetBoardState() {
