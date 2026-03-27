@@ -18,12 +18,16 @@ services:
       - "2222:2222"
     volumes:
       - ssh-keys:/app/.ssh
+    mem_limit: 64m
+    mem_reservation: 32m
     restart: unless-stopped
 
   web:
     build:
       context: .
       dockerfile: Dockerfile.web
+    mem_limit: 64m
+    mem_reservation: 32m
     restart: unless-stopped
 
 volumes:
