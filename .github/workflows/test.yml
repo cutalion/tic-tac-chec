@@ -17,3 +17,22 @@ jobs:
           go-version-file: go.mod
 
       - run: go test -race ./...
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ttc
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/tic-tac-chec
+            if [ ! -d .git ]; then
+              git clone https://github.com/${{ github.repository }} .
+            else
+              git pull --ff-only
+            fi
+            docker compose up -d --build
