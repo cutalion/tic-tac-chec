@@ -1,0 +1,26 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [Test]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ttc
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/tic-tac-chec
+            if [ ! -d .git ]; then
+              git clone https://github.com/${{ github.repository }} .
+            else
+              git pull --ff-only
+            fi
+            docker compose up -d --build
