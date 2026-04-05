@@ -5,7 +5,7 @@
 }
 
 :root {
-    --bg: #fdf8ec;
+    --bg: #f8f2e4;
     --text: #1a1005;
     --cell-bg: #f0e6c8;
     --cell-border: #a08030;
@@ -17,7 +17,7 @@
     --white-piece: #c02818;
     --black-piece: #082e5c;
     --selected: #1a1005;
-    --target: #cc2200;
+    --target: #2500a9;
     --result: #c02818;
     --win-shadow: #ffffff;
     --win-shadow-width: 6;

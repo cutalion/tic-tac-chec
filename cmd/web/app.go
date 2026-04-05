@@ -345,10 +345,16 @@ type gameStateMessage struct {
 }
 
 type gameStatePayload struct {
-	Board  [engine.BoardSize][engine.BoardSize]*piecePayload `json:"board"`
-	Turn   string                                            `json:"turn"`
-	Status string                                            `json:"status"`
-	Winner *string                                           `json:"winner"`
+	Board          [engine.BoardSize][engine.BoardSize]*piecePayload `json:"board"`
+	Turn           string                                            `json:"turn"`
+	Status         string                                            `json:"status"`
+	Winner         *string                                           `json:"winner"`
+	PawnDirections pawnDirectionsPayload                             `json:"pawnDirections"`
+}
+
+type pawnDirectionsPayload struct {
+	White string `json:"white"`
+	Black string `json:"black"`
 }
 
 type piecePayload struct {
@@ -405,6 +411,10 @@ func gameStatePayloadFrom(g engine.Game) gameStatePayload {
 		Turn:   colorName(g.Turn),
 		Status: gameStatusName(g.Status),
 		Winner: nil,
+		PawnDirections: pawnDirectionsPayload{
+			White: pawnDirectionName(g.PawnDirections[engine.White]),
+			Black: pawnDirectionName(g.PawnDirections[engine.Black]),
+		},
 	}
 
 	if g.Winner != nil {
@@ -427,6 +437,17 @@ func gameStatePayloadFrom(g engine.Game) gameStatePayload {
 	}
 
 	return payload
+}
+
+func pawnDirectionName(direction engine.PawnDirection) string {
+	switch direction {
+	case engine.ToBlackSide:
+		return "toBlackSide"
+	case engine.ToWhiteSide:
+		return "toWhiteSide"
+	default:
+		return ""
+	}
 }
 
 func colorName(color engine.Color) string {
