@@ -17,7 +17,7 @@
     --white-piece: #c02818;
     --black-piece: #082e5c;
     --selected: #1a1005;
-    --target: #186830;
+    --target: #cc2200;
     --result: #c02818;
     --win-shadow: #ffffff;
     --win-shadow-width: 6;
@@ -36,7 +36,7 @@
     --white-piece: #ff6b8a;
     --black-piece: #6bb3ff;
     --selected: #ffd966;
-    --target: #66cc99;
+    --target: #33ff99;
     --result: #ffd966;
     --win-shadow: rgba(0, 0, 0, 0.3);
     --win-shadow-width: 7;
