@@ -658,7 +658,7 @@ function renderBoard(flipped) {
   board.className = "board";
 
   let moves = [];
-  if (state.selectedPiece && state.selectedPiece.source === "board") {
+  if (state.selectedPiece && state.selectedPiece.source === "board" && state.pawnDirections) {
     const pos = findPiecePosition(state.board, state.selectedPiece.code);
     if (pos) {
       moves = computeMoves(state.board, state.selectedPiece, pos.row, pos.col, state.pawnDirections);
