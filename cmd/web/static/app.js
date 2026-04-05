@@ -657,6 +657,14 @@ function renderBoard(flipped) {
   const board = document.createElement("div");
   board.className = "board";
 
+  let moves = [];
+  if (state.selectedPiece && state.selectedPiece.source === "board") {
+    const pos = findPiecePosition(state.board, state.selectedPiece.code);
+    if (pos) {
+      moves = computeMoves(state.board, state.selectedPiece, pos.row, pos.col, state.pawnDirections);
+    }
+  }
+
   for (let i = 0; i < 4; i += 1) {
     const engineRow = flipped ? 3 - i : i;
     const rankNum = 4 - engineRow;
@@ -672,6 +680,11 @@ function renderBoard(flipped) {
       cell.dataset.row = engineRow;
       cell.dataset.col = col;
 
+      const move = moves.find((m) => m.row === engineRow && m.col === col);
+      if (move) {
+        cell.classList.add("target");
+      }
+
       const piece = state.board[engineRow][col];
       if (piece) {
         const span = document.createElement("span");
@@ -683,6 +696,10 @@ function renderBoard(flipped) {
           state.selectedPiece.code === PIECE_CODES[piece.color][piece.kind]
         ) {
           cell.classList.add("selected");
+        }
+
+        if (move && move.capture) {
+          span.style.opacity = "0.5";
         }
 
         cell.appendChild(span);
