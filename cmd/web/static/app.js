@@ -698,10 +698,6 @@ function renderBoard(flipped) {
           cell.classList.add("selected");
         }
 
-        if (move && move.capture) {
-          span.style.opacity = "0.5";
-        }
-
         cell.appendChild(span);
       }
 

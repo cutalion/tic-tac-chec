@@ -528,6 +528,10 @@ h1 {
     border-color: var(--target);
 }
 
+.board-cell.target .piece-glyph {
+    opacity: 0.5;
+}
+
 .win-line {
     position: absolute;
     top: 0;
