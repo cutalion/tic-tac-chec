@@ -29,6 +29,7 @@ const state = {
   status: null,
   winner: null,
   selectedPiece: null,
+  pawnDirections: null,
   error: null,
   rematchSent: false,
   opponentWantsRematch: false,
@@ -323,6 +324,7 @@ function handleRoomMessage(data) {
       state.turn = data.state.turn;
       state.status = data.state.status;
       state.winner = data.state.winner;
+      state.pawnDirections = data.state.pawnDirections;
       state.selectedPiece = null;
       state.roomReady = true;
 
@@ -917,6 +919,7 @@ function resetBoardState() {
   state.turn = null;
   state.status = null;
   state.winner = null;
+  state.pawnDirections = null;
   state.selectedPiece = null;
   state.rematchSent = false;
   state.opponentWantsRematch = false;
@@ -1049,12 +1052,29 @@ function pawnMoves(board, color, row, col, direction) {
   return moves;
 }
 
+function pawnDirection(pawnDirections, color) {
+  const dir = pawnDirections[color];
+  return dir === "toBlackSide" ? -1 : 1;
+}
+
+function findPiecePosition(board, code) {
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      const piece = board[row][col];
+      if (piece && PIECE_CODES[piece.color][piece.kind] === code) {
+        return { row, col };
+      }
+    }
+  }
+  return null;
+}
+
 function computeMoves(board, piece, row, col, pawnDirections) {
   switch (piece.kind) {
     case "rook":   return rookMoves(board, piece.color, row, col);
     case "bishop": return bishopMoves(board, piece.color, row, col);
     case "knight": return knightMoves(board, piece.color, row, col);
-    case "pawn":   return pawnMoves(board, piece.color, row, col, pawnDirections);
+    case "pawn":   return pawnMoves(board, piece.color, row, col, pawnDirection(pawnDirections, piece.color));
     default:       return [];
   }
 }
