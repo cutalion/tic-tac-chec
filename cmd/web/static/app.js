@@ -968,6 +968,97 @@ function rematchButton(label, onClick, extraClass = "") {
   return btn;
 }
 
+function canMoveTo(board, color, row, col) {
+  if (row < 0 || row > 3 || col < 0 || col > 3) {
+    return { allowed: false, capture: false };
+  }
+  const piece = board[row][col];
+  if (!piece) {
+    return { allowed: true, capture: false };
+  }
+  if (piece.color !== color) {
+    return { allowed: true, capture: true };
+  }
+  return { allowed: false, capture: false };
+}
+
+function slideMoves(board, color, row, col, directions) {
+  const moves = [];
+  for (const [dr, dc] of directions) {
+    let r = row;
+    let c = col;
+    for (let i = 0; i < 3; i++) {
+      r += dr;
+      c += dc;
+      const result = canMoveTo(board, color, r, c);
+      if (result.allowed) {
+        moves.push({ row: r, col: c, capture: result.capture });
+        if (result.capture) break;
+      } else {
+        break;
+      }
+    }
+  }
+  return moves;
+}
+
+function rookMoves(board, color, row, col) {
+  return slideMoves(board, color, row, col, [
+    [0, 1], [0, -1], [-1, 0], [1, 0],
+  ]);
+}
+
+function bishopMoves(board, color, row, col) {
+  return slideMoves(board, color, row, col, [
+    [-1, 1], [1, 1], [1, -1], [-1, -1],
+  ]);
+}
+
+function knightMoves(board, color, row, col) {
+  const moves = [];
+  const jumps = [
+    [-2, -1], [-2, 1], [2, -1], [2, 1],
+    [-1, -2], [-1, 2], [1, -2], [1, 2],
+  ];
+  for (const [dr, dc] of jumps) {
+    const result = canMoveTo(board, color, row + dr, col + dc);
+    if (result.allowed) {
+      moves.push({ row: row + dr, col: col + dc, capture: result.capture });
+    }
+  }
+  return moves;
+}
+
+function pawnMoves(board, color, row, col, direction) {
+  const moves = [];
+  const forwardRow = row + direction;
+
+  if (forwardRow >= 0 && forwardRow <= 3 && !board[forwardRow][col]) {
+    moves.push({ row: forwardRow, col: col, capture: false });
+  }
+
+  for (const dc of [-1, 1]) {
+    const captureCol = col + dc;
+    if (forwardRow < 0 || forwardRow > 3 || captureCol < 0 || captureCol > 3) continue;
+    const target = board[forwardRow][captureCol];
+    if (target && target.color !== color) {
+      moves.push({ row: forwardRow, col: captureCol, capture: true });
+    }
+  }
+
+  return moves;
+}
+
+function computeMoves(board, piece, row, col, pawnDirections) {
+  switch (piece.kind) {
+    case "rook":   return rookMoves(board, piece.color, row, col);
+    case "bishop": return bishopMoves(board, piece.color, row, col);
+    case "knight": return knightMoves(board, piece.color, row, col);
+    case "pawn":   return pawnMoves(board, piece.color, row, col, pawnDirections);
+    default:       return [];
+  }
+}
+
 function cellNotation(row, col) {
   return "abcd"[col] + (4 - row);
 }
