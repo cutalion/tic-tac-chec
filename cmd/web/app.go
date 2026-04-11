@@ -211,9 +211,6 @@ func (a *App) Room(w http.ResponseWriter, r *http.Request) {
 				a.sendMessage(ws, errorMessage{Type: "error", Error: err.Error()})
 				continue
 			}
-
-			log.Printf("reaction: %+v", reaction)
-
 			commands <- game.ReactionCommand{PlayerID: participant.PlayerID, Reaction: reaction.Reaction}
 
 		default:
