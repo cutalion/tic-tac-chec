@@ -996,7 +996,11 @@ function isPieceOnBoard(color, kind) {
   return false;
 }
 
-const REACTION_EMOJIS = ["\u{1F44D}", "\u{1F602}", "\u{1F62E}", "\u{1F624}", "\u{1F914}", "\u{1F44B}"];
+const REACTION_EMOJIS = [
+  "\u{1F44D}", "\u{1F602}", "\u{1F62E}", "\u{1F624}", "\u{1F914}", "\u{1F44B}",
+  "\u{1F3C6}", "\u{1F3AF}", "\u{1FAA4}", "\u{1F608}", "\u{1FAE1}", "\u{1F480}",
+  "\u{1F92F}", "\u{2764}\u{FE0F}", "\u{1F525}", "\u{1F605}",
+];
 
 function renderEmojiButton() {
   const wrapper = document.createElement("div");

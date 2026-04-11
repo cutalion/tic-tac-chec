@@ -612,7 +612,8 @@ h1 {
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
     gap: 4px;
     background: var(--bg);
     border: 1px solid var(--border);
