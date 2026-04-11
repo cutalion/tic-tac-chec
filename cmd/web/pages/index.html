@@ -8,13 +8,10 @@
         <meta name="apple-mobile-web-app-title" content="Tic Tac Chec" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <title>Tic Tac Chec</title>
-        <link rel="manifest" href="/manifest.json?v=__ASSET_VERSION__" />
-        <link rel="icon" href="/favicon.ico?v=__ASSET_VERSION__" sizes="any" />
-        <link
-            rel="apple-touch-icon"
-            href="/apple-touch-icon.png?v=__ASSET_VERSION__"
-        />
-        <link rel="stylesheet" href="/style.css?v=__ASSET_VERSION__" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="stylesheet" href="/style.css" />
         <script>
             window.__analyticsConfig = {
                 enabled: __ANALYTICS_ENABLED__,
@@ -168,8 +165,14 @@
         </div>
 
         <script>
-            window.__assetVersion = "__ASSET_VERSION__";
+            if ("serviceWorker" in navigator) {
+                navigator.serviceWorker
+                    .register("/sw.js")
+                    .catch((err) =>
+                        console.warn("SW registration failed", err),
+                    );
+            }
         </script>
-        <script src="/app.js?v=__ASSET_VERSION__"></script>
+        <script src="/app.js"></script>
     </body>
 </html>

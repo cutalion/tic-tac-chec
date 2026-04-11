@@ -1,14 +1,14 @@
-const CACHE_NAME = "ttc-shell-__ASSET_VERSION__";
+const CACHE_NAME = "ttc-shell-v1";
 const APP_SHELL = [
   "/",
-  "/app.js?v=__ASSET_VERSION__",
-  "/style.css?v=__ASSET_VERSION__",
-  "/manifest.json?v=__ASSET_VERSION__",
-  "/icon.svg?v=__ASSET_VERSION__",
-  "/icon-192.png?v=__ASSET_VERSION__",
-  "/icon-512.png?v=__ASSET_VERSION__",
-  "/apple-touch-icon.png?v=__ASSET_VERSION__",
-  "/favicon.ico?v=__ASSET_VERSION__",
+  "/app.js",
+  "/style.css",
+  "/manifest.json",
+  "/icon.svg",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/apple-touch-icon.png",
+  "/favicon.ico",
 ];
 
 self.addEventListener("install", (event) => {
@@ -47,33 +47,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request).catch(async () => {
-        const cache = await caches.open(CACHE_NAME);
-        return cache.match("/") || Response.error();
-      }),
-    );
-    return;
-  }
-
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) {
-        return cached;
-      }
-
-      return fetch(event.request).then((response) => {
-        if (!response.ok) {
-          return response;
+    fetch(event.request)
+      .then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, copy);
+          });
         }
-
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, copy);
-        });
         return response;
-      });
-    }),
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cached) => {
+          if (cached) {
+            return cached;
+          }
+
+          if (event.request.mode === "navigate") {
+            return caches.match("/");
+          }
+
+          return Response.error();
+        });
+      }),
   );
 });

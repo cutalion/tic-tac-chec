@@ -1,6 +1,4 @@
 const tokenKey = "ttc-client-token";
-const ASSET_VERSION = window.__assetVersion || "dev";
-
 const PIECE_CODES = {
   white: { pawn: "WP", rook: "WR", bishop: "WB", knight: "WN" },
   black: { pawn: "BP", rook: "BR", bishop: "BB", knight: "BN" },
@@ -76,7 +74,7 @@ async function init() {
   bindExit();
   bindHistory();
   bindInstall();
-  registerServiceWorker();
+
   state.token = await ensureClientToken();
   syncRoute();
 }
@@ -1310,16 +1308,6 @@ async function promptInstall() {
   }
 
   render();
-}
-
-function registerServiceWorker() {
-  if (!("serviceWorker" in navigator)) {
-    return;
-  }
-
-  navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(ASSET_VERSION)}`).catch((error) => {
-    console.warn("service worker registration failed", error);
-  });
 }
 
 function isStandalone() {

@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	assetVersionPlaceholder     = "__ASSET_VERSION__"
 	analyticsEnabledPlaceholder = "__ANALYTICS_ENABLED__"
 	posthogKeyPlaceholder       = "__POSTHOG_KEY__"
 	posthogHostPlaceholder      = "__POSTHOG_HOST__"
@@ -19,7 +18,6 @@ func writeTemplatedAsset(w http.ResponseWriter, contentType string, raw []byte) 
 	w.Header().Set("Cache-Control", "no-cache")
 
 	content := string(raw)
-	content = strings.ReplaceAll(content, assetVersionPlaceholder, assetVersion)
 	content = strings.ReplaceAll(content, analyticsEnabledPlaceholder, strconv.FormatBool(analyticsConfig.Enabled))
 	content = strings.ReplaceAll(content, posthogKeyPlaceholder, strconv.Quote(analyticsConfig.PostHogKey))
 	content = strings.ReplaceAll(content, posthogHostPlaceholder, strconv.Quote(analyticsConfig.PostHogHost))

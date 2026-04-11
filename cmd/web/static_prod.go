@@ -4,38 +4,32 @@ package main
 
 import (
 	"embed"
-	"io/fs"
 	"net/http"
 )
 
-//go:embed static/*
-var staticFiles embed.FS
+//go:embed pages/index.html
+var pages embed.FS
 
-func staticHandler() http.Handler {
-	sub, _ := fs.Sub(staticFiles, "static")
-	return http.FileServer(http.FS(sub))
+func registerStaticRoutes(mux *http.ServeMux) {
+	// Caddy handles all other static files.
+
+	mux.HandleFunc("GET /", indexPage())
+	mux.HandleFunc("GET /lobby", indexPage())
+	mux.HandleFunc("GET /lobby/{id}", indexPage())
+	mux.HandleFunc("GET /room/{id}", indexPage())
 }
 
-func indexHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		raw, err := staticFiles.ReadFile("static/index.html")
-		if err != nil {
-			http.Error(w, "index not found", http.StatusInternalServerError)
-			return
-		}
-
-		writeTemplatedAsset(w, "text/html; charset=utf-8", raw)
-	})
+func indexPage() http.HandlerFunc {
+	return renderPage("index.html", "text/html")
 }
 
-func serviceWorkerHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		raw, err := staticFiles.ReadFile("static/sw.js")
+func renderPage(page string, contentType string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		content, err := pages.ReadFile("pages/" + page)
 		if err != nil {
-			http.Error(w, "service worker not found", http.StatusInternalServerError)
+			http.Error(w, "page not found", http.StatusNotFound)
 			return
 		}
-
-		writeTemplatedAsset(w, "application/javascript; charset=utf-8", raw)
-	})
+		writeTemplatedAsset(w, contentType, content)
+	}
 }

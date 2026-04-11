@@ -1,3 +1,14 @@
 ttc.ctln.pw {
-	reverse_proxy web:8080
+	encode gzip
+
+	@static path /app.js /style.css /manifest.json /sw.js /icon.svg /icon-192.png /icon-512.png /apple-touch-icon.png /favicon.ico
+	handle @static {
+		header Cache-Control "no-cache"
+		root * /srv/static
+		file_server
+	}
+
+	handle {
+		reverse_proxy web:8080
+	}
 }

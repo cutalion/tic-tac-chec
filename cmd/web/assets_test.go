@@ -55,14 +55,11 @@ func TestResolveAnalyticsConfigEnabled(t *testing.T) {
 }
 
 func TestWriteTemplatedAssetInjectsAnalyticsConfig(t *testing.T) {
-	previousAssetVersion := assetVersion
 	previousAnalyticsConfig := analyticsConfig
 	t.Cleanup(func() {
-		assetVersion = previousAssetVersion
 		analyticsConfig = previousAnalyticsConfig
 	})
 
-	assetVersion = "test-version"
 	analyticsConfig = AnalyticsConfig{
 		Enabled:     true,
 		PostHogKey:  "phc_test",
@@ -73,13 +70,10 @@ func TestWriteTemplatedAssetInjectsAnalyticsConfig(t *testing.T) {
 	writeTemplatedAsset(
 		rr,
 		"text/html; charset=utf-8",
-		[]byte(`asset=__ASSET_VERSION__; enabled=__ANALYTICS_ENABLED__; key=__POSTHOG_KEY__; host=__POSTHOG_HOST__;`),
+		[]byte(`enabled=__ANALYTICS_ENABLED__; key=__POSTHOG_KEY__; host=__POSTHOG_HOST__;`),
 	)
 
 	body := rr.Body.String()
-	if !strings.Contains(body, `asset=test-version`) {
-		t.Fatalf("expected asset version in body, got %q", body)
-	}
 	if !strings.Contains(body, `enabled=true`) {
 		t.Fatalf("expected analytics enabled flag in body, got %q", body)
 	}

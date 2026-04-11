@@ -4,12 +4,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"time"
 )
 
 var clients = NewClientService()
-var assetVersion = resolveAssetVersion()
 var analyticsConfig = resolveAnalyticsConfig()
 
 type AnalyticsConfig struct {
@@ -22,19 +19,7 @@ func main() {
 	app := NewApp(clients)
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /", indexHandler())
-	mux.Handle("GET /lobby", indexHandler())
-	mux.Handle("GET /lobby/{id}", indexHandler())
-	mux.Handle("GET /room/{id}", indexHandler())
-	mux.Handle("GET /app.js", staticHandler())
-	mux.Handle("GET /style.css", staticHandler())
-	mux.Handle("GET /manifest.json", staticHandler())
-	mux.Handle("GET /sw.js", serviceWorkerHandler())
-	mux.Handle("GET /icon.svg", staticHandler())
-	mux.Handle("GET /icon-192.png", staticHandler())
-	mux.Handle("GET /icon-512.png", staticHandler())
-	mux.Handle("GET /apple-touch-icon.png", staticHandler())
-	mux.Handle("GET /favicon.ico", staticHandler())
+	registerStaticRoutes(mux)
 
 	// api
 	mux.HandleFunc("POST /api/clients", app.CreateClient)
@@ -53,14 +38,6 @@ func main() {
 
 	log.Println("Listening on :" + port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
-}
-
-func resolveAssetVersion() string {
-	if version := os.Getenv("ASSET_VERSION"); version != "" {
-		return version
-	}
-
-	return strconv.FormatInt(time.Now().UTC().Unix(), 10)
 }
 
 func resolveAnalyticsConfig() AnalyticsConfig {
