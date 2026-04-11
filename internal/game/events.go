@@ -46,3 +46,8 @@ type PairedEvent struct {
 type RematchRequestedEvent struct {
 	PlayerID PlayerID
 }
+
+type ReactionEvent struct {
+	PlayerID PlayerID
+	Reaction string
+}

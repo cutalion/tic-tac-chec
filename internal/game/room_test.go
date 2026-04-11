@@ -194,3 +194,38 @@ func TestReconnectToRoom(t *testing.T) {
 		t.Fatalf("expected black to receive SnapshotEvent after reconnect, but got: %v", msg3)
 	}
 }
+
+func TestReactionsWorks(t *testing.T) {
+	room, commands := setupRoom()
+	defer close(commands[0])
+
+	go room.Run()
+
+	// drain initial game state messages
+	<-room.Players[0].Updates
+	<-room.Players[1].Updates
+
+	commands[0] <- ReactionCommand{PlayerID: room.Players[0].ID, Reaction: "😂"}
+	event1, ok := <-room.Players[0].Updates
+	if !ok {
+		t.Fatalf("expected white to receive reaction event, but none was received")
+	}
+	if _, ok := event1.(ReactionEvent); !ok {
+		t.Fatalf("expected white to receive ReactionEvent, but got: %v", event1)
+	}
+
+	if event1.(ReactionEvent).Reaction != "😂" {
+		t.Fatalf("expected white to receive reaction '😂', but got: %s", event1.(ReactionEvent).Reaction)
+	}
+
+	event2, ok := <-room.Players[1].Updates
+	if !ok {
+		t.Fatalf("expected black to receive reaction event, but none was received")
+	}
+	if _, ok := event2.(ReactionEvent); !ok {
+		t.Fatalf("expected black to receive ReactionEvent, but got: %v", event2)
+	}
+	if event2.(ReactionEvent).Reaction != "😂" {
+		t.Fatalf("expected black to receive reaction '😂', but got: %s", event2.(ReactionEvent).Reaction)
+	}
+}

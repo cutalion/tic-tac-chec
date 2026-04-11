@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -235,18 +236,51 @@ func TestRoomJoinClientParticipant(t *testing.T) {
 	client1 := app.clients.Create()
 	client2 := app.clients.Create()
 
-	roomRegistry := app.roomRegistry.Create(Pairing{Players: [2]ClientID{client1.ID, client2.ID}})
-	go roomRegistry.Room.Run()
+	roomEntry := app.roomRegistry.Create(Pairing{Players: [2]ClientID{client1.ID, client2.ID}})
+	go roomEntry.Room.Run()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	ws, _, _ := connectWs(t, ctx, server.URL+"/ws/room/"+string(roomRegistry.Room.ID), client1)
+	ws, _, _ := connectWs(t, ctx, server.URL+"/ws/room/"+string(roomEntry.Room.ID), client1)
 	defer ws.Close(200, "closing")
 
-	got := readJSON[roomJoinedMessage](t, ctx, ws)
-	if got.RoomID != roomRegistry.Room.ID {
-		t.Errorf("expected room ID to be %s, got %s", roomRegistry.Room.ID, got.RoomID)
+	got := readJSON[outboundReactionMessage](t, ctx, ws)
+	if got.RoomID != string(roomEntry.Room.ID) {
+		t.Errorf("expected room ID to be %s, got %s", roomEntry.Room.ID, got.RoomID)
+	}
+}
+
+func TestReactionMessage(t *testing.T) {
+	router, app := setupAppServer(t)
+	router.HandleFunc("/ws/room/{id}", app.Room)
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	client1 := app.clients.Create()
+	client2 := app.clients.Create()
+
+	roomEntry := app.roomRegistry.Create(Pairing{Players: [2]ClientID{client1.ID, client2.ID}})
+	go roomEntry.Room.Run()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	ws, _, _ := connectWs(t, ctx, server.URL+"/ws/room/"+string(roomEntry.Room.ID), client1)
+	defer ws.Close(200, "closing")
+
+	ws.Write(ctx, websocket.MessageText, []byte(`{"type":"reaction","reaction":"👋"}`))
+
+	readJSON[roomJoinedMessage](t, ctx, ws)
+	readJSON[gameStateMessage](t, ctx, ws)
+
+	got := readJSON[outboundReactionMessage](t, ctx, ws)
+	if got.Type != "reaction" {
+		t.Errorf("expected type to be reaction, got %s", got.Type)
+	}
+	if got.Reaction != "👋" {
+		t.Errorf("expected reaction to be 👋, got %s", got.Reaction)
 	}
 }
 
@@ -257,6 +291,8 @@ func readJSON[T any](t *testing.T, ctx context.Context, ws *websocket.Conn) T {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	log.Printf("msg: %s", msg)
 
 	var got T
 	err = json.Unmarshal(msg, &got)

@@ -205,7 +205,19 @@ func (a *App) Room(w http.ResponseWriter, r *http.Request) {
 			commands <- game.MoveCommand{Piece: piece, To: to}
 		case "rematch":
 			commands <- game.RematchCommand{PlayerID: participant.PlayerID}
+		case "reaction":
+			var reaction inboundReactionMessage
+			if err := json.Unmarshal(msg, &reaction); err != nil {
+				a.sendMessage(ws, errorMessage{Type: "error", Error: err.Error()})
+				continue
+			}
+
+			log.Printf("reaction: %+v", reaction)
+
+			commands <- game.ReactionCommand{PlayerID: participant.PlayerID, Reaction: reaction.Reaction}
+
 		default:
+			log.Printf("invalid command: %s", envelope.Type)
 			a.sendMessage(ws, errorMessage{Type: "error", Error: "invalid command"})
 			continue
 		}
@@ -339,6 +351,18 @@ type inboundMoveMessage struct {
 	Cell  string `json:"cell"`
 }
 
+type inboundReactionMessage struct {
+	inboundMessage
+	Reaction string `json:"reaction"`
+}
+
+type outboundReactionMessage struct {
+	Type     string `json:"type"`
+	Reaction string `json:"reaction"`
+	Player   string `json:"player"`
+	RoomID   string `json:"roomId"`
+}
+
 type gameStateMessage struct {
 	Type  string           `json:"type"`
 	State gameStatePayload `json:"state"`
@@ -401,6 +425,11 @@ func roomEventMessage(event game.Event) (any, bool) {
 		return struct {
 			Type string `json:"type"`
 		}{Type: "rematchRequested"}, true
+	case game.ReactionEvent:
+		return outboundReactionMessage{
+			Type:     "reaction",
+			Reaction: event.Reaction,
+		}, true
 	default:
 		return nil, false
 	}

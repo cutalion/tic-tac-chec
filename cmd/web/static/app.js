@@ -38,6 +38,8 @@ const state = {
 };
 
 let ws = null;
+let reconnectAttempt = 0;
+let reconnectTimer = null;
 let deferredInstallPrompt = null;
 
 const gameArea = document.getElementById("game-area");
@@ -201,6 +203,7 @@ function connectLobby() {
       return;
     }
     console.debug("lobby ws open");
+    resetReconnect();
   });
 
   socket.addEventListener("message", (event) => {
@@ -238,6 +241,7 @@ function connectLobby() {
     if (state.route === "lobby") {
       state.phase = "connectionLost";
       render();
+      scheduleReconnect();
     }
   });
 
@@ -271,6 +275,7 @@ function connectRoom() {
       return;
     }
     console.debug("room ws open", state.roomId);
+    resetReconnect();
   });
 
   socket.addEventListener("message", (event) => {
@@ -302,6 +307,7 @@ function connectRoom() {
     if (state.phase !== "gameOver") {
       state.phase = "connectionLost";
       render();
+      scheduleReconnect();
     }
   });
 
@@ -357,6 +363,9 @@ function handleRoomMessage(data) {
     case "opponentReconnected":
       state.opponentStatus = null;
       render();
+      break;
+    case "reaction":
+      showEmojiReaction(data.reaction, data.from);
       break;
     case "error":
       showError(data.error || "server error");
@@ -434,7 +443,7 @@ function renderOverlay() {
       showOverlay("Waiting for opponent...");
       break;
     case "connectionLost":
-      showOverlay("Connection lost", "error");
+      showOverlay("Connection lost. Reconnecting\u2026", "error");
       break;
     default:
       hideOverlay();
@@ -543,6 +552,7 @@ function renderGameArea() {
   gameArea.appendChild(boardEl);
   gameArea.appendChild(renderColLabels());
   gameArea.appendChild(renderHand(bottomColor));
+  gameArea.appendChild(renderEmojiButton());
 
   if (state.winner) {
     const winLine = findWinLine(state.board, state.winner);
@@ -837,6 +847,7 @@ function sendRematch() {
 }
 
 function leaveCurrentPage() {
+  resetReconnect();
   disconnectSocket();
   resetBoardState();
   state.phase = "idle";
@@ -844,8 +855,40 @@ function leaveCurrentPage() {
 }
 
 function leaveGameToLobby() {
+  resetReconnect();
   disconnectSocket();
   navigateToLobby();
+}
+
+function scheduleReconnect() {
+  cancelReconnect();
+  const base = Math.min(1000 * Math.pow(2, reconnectAttempt), 30000);
+  const jitter = Math.random() * base * 0.3;
+  const delay = base + jitter;
+  reconnectAttempt++;
+  console.debug("reconnect in", Math.round(delay), "ms (attempt", reconnectAttempt + ")");
+  reconnectTimer = setTimeout(async () => {
+    reconnectTimer = null;
+    if (state.phase !== "connectionLost") return;
+    try {
+      state.token = await ensureClientToken();
+    } catch (e) {
+      console.warn("token refresh failed, will retry", e);
+    }
+    syncRoute();
+  }, delay);
+}
+
+function cancelReconnect() {
+  if (reconnectTimer !== null) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+}
+
+function resetReconnect() {
+  cancelReconnect();
+  reconnectAttempt = 0;
 }
 
 function disconnectSocket() {
@@ -953,6 +996,91 @@ function isPieceOnBoard(color, kind) {
   }
 
   return false;
+}
+
+const REACTION_EMOJIS = ["\u{1F44D}", "\u{1F602}", "\u{1F62E}", "\u{1F624}", "\u{1F914}", "\u{1F44B}"];
+
+function renderEmojiButton() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "emoji-btn-wrapper";
+
+  const btn = document.createElement("button");
+  btn.className = "emoji-btn";
+  btn.textContent = "\u{1F60A}";
+  btn.title = "Send emoji";
+
+  btn.addEventListener("click", () => {
+    toggleEmojiPicker(wrapper);
+  });
+
+  wrapper.appendChild(btn);
+  return wrapper;
+}
+
+function toggleEmojiPicker(wrapper) {
+  const existing = wrapper.querySelector(".emoji-picker");
+  if (existing) {
+    existing.remove();
+    return;
+  }
+
+  const picker = document.createElement("div");
+  picker.className = "emoji-picker";
+
+  for (const emoji of REACTION_EMOJIS) {
+    const btn = document.createElement("button");
+    btn.className = "emoji-picker-item";
+    btn.textContent = emoji;
+    btn.addEventListener("click", () => {
+      sendReaction(emoji);
+      picker.remove();
+    });
+    picker.appendChild(btn);
+  }
+
+  wrapper.appendChild(picker);
+
+  function dismissOnClickOutside(e) {
+    if (!wrapper.contains(e.target)) {
+      picker.remove();
+      document.removeEventListener("click", dismissOnClickOutside);
+    }
+  }
+  setTimeout(() => document.addEventListener("click", dismissOnClickOutside), 0);
+
+  function dismissOnEscape(e) {
+    if (e.key === "Escape") {
+      picker.remove();
+      document.removeEventListener("keydown", dismissOnEscape);
+    }
+  }
+  document.addEventListener("keydown", dismissOnEscape);
+}
+
+function sendReaction(emoji) {
+  send({ type: "reaction", reaction: emoji });
+}
+
+function showEmojiReaction(emoji, fromColor) {
+  const el = document.createElement("div");
+  el.className = "emoji-bubble";
+  el.textContent = emoji;
+
+  const xPct = 10 + Math.random() * 80;
+  const wobble = 20 + Math.random() * 30;
+  const dir = Math.random() < 0.5 ? 1 : -1;
+  const duration = 1.8 + Math.random() * 0.6;
+
+  el.style.left = xPct + "%";
+  el.style.setProperty("--wobble", (dir * wobble) + "px");
+  el.style.animationDuration = duration + "s";
+
+  gameArea.style.position = "relative";
+  gameArea.appendChild(el);
+
+  el.addEventListener("animationend", (e) => {
+    if (e.animationName === "bubble-rise") el.remove();
+  });
 }
 
 function send(payload) {

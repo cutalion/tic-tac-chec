@@ -21,3 +21,8 @@ type MoveCommand struct {
 type RematchCommand struct {
 	PlayerID PlayerID
 }
+
+type ReactionCommand struct {
+	PlayerID PlayerID
+	Reaction string
+}

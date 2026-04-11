@@ -14,6 +14,8 @@ const (
 	Disconnected = "disconnected"
 )
 
+var ReactionsList = []string{"👍", "😂", "😮", "😤", "🤔", "👋"}
+
 type RoomID string
 type PlayerID string
 
@@ -104,6 +106,8 @@ func (r *Room) Run() {
 				r.handleMove(*r.white(), command)
 			case RematchCommand:
 				r.handleRematch(*r.white())
+			case ReactionCommand:
+				r.handleReaction(*r.white(), command)
 			}
 
 		case command, ok := <-r.black().Commands:
@@ -118,6 +122,8 @@ func (r *Room) Run() {
 				r.handleMove(*r.black(), command)
 			case RematchCommand:
 				r.handleRematch(*r.black())
+			case ReactionCommand:
+				r.handleReaction(*r.black(), command)
 			}
 
 		case player, ok := <-r.Reconnect:
@@ -177,6 +183,11 @@ func (r *Room) handleRematch(mover Player) {
 	default:
 		panic("invalid color")
 	}
+}
+
+func (r *Room) handleReaction(mover Player, reaction ReactionCommand) {
+	sendUpdateTo(*r.black(), ReactionEvent{Reaction: reaction.Reaction, PlayerID: mover.ID})
+	sendUpdateTo(*r.white(), ReactionEvent{Reaction: reaction.Reaction, PlayerID: mover.ID})
 }
 
 func (r *Room) startRematch() {
