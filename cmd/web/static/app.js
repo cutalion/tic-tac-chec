@@ -996,11 +996,7 @@ function isPieceOnBoard(color, kind) {
   return false;
 }
 
-const REACTION_EMOJIS = [
-  "\u{1F44D}", "\u{1F602}", "\u{1F62E}", "\u{1F624}", "\u{1F914}", "\u{1F44B}",
-  "\u{1F3C6}", "\u{1F3AF}", "\u{1FAA4}", "\u{1F608}", "\u{1FAE1}", "\u{1F480}",
-  "\u{1F92F}", "\u{2764}\u{FE0F}", "\u{1F525}", "\u{1F605}",
-];
+const REACTION_EMOJIS = window.__reactionEmojis || [];
 
 function renderEmojiButton() {
   const wrapper = document.createElement("div");
@@ -1008,8 +1004,8 @@ function renderEmojiButton() {
 
   const btn = document.createElement("button");
   btn.className = "emoji-btn";
-  btn.textContent = "\u{1F60A}";
-  btn.title = "Send emoji";
+  btn.textContent = "\u{1F4AC}";
+  btn.title = "Send reaction";
 
   btn.addEventListener("click", () => {
     toggleEmojiPicker(wrapper);
@@ -1035,7 +1031,6 @@ function toggleEmojiPicker(wrapper) {
     btn.textContent = emoji;
     btn.addEventListener("click", () => {
       sendReaction(emoji);
-      picker.remove();
     });
     picker.appendChild(btn);
   }
@@ -1071,14 +1066,13 @@ function showEmojiReaction(emoji, fromColor) {
   const xPct = 10 + Math.random() * 80;
   const wobble = 20 + Math.random() * 30;
   const dir = Math.random() < 0.5 ? 1 : -1;
-  const duration = 1.8 + Math.random() * 0.6;
+  const duration = 3.0 + Math.random() * 1.0;
 
   el.style.left = xPct + "%";
   el.style.setProperty("--wobble", (dir * wobble) + "px");
   el.style.animationDuration = duration + "s";
 
-  gameArea.style.position = "relative";
-  gameArea.appendChild(el);
+  document.body.appendChild(el);
 
   el.addEventListener("animationend", (e) => {
     if (e.animationName === "bubble-rise") el.remove();

@@ -14,8 +14,6 @@ const (
 	Disconnected = "disconnected"
 )
 
-var ReactionsList = []string{"👍", "😂", "😮", "😤", "🤔", "👋"}
-
 type RoomID string
 type PlayerID string
 
@@ -186,6 +184,10 @@ func (r *Room) handleRematch(mover Player) {
 }
 
 func (r *Room) handleReaction(mover Player, reaction ReactionCommand) {
+	if !ValidReaction(reaction.Reaction) {
+		sendUpdateTo(mover, ErrorEvent{Error: errors.New("invalid reaction")})
+		return
+	}
 	sendUpdateTo(*r.black(), ReactionEvent{Reaction: reaction.Reaction, PlayerID: mover.ID})
 	sendUpdateTo(*r.white(), ReactionEvent{Reaction: reaction.Reaction, PlayerID: mover.ID})
 }
