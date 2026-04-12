@@ -39,8 +39,6 @@ bot/training/runs/
 bot/training/.pytest_cache/
 bot/training/__pycache__/
 bot/training/uv.lock
-bot/models/*.onnx
-bot/models/*.onnx.data
 
 # ONNX Runtime shared library
 third_party/
