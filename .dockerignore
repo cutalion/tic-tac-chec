@@ -1,0 +1,13 @@
+third_party/
+bot/training/venv/
+bot/training/.venv/
+bot/training/checkpoints/
+bot/training/runs/
+bot/training/__pycache__/
+.git/
+.idea/
+.vscode/
+.claude/
+specs/
+.specify/
+tmp/
