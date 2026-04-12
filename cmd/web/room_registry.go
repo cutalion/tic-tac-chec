@@ -7,6 +7,7 @@ import (
 
 type RoomRegistry interface {
 	Create(pairing Pairing) RoomEntry
+	CreateWithPlayers(p1, p2 game.Player, clients [2]ClientID) RoomEntry
 	Lookup(id game.RoomID) (RoomEntry, bool)
 }
 
@@ -42,6 +43,25 @@ func (rr *roomRegistry) Create(pairing Pairing) RoomEntry {
 		Participants: [2]Participant{
 			Participant{ClientID: pairing.Players[0], PlayerID: p1.ID},
 			Participant{ClientID: pairing.Players[1], PlayerID: p2.ID},
+		},
+	}
+
+	rr.rooms[entry.Room.ID] = entry
+
+	return entry
+}
+
+func (rr *roomRegistry) CreateWithPlayers(p1, p2 game.Player, clients [2]ClientID) RoomEntry {
+	rr.mu.Lock()
+	defer rr.mu.Unlock()
+
+	room := game.NewRoom(p1, p2)
+
+	entry := RoomEntry{
+		Room: room,
+		Participants: [2]Participant{
+			{ClientID: clients[0], PlayerID: p1.ID},
+			{ClientID: clients[1], PlayerID: p2.ID},
 		},
 	}
 

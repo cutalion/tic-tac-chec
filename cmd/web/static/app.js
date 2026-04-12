@@ -49,6 +49,7 @@ const themeToggle = document.getElementById("theme-toggle");
 const homeView = document.getElementById("home-view");
 const joinLobbyBtn = document.getElementById("join-lobby-btn");
 const inviteFriendBtn = document.getElementById("invite-friend-btn");
+const playBotBtn = document.getElementById("play-bot-btn");
 const inviteStatus = document.getElementById("invite-status");
 const installAppBtn = document.getElementById("install-app-btn");
 const installStatus = document.getElementById("install-status");
@@ -949,6 +950,32 @@ async function createInviteLobby() {
   }
 }
 
+async function startBotGame() {
+  inviteStatus.textContent = "Starting bot game...";
+
+  try {
+    const response = await fetch("/api/bot-game", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${state.token}` },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || "failed to start bot game");
+    }
+
+    const payload = await response.json();
+    if (!payload.roomId) {
+      throw new Error("bot game response missing room ID");
+    }
+
+    navigateToRoom(payload.roomId);
+  } catch (error) {
+    console.error("start bot game failed", error);
+    inviteStatus.textContent = "Could not start bot game.";
+  }
+}
+
 function inviteLobbyURL() {
   return new URL(`/lobby/${encodeURIComponent(state.lobbyId)}`, location.origin).toString();
 }
@@ -1323,6 +1350,9 @@ function bindExit() {
   joinLobbyBtn.addEventListener("click", navigateToLobby);
   inviteFriendBtn.addEventListener("click", () => {
     createInviteLobby();
+  });
+  playBotBtn.addEventListener("click", () => {
+    startBotGame();
   });
   titleLink.addEventListener("click", (event) => {
     event.preventDefault();

@@ -36,7 +36,7 @@ func setupAppServer(t *testing.T) (*http.ServeMux, *App) {
 	t.Helper()
 
 	clients := FakeClientService()
-	app := NewApp(clients)
+	app := NewApp(clients, nil) // nil bots map for tests
 
 	router := http.NewServeMux()
 	router.HandleFunc("/api/clients", app.CreateClient)

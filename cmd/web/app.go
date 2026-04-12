@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"tic-tac-chec/engine"
+	"tic-tac-chec/internal/bot"
 	"tic-tac-chec/internal/game"
 	"tic-tac-chec/internal/parse"
 
@@ -22,9 +23,10 @@ type App struct {
 	clients       ClientService
 	lobbyRegistry LobbyRegistry
 	roomRegistry  RoomRegistry
+	bots          map[string]*bot.Bot
 }
 
-func NewApp(clients ClientService) *App {
+func NewApp(clients ClientService, bots map[string]*bot.Bot) *App {
 	roomRegistry := NewRoomRegistry()
 	lobbyRegistry := NewLobbyRegistry(roomRegistry)
 
@@ -32,6 +34,7 @@ func NewApp(clients ClientService) *App {
 		clients:       clients,
 		lobbyRegistry: lobbyRegistry,
 		roomRegistry:  roomRegistry,
+		bots:          bots,
 	}
 }
 
@@ -91,6 +94,64 @@ func (a *App) DefaultLobby(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.serveLobby(w, r, a.lobbyRegistry.DefaultLobby(), client.ID)
+}
+
+func (a *App) BotGame(w http.ResponseWriter, r *http.Request) {
+	if len(a.bots) == 0 {
+		http.Error(w, "bot is not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	client, err := a.authenticate(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Pick difficulty from query param, default to best available
+	difficulty := r.URL.Query().Get("difficulty")
+	gameBot := a.pickBot(difficulty)
+	if gameBot == nil {
+		http.Error(w, "bot is not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Create human player with a commands channel
+	humanCommands := make(chan game.Command)
+	humanPlayer := game.NewPlayer(humanCommands)
+
+	// Create bot player
+	botPlayer := gameBot.RunPlayer()
+
+	// Use a synthetic client ID for the bot
+	botClientID := ClientID("bot")
+
+	entry := a.roomRegistry.CreateWithPlayers(humanPlayer, botPlayer, [2]ClientID{client.ID, botClientID})
+	go entry.Room.Run()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(struct {
+		RoomID game.RoomID `json:"roomId"`
+	}{RoomID: entry.Room.ID})
+}
+
+// pickBot returns the bot for the requested difficulty.
+// Falls back to: requested → "hard" → "medium" → "easy" → any available.
+func (a *App) pickBot(difficulty string) *bot.Bot {
+	if b, ok := a.bots[difficulty]; ok {
+		return b
+	}
+	for _, name := range []string{"hard", "medium", "easy"} {
+		if b, ok := a.bots[name]; ok {
+			return b
+		}
+	}
+	// Return any available bot
+	for _, b := range a.bots {
+		return b
+	}
+	return nil
 }
 
 func (a *App) Room(w http.ResponseWriter, r *http.Request) {
