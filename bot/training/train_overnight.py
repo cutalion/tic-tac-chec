@@ -31,7 +31,7 @@ MILESTONES = [
 
 def train_overnight(
     num_iterations: int = 5000,
-    games_per_iter: int = 20,
+    games_per_iter: int = 128,
     eval_every: int = 25,
     checkpoint_every: int = 100,
     lr: float = 3e-4,
@@ -39,12 +39,14 @@ def train_overnight(
     log_dir: str = "runs/overnight",
     device: str = "cpu",
     resume_from: str = None,
+    filters: int = 64,
+    num_res_blocks: int = 0,
 ):
     os.makedirs(checkpoint_dir, exist_ok=True)
     os.makedirs(MODELS_DIR, exist_ok=True)
     writer = SummaryWriter(log_dir)
 
-    net = PPONet().to(device)
+    net = PPONet(filters=filters, num_res_blocks=num_res_blocks).to(device)
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     start_iteration = 1
 
@@ -55,7 +57,9 @@ def train_overnight(
         start_iteration = checkpoint["iteration"] + 1
         print(f"Resumed from {resume_from} at iteration {start_iteration}", flush=True)
 
+    num_params = sum(p.numel() for p in net.parameters())
     print(f"Overnight training: {num_iterations} iterations, {games_per_iter} games/iter", flush=True)
+    print(f"Model: {filters} filters, {num_res_blocks} res blocks, {num_params:,} params", flush=True)
     print(f"Milestones: {[(m[0], m[1]) for m in MILESTONES]}", flush=True)
     print(f"Device: {device}", flush=True)
 
@@ -114,7 +118,7 @@ def train_overnight(
                 if name in exported:
                     continue
                 if iteration >= milestone_iter and last_win_rate >= min_wr:
-                    export_milestone(net, name, iteration, last_win_rate, checkpoint_dir)
+                    export_milestone(net, name, iteration, last_win_rate, checkpoint_dir, filters, num_res_blocks)
                     exported.add(name)
 
         # Checkpoint
@@ -137,12 +141,12 @@ def train_overnight(
 
     for _, name, _ in MILESTONES:
         if name not in exported:
-            export_milestone(net, name, num_iterations, last_win_rate, checkpoint_dir)
+            export_milestone(net, name, num_iterations, last_win_rate, checkpoint_dir, filters, num_res_blocks)
             exported.add(name)
 
     # Always export "bot.onnx" as the strongest model
     best_onnx = os.path.join(MODELS_DIR, "bot.onnx")
-    export_onnx(final_path, best_onnx)
+    export_onnx(final_path, best_onnx, filters=filters, num_res_blocks=num_res_blocks)
     print(f"Exported best model: {best_onnx}", flush=True)
 
     total_time = time.time() - train_start
@@ -154,7 +158,7 @@ def train_overnight(
     writer.close()
 
 
-def export_milestone(net, name, iteration, win_rate, checkpoint_dir):
+def export_milestone(net, name, iteration, win_rate, checkpoint_dir, filters=64, num_res_blocks=0):
     # Save checkpoint
     ckpt_path = os.path.join(checkpoint_dir, f"ppo_{name}.pt")
     torch.save({
@@ -164,7 +168,7 @@ def export_milestone(net, name, iteration, win_rate, checkpoint_dir):
 
     # Export ONNX
     onnx_path = os.path.join(MODELS_DIR, f"bot_{name}.onnx")
-    export_onnx(ckpt_path, onnx_path)
+    export_onnx(ckpt_path, onnx_path, filters=filters, num_res_blocks=num_res_blocks)
     print(
         f"  MILESTONE '{name}' exported at iter {iteration} "
         f"(win_rate={win_rate:.1%}): {onnx_path}",

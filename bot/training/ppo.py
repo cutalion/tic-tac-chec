@@ -80,55 +80,92 @@ def select_action(net: PPONet, state: np.ndarray, legal_mask: np.ndarray, device
 
 
 def collect_rollouts(net: PPONet, num_games: int, device="cpu"):
-    """Play num_games of self-play, collecting transitions for both sides.
+    """Play num_games of self-play in parallel, collecting transitions for both sides.
 
-    Each game alternates between White and Black. Both sides use the same
-    network (self-play). Rewards are flipped for the losing side at game end.
+    All games run simultaneously: states are batched into a single tensor for
+    one forward pass per step, then each environment is stepped individually.
+    Games that finish early are replaced or skipped until all are done.
 
     Returns a RolloutBuffer with all transitions.
     """
     buffer = RolloutBuffer()
 
-    for _ in range(num_games):
-        env = TicTacChecEnv()
-        obs = env.encode_state()
+    # Initialize all environments
+    envs = [TicTacChecEnv() for _ in range(num_games)]
+    observations = [env.encode_state() for env in envs]
+    active = list(range(num_games))  # indices of games still in progress
 
-        # Separate transition lists per player so GAE is computed independently
-        white_transitions = []  # (state, action, log_prob, value)
-        black_transitions = []
+    # Per-game transition lists: [white_transitions, black_transitions]
+    game_transitions = [
+        ([], []) for _ in range(num_games)
+    ]  # (white_list, black_list)
 
-        done = False
-        while not done:
-            mask = env.legal_action_mask()
-            current_player = env.turn  # 0=White, 1=Black
+    while active:
+        # Batch states and masks for all active games
+        states_batch = np.array([observations[i] for i in active])
+        masks_batch = np.array([envs[i].legal_action_mask() for i in active])
+        players = [envs[i].turn for i in active]
 
-            action, log_prob, value = select_action(net, obs, mask, device)
+        # Single batched forward pass
+        states_t = torch.tensor(states_batch, dtype=torch.float32, device=device)
+        masks_t = torch.tensor(masks_batch, dtype=torch.bool, device=device)
 
-            next_obs, reward, done, info = env.step(action)
+        with torch.no_grad():
+            logits, values = net(states_t)
 
+        # Mask illegal actions and sample
+        logits[~masks_t] = float("-inf")
+        probs = F.softmax(logits, dim=-1)
+        dist = torch.distributions.Categorical(probs)
+        actions_t = dist.sample()
+        log_probs_t = dist.log_prob(actions_t)
+
+        actions = actions_t.cpu().numpy()
+        log_probs = log_probs_t.cpu().numpy()
+        vals = values.squeeze(-1).cpu().numpy()
+
+        # Step each active environment
+        newly_done = []
+        for idx_in_batch, game_idx in enumerate(active):
+            action = int(actions[idx_in_batch])
+            log_prob = float(log_probs[idx_in_batch])
+            value = float(vals[idx_in_batch])
+            current_player = players[idx_in_batch]
+
+            obs = observations[game_idx]
             transition = (obs, action, log_prob, value)
             if current_player == 0:
-                white_transitions.append(transition)
+                game_transitions[game_idx][0].append(transition)
             else:
-                black_transitions.append(transition)
+                game_transitions[game_idx][1].append(transition)
 
-            obs = next_obs
+            next_obs, reward, done, info = envs[game_idx].step(action)
+            observations[game_idx] = next_obs
 
-        # Assign terminal rewards from each player's perspective
-        winner = info.get("winner")
-        for transitions, color in [(white_transitions, 0), (black_transitions, 1)]:
-            for i, (state, action, lp, val) in enumerate(transitions):
-                is_last = (i == len(transitions) - 1)
-                if is_last:
-                    if winner is None:
-                        r = 0.0  # draw
-                    elif int(winner) == color:
-                        r = 1.0  # this player won
-                    else:
-                        r = -1.0  # this player lost
-                else:
-                    r = 0.0
-                buffer.add(state, action, r, float(is_last), lp, val)
+            if done:
+                newly_done.append(game_idx)
+                # Assign terminal rewards
+                winner = info.get("winner")
+                for transitions, color in [
+                    (game_transitions[game_idx][0], 0),
+                    (game_transitions[game_idx][1], 1),
+                ]:
+                    for i, (state, act, lp, val) in enumerate(transitions):
+                        is_last = i == len(transitions) - 1
+                        if is_last:
+                            if winner is None:
+                                r = 0.0
+                            elif int(winner) == color:
+                                r = 1.0
+                            else:
+                                r = -1.0
+                        else:
+                            r = 0.0
+                        buffer.add(state, act, r, float(is_last), lp, val)
+
+        # Remove finished games from active list
+        if newly_done:
+            active = [i for i in active if i not in newly_done]
 
     return buffer
 

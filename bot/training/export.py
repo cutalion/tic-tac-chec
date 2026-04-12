@@ -11,8 +11,8 @@ import torch
 from model import PPONet
 
 
-def export_onnx(checkpoint_path: str, output_path: str):
-    net = PPONet()
+def export_onnx(checkpoint_path: str, output_path: str, filters: int = 64, num_res_blocks: int = 0):
+    net = PPONet(filters=filters, num_res_blocks=num_res_blocks)
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     net.load_state_dict(checkpoint["model_state_dict"])
     net.eval()
