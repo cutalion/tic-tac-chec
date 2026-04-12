@@ -1,0 +1,18 @@
+[project]
+name = "training"
+version = "0.1.0"
+description = "RL bot training for Tic Tac Chec"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "torch",
+    "numpy<2",
+    "tensorboard",
+    "onnxruntime",
+    "onnx>=1.17",
+    "onnxscript>=0.6.2",
+]
+
+# On Linux (server), use CPU-only torch to save disk:
+#   UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu uv sync
+# On macOS (M-series), just use default torch (includes MPS):
+#   uv sync

@@ -2,6 +2,17 @@ package engine
 
 type direction [2]int
 
+// LegalMoves returns all valid target cells for a piece on the board.
+// Returns nil if the piece is not on the board.
+func (g *Game) LegalMoves(p Piece) []Cell {
+	piece := g.Piece(p)
+	moves, err := g.pieceMoves(piece)
+	if err != nil {
+		return nil
+	}
+	return moves
+}
+
 func (g *Game) pieceMoves(piece *Piece) ([]Cell, error) {
 	switch piece.Kind {
 	case Pawn:
