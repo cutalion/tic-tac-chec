@@ -8,7 +8,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=1 go build -o /web-server ./cmd/web
 
 FROM alpine:3.20
-RUN apk add --no-cache libstdc++ curl tar && \
+RUN apk add --no-cache libstdc++ gcompat curl tar && \
     curl -sL https://github.com/microsoft/onnxruntime/releases/download/v1.24.1/onnxruntime-linux-x64-1.24.1.tgz \
     | tar xz -C /opt && \
     apk del curl tar
