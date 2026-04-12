@@ -31,8 +31,10 @@ services:
       dockerfile: Dockerfile.web
     env_file:
       - .env
-    mem_limit: 64m
-    mem_reservation: 32m
+    volumes:
+      - ./bot/models:/app/bot/models:ro
+    mem_limit: 256m
+    mem_reservation: 128m
     restart: unless-stopped
 
 volumes:
