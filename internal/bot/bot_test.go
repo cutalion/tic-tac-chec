@@ -1,3 +1,5 @@
+//go:build bot_test
+
 package bot
 
 import (

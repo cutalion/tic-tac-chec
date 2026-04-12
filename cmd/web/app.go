@@ -186,7 +186,7 @@ func (a *App) Room(w http.ResponseWriter, r *http.Request) {
 	defer ws.Close(websocket.StatusNormalClosure, "bye")
 
 	commands := make(chan game.Command, 1)
-	events := make(chan game.Event, 1)
+	events := make(chan game.Event, 16)
 	defer close(commands)
 	// do not close events, it will be closed by the room
 

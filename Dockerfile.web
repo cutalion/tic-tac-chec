@@ -7,6 +7,12 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     go build -o /web-server ./cmd/web
 
 FROM alpine:3.20
+RUN apk add --no-cache curl tar && \
+    curl -sL https://github.com/microsoft/onnxruntime/releases/download/v1.24.1/onnxruntime-linux-x64-1.24.1.tgz \
+    | tar xz -C /opt && \
+    apk del curl tar
 COPY --from=build /web-server /web-server
 WORKDIR /app
+ENV ORT_LIB_PATH=/opt/onnxruntime-linux-x64-1.24.1/lib/libonnxruntime.so
+ENV LD_LIBRARY_PATH=/opt/onnxruntime-linux-x64-1.24.1/lib
 CMD ["/web-server"]
