@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from model import PPONet
 from ppo import collect_rollouts, ppo_update
-from evaluate import evaluate_vs_random
+from evaluate import evaluate_vs_random, evaluate_vs_opponent
 from export import export_onnx
 
 MODELS_DIR = "../models"
@@ -41,6 +41,9 @@ def train_overnight(
     resume_from: str = None,
     filters: int = 64,
     num_res_blocks: int = 0,
+    opponent_checkpoint: str = None,
+    opponent_filters: int = 64,
+    opponent_res_blocks: int = 0,
 ):
     os.makedirs(checkpoint_dir, exist_ok=True)
     os.makedirs(MODELS_DIR, exist_ok=True)
@@ -62,6 +65,15 @@ def train_overnight(
     print(f"Model: {filters} filters, {num_res_blocks} res blocks, {num_params:,} params", flush=True)
     print(f"Milestones: {[(m[0], m[1]) for m in MILESTONES]}", flush=True)
     print(f"Device: {device}", flush=True)
+
+    # Load opponent model for head-to-head eval
+    opponent_net = None
+    if opponent_checkpoint and os.path.exists(opponent_checkpoint):
+        opponent_net = PPONet(filters=opponent_filters, num_res_blocks=opponent_res_blocks).to(device)
+        ckpt = torch.load(opponent_checkpoint, map_location=device, weights_only=True)
+        opponent_net.load_state_dict(ckpt["model_state_dict"])
+        opponent_net.eval()
+        print(f"Opponent loaded: {opponent_checkpoint}", flush=True)
 
     exported = set()
     last_win_rate = 0.0
@@ -112,6 +124,20 @@ def train_overnight(
                 f"loss={loss_rate:.1%} avg_len={avg_length:.0f}",
                 flush=True,
             )
+
+            # Evaluate against opponent model
+            if opponent_net is not None:
+                opp_wr, opp_dr, opp_lr, opp_len = evaluate_vs_opponent(
+                    net, opponent_net, num_games=100, device=device
+                )
+                writer.add_scalar("eval/vs_opponent_win", opp_wr, iteration)
+                writer.add_scalar("eval/vs_opponent_draw", opp_dr, iteration)
+                writer.add_scalar("eval/vs_opponent_loss", opp_lr, iteration)
+                print(
+                    f"  VS OPPONENT: win={opp_wr:.1%} draw={opp_dr:.1%} "
+                    f"loss={opp_lr:.1%} avg_len={opp_len:.0f}",
+                    flush=True,
+                )
 
             # Check milestones after each eval
             for milestone_iter, name, min_wr in MILESTONES:

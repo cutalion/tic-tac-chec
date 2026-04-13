@@ -54,6 +54,46 @@ def evaluate_vs_random(net: PPONet, num_games: int = 100, device: str = "cpu"):
     return wins / n, draws / n, losses / n, total_length / n
 
 
+def evaluate_vs_opponent(net: PPONet, opponent: PPONet, num_games: int = 100, device: str = "cpu"):
+    """Play num_games against another model. Bot plays White in half, Black in half.
+
+    Returns (win_rate, draw_rate, loss_rate, avg_game_length).
+    """
+    wins = 0
+    draws = 0
+    losses = 0
+    total_length = 0
+
+    for game_idx in range(num_games):
+        env = TicTacChecEnv()
+        obs = env.encode_state()
+
+        bot_color = Color.WHITE if game_idx % 2 == 0 else Color.BLACK
+
+        done = False
+        while not done:
+            mask = env.legal_action_mask()
+            if env.turn == bot_color:
+                action, _, _ = select_action(net, obs, mask, device)
+            else:
+                action, _, _ = select_action(opponent, obs, mask, device)
+
+            obs, reward, done, info = env.step(action)
+
+        total_length += env.move_count
+
+        winner = info.get("winner")
+        if winner is None:
+            draws += 1
+        elif winner == bot_color:
+            wins += 1
+        else:
+            losses += 1
+
+    n = num_games
+    return wins / n, draws / n, losses / n, total_length / n
+
+
 if __name__ == "__main__":
     net = PPONet()
 
