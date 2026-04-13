@@ -20,16 +20,16 @@ import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
 from model import PPONet
-from mcts_collect import collect_alphazero_data
-from evaluate import evaluate_vs_random, evaluate_vs_opponent
+from mcts_collect_fast import collect_alphazero_data_fast as collect_alphazero_data
+from evaluate_fast import evaluate_vs_random, evaluate_vs_opponent
 from export import export_onnx
 
 MODELS_DIR = "../models"
 
 MILESTONES = [
-    (200, "easy", 0.0),
-    (1000, "medium", 0.40),
-    (3000, "hard", 0.70),
+    (50, "easy", 0.0),
+    (200, "medium", 0.40),
+    (500, "hard", 0.70),
 ]
 
 # Opponent pool settings (evaluation only)
@@ -99,11 +99,11 @@ def alphazero_update(net, optimizer, states, policy_targets, value_targets, devi
 
 
 def train_alphazero(
-    num_iterations: int = 5000,
+    num_iterations: int = 1000,
     games_per_iter: int = 64,
     num_simulations: int = 25,
     eval_every: int = 25,
-    checkpoint_every: int = 100,
+    checkpoint_every: int = 50,
     lr: float = 1e-3,
     num_epochs: int = 10,
     batch_size: int = 256,
