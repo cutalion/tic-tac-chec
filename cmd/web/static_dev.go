@@ -22,6 +22,8 @@ func registerStaticRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /icon-512.png", staticHandler())
 	mux.Handle("GET /apple-touch-icon.png", staticHandler())
 	mux.Handle("GET /favicon.ico", staticHandler())
+	mux.Handle("GET /llm.txt", staticHandler())
+	mux.Handle("GET /docs/", http.StripPrefix("/docs/", http.FileServer(http.Dir("cmd/web/docs"))))
 }
 
 func staticHandler() http.Handler {

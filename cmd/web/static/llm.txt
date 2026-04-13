@@ -1,0 +1,23 @@
+# Tic-Tac-Chec
+
+> A 2-player board game combining chess piece movement with tic-tac-toe win conditions on a 4x4 grid. Play at ttc.ctln.pw.
+
+Each player has 4 chess pieces (Pawn, Rook, Bishop, Knight). On your turn, place a piece from hand onto any empty cell, or move a piece on the board using chess rules. Capturing returns the piece to its owner's hand. Win by getting all 4 of your pieces in a line (row, column, or diagonal).
+
+## Game Protocol
+
+- [WebSocket Protocol Specification](https://ttc.ctln.pw/docs/protocol.md): Complete reference for the HTTP API and WebSocket message format needed to play the game programmatically. Covers authentication, matchmaking, move encoding, and game state format.
+
+## Quick Start
+
+1. `POST /api/clients` → get a token
+2. `POST /api/bot-game?token=<token>&difficulty=easy` → get a room ID
+3. Connect WebSocket to `/ws/room/<roomId>?token=<token>`
+4. Receive `roomJoined` and `gameState` messages
+5. Send moves: `{"type":"move","piece":"WP","to":"b3"}`
+6. Receive updated `gameState` after each move
+
+## Pieces
+
+- Piece codes: WP (White Pawn), WR (White Rook), WB (White Bishop), WN (White Knight), BP/BR/BB/BN for Black
+- Squares: a1-d4 (chess notation on a 4x4 board, a1 = White's side bottom-left)

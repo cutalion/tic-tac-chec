@@ -1,3 +1,4 @@
 FROM caddy:2-alpine
 COPY cmd/web/static /srv/static
+COPY cmd/web/docs /srv/static/docs
 COPY Caddyfile /etc/caddy/Caddyfile
