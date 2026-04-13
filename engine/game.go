@@ -278,3 +278,28 @@ func (g *Game) maybeTurnPawnDirection(pawn *Piece) {
 		}
 	}
 }
+
+func (g *Game) Clone() *Game {
+	clone := NewGame()
+	clone.Turn = g.Turn
+	clone.PawnDirections = g.PawnDirections
+	clone.Status = g.Status
+
+	if g.Winner != nil {
+		winner := *g.Winner
+		clone.Winner = &winner
+	}
+
+	// game board keeps pointers to pieces
+	// put new pieces on the same places
+	for row := range g.Board {
+		for col := range g.Board[row] {
+			piece := g.Board[row][col]
+			if piece != nil {
+				clone.Board[row][col] = clone.Pieces.Get(piece.Color, piece.Kind)
+			}
+		}
+	}
+
+	return clone
+}
