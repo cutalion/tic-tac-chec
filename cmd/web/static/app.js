@@ -28,6 +28,7 @@ const state = {
   winner: null,
   selectedPiece: null,
   pawnDirections: null,
+  prev: null,
   error: null,
   rematchSent: false,
   opponentWantsRematch: false,
@@ -326,6 +327,11 @@ function handleRoomMessage(data) {
       render();
       break;
     case "gameState":
+      state.prev = {
+        board: state.board,
+        turn: state.turn,
+        status: state.status,
+      };
       state.board = data.state.board;
       state.turn = data.state.turn;
       state.status = data.state.status;
@@ -633,6 +639,9 @@ function renderHand(color) {
       const span = document.createElement("span");
       span.className = `piece-glyph piece-${color}`;
       span.textContent = PIECE_SYMBOLS[kind];
+      if (state.prev && state.prev.board && wasPieceOnBoard(state.prev.board, color, kind)) {
+        span.classList.add("animate-place");
+      }
       if (state.selectedPiece && state.selectedPiece.code === PIECE_CODES[color][kind]) {
         cell.classList.add("selected");
       }
@@ -649,6 +658,7 @@ function renderHand(color) {
           color,
           source: "hand",
         };
+        state.prev = null;
 
         render();
       });
@@ -701,6 +711,13 @@ function renderBoard(flipped) {
         span.className = `piece-glyph piece-${piece.color}`;
         span.textContent = PIECE_SYMBOLS[piece.kind];
 
+        if (state.prev && state.prev.board) {
+          const prev = state.prev.board[engineRow][col];
+          if (!prev || prev.color !== piece.color || prev.kind !== piece.kind) {
+            span.classList.add("animate-place");
+          }
+        }
+
         if (
           state.selectedPiece &&
           state.selectedPiece.code === PIECE_CODES[piece.color][piece.kind]
@@ -724,6 +741,7 @@ function renderBoard(flipped) {
               color: piece.color,
               source: "board",
             };
+            state.prev = null;
             render();
             return;
           }
@@ -743,11 +761,13 @@ function renderBoard(flipped) {
             color: piece.color,
             source: "board",
           };
+          state.prev = null;
           render();
           return;
         }
 
         state.selectedPiece = null;
+        state.prev = null;
         render();
       });
 
@@ -998,6 +1018,7 @@ async function copyInviteLink(inviteURL) {
 
 function resetBoardState() {
   state.board = null;
+  state.prev = null;
   state.turn = null;
   state.status = null;
   state.winner = null;
@@ -1021,6 +1042,17 @@ function isPieceOnBoard(color, kind) {
     }
   }
 
+  return false;
+}
+
+function wasPieceOnBoard(board, color, kind) {
+  for (const row of board) {
+    for (const cell of row) {
+      if (cell && cell.color === color && cell.kind === kind) {
+        return true;
+      }
+    }
+  }
   return false;
 }
 

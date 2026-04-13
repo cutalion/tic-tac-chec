@@ -599,6 +599,15 @@ h1 {
     pointer-events: none;
 }
 
+.animate-place {
+    animation: place-pop 0.25s ease-out;
+}
+
+@keyframes place-pop {
+    from { transform: scale(0); }
+    to   { transform: scale(1); }
+}
+
 .game-result {
     color: var(--result);
 }
