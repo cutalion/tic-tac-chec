@@ -58,7 +58,9 @@ class Node:
     def ucb_score(self, cpuct):
         if self.visit_count == 0:
             return float("inf")
-        q = self.total_value / self.visit_count
+        # Negate Q: node stores value from its own player's perspective,
+        # but parent wants "how good is this action for ME" (negamax convention)
+        q = -self.total_value / self.visit_count
         exploration = (
             cpuct
             * self.prior
