@@ -4,6 +4,7 @@ Exports ONNX models at milestones for easy/medium/hard bots.
 Usage: uv run python train_overnight.py
 """
 
+import copy
 import os
 import sys
 import time
@@ -12,27 +13,29 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from model import PPONet
-from ppo import collect_rollouts, ppo_update
-from evaluate import evaluate_vs_random
+from ppo import ppo_update
+from ppo_fast import collect_rollouts_compiled as collect_rollouts
+from evaluate_fast import evaluate_vs_random, evaluate_vs_opponent
 from export import export_onnx
 
 MODELS_DIR = "../models"
 
-# Milestone definitions: (iteration, name, min_win_rate_to_export)
-# Models are exported when the milestone iteration is reached AND win rate >= threshold.
-# If win rate is below threshold, training continues and the model is exported anyway
-# at the next eval that crosses the threshold (or at the milestone, whichever comes first).
 MILESTONES = [
-    (200, "easy", 0.0),       # early model, plays legal moves but poorly
-    (1000, "medium", 0.40),   # decent, beats random ~40-60%
-    (3000, "hard", 0.70),     # strong, beats random >70%
+    (200, "easy", 0.0),
+    (1000, "medium", 0.40),
+    (3000, "hard", 0.70),
 ]
+
+# Opponent pool settings
+POOL_MAX_SIZE = 10
+POOL_SAVE_EVERY = 100  # add current model to pool every N iterations
+POOL_SELF_PLAY_RATIO = 0.5  # fraction of games that are self-play (rest use pool)
 
 
 def train_overnight(
     num_iterations: int = 5000,
     games_per_iter: int = 128,
-    eval_every: int = 25,
+    eval_every: int = 50,
     checkpoint_every: int = 100,
     lr: float = 3e-4,
     checkpoint_dir: str = "checkpoints",
@@ -41,6 +44,10 @@ def train_overnight(
     resume_from: str = None,
     filters: int = 64,
     num_res_blocks: int = 0,
+    use_opponent_pool: bool = False,
+    eval_opponent_checkpoint: str = None,
+    eval_opponent_filters: int = 64,
+    eval_opponent_res_blocks: int = 0,
 ):
     os.makedirs(checkpoint_dir, exist_ok=True)
     os.makedirs(MODELS_DIR, exist_ok=True)
@@ -61,7 +68,27 @@ def train_overnight(
     print(f"Overnight training: {num_iterations} iterations, {games_per_iter} games/iter", flush=True)
     print(f"Model: {filters} filters, {num_res_blocks} res blocks, {num_params:,} params", flush=True)
     print(f"Milestones: {[(m[0], m[1]) for m in MILESTONES]}", flush=True)
+    print(f"Opponent pool: {'enabled' if use_opponent_pool else 'disabled'}", flush=True)
     print(f"Device: {device}", flush=True)
+
+    # Opponent pool: list of past model snapshots
+    opponent_pool = []
+    if use_opponent_pool:
+        # Seed the pool with the initial model
+        initial_copy = PPONet(filters=filters, num_res_blocks=num_res_blocks).to(device)
+        initial_copy.load_state_dict(net.state_dict())
+        initial_copy.eval()
+        opponent_pool.append(initial_copy)
+        print(f"Opponent pool seeded (max {POOL_MAX_SIZE}, save every {POOL_SAVE_EVERY})", flush=True)
+
+    # Load fixed eval opponent (e.g., previous training run's best model)
+    eval_opponent = None
+    if eval_opponent_checkpoint and os.path.exists(eval_opponent_checkpoint):
+        eval_opponent = PPONet(filters=eval_opponent_filters, num_res_blocks=eval_opponent_res_blocks).to(device)
+        ckpt = torch.load(eval_opponent_checkpoint, map_location=device, weights_only=True)
+        eval_opponent.load_state_dict(ckpt["model_state_dict"])
+        eval_opponent.eval()
+        print(f"Eval opponent loaded: {eval_opponent_checkpoint}", flush=True)
 
     exported = set()
     last_win_rate = 0.0
@@ -70,9 +97,39 @@ def train_overnight(
     for iteration in range(start_iteration, num_iterations + 1):
         t0 = time.time()
 
-        buffer = collect_rollouts(net, num_games=games_per_iter, device=device)
+        # Split games between self-play and opponent-pool play
+        if opponent_pool and len(opponent_pool) > 0:
+            n_self = int(games_per_iter * POOL_SELF_PLAY_RATIO)
+            n_pool = games_per_iter - n_self
+
+            buf_self = collect_rollouts(net, num_games=n_self, device=device)
+            buf_pool = collect_rollouts(net, num_games=n_pool, device=device, opponent_pool=opponent_pool)
+
+            # Merge buffers
+            buffer = buf_self
+            buffer.states.extend(buf_pool.states)
+            buffer.actions.extend(buf_pool.actions)
+            buffer.rewards.extend(buf_pool.rewards)
+            buffer.dones.extend(buf_pool.dones)
+            buffer.log_probs.extend(buf_pool.log_probs)
+            buffer.values.extend(buf_pool.values)
+            buffer.masks.extend(buf_pool.masks)
+        else:
+            buffer = collect_rollouts(net, num_games=games_per_iter, device=device)
+
         metrics = ppo_update(net, optimizer, buffer, device=device)
         elapsed = time.time() - t0
+
+        # Add current model to opponent pool periodically
+        if use_opponent_pool and iteration % POOL_SAVE_EVERY == 0:
+            snapshot = PPONet(filters=filters, num_res_blocks=num_res_blocks).to(device)
+            snapshot.load_state_dict(net.state_dict())
+            snapshot.eval()
+            opponent_pool.append(snapshot)
+            if len(opponent_pool) > POOL_MAX_SIZE:
+                # Keep first (weakest) and evenly sample the rest
+                opponent_pool = [opponent_pool[0]] + opponent_pool[-POOL_MAX_SIZE + 1:]
+            print(f"  Pool updated: {len(opponent_pool)} opponents", flush=True)
 
         # Log to TensorBoard
         writer.add_scalar("loss/actor", metrics["actor_loss"], iteration)
@@ -112,6 +169,32 @@ def train_overnight(
                 f"loss={loss_rate:.1%} avg_len={avg_length:.0f}",
                 flush=True,
             )
+
+            # Evaluate against fixed eval opponent
+            if eval_opponent is not None:
+                opp_wr, opp_dr, opp_lr, opp_len = evaluate_vs_opponent(
+                    net, eval_opponent, num_games=100, device=device
+                )
+                writer.add_scalar("eval/vs_opponent_win", opp_wr, iteration)
+                writer.add_scalar("eval/vs_opponent_draw", opp_dr, iteration)
+                writer.add_scalar("eval/vs_opponent_loss", opp_lr, iteration)
+                print(
+                    f"  VS PREV BEST: win={opp_wr:.1%} draw={opp_dr:.1%} "
+                    f"loss={opp_lr:.1%} avg_len={opp_len:.0f}",
+                    flush=True,
+                )
+
+            # Evaluate against latest pool opponent (shows self-improvement)
+            if opponent_pool and len(opponent_pool) > 1:
+                pool_wr, pool_dr, pool_lr, pool_len = evaluate_vs_opponent(
+                    net, opponent_pool[-2], num_games=50, device=device
+                )
+                writer.add_scalar("eval/vs_pool_win", pool_wr, iteration)
+                print(
+                    f"  VS POOL[-2]: win={pool_wr:.1%} draw={pool_dr:.1%} "
+                    f"loss={pool_lr:.1%}",
+                    flush=True,
+                )
 
             # Check milestones after each eval
             for milestone_iter, name, min_wr in MILESTONES:
@@ -159,14 +242,12 @@ def train_overnight(
 
 
 def export_milestone(net, name, iteration, win_rate, checkpoint_dir, filters=64, num_res_blocks=0):
-    # Save checkpoint
     ckpt_path = os.path.join(checkpoint_dir, f"ppo_{name}.pt")
     torch.save({
         "iteration": iteration,
         "model_state_dict": net.state_dict(),
     }, ckpt_path)
 
-    # Export ONNX
     onnx_path = os.path.join(MODELS_DIR, f"bot_{name}.onnx")
     export_onnx(ckpt_path, onnx_path, filters=filters, num_res_blocks=num_res_blocks)
     print(
@@ -186,4 +267,9 @@ def best_device():
 
 if __name__ == "__main__":
     resume = sys.argv[1] if len(sys.argv) > 1 else None
-    train_overnight(resume_from=resume, device=best_device())
+    train_overnight(
+        resume_from=resume,
+        device=best_device(),
+        use_opponent_pool=True,
+        eval_opponent_checkpoint="checkpoints/ppo_hard.pt",
+    )
