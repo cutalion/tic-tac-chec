@@ -1,7 +1,7 @@
 ttc.ctln.pw {
 	encode gzip
 
-	@static path /app.js /style.css /manifest.json /sw.js /icon.svg /icon-192.png /icon-512.png /apple-touch-icon.png /favicon.ico /llm.txt /docs/protocol.md
+	@static path /app.js /style.css /manifest.json /sw.js /icon.svg /icon-192.png /icon-512.png /apple-touch-icon.png /favicon.ico /llms.txt /docs/protocol.md
 	handle @static {
 		header Cache-Control "no-cache"
 		root * /srv/static
