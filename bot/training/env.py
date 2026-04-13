@@ -102,6 +102,22 @@ class TicTacChecEnv:
         self.draw: bool = False
         self.reset()
 
+    def clone(self):
+        """Fast manual clone for MCTS tree expansion.
+
+        Avoids copy.deepcopy overhead by manually copying mutable state.
+        """
+        c = TicTacChecEnv.__new__(TicTacChecEnv)
+        c.board = [[cell for cell in row] for row in self.board]
+        c.turn = self.turn
+        c.pawn_directions = dict(self.pawn_directions)
+        c.move_count = self.move_count
+        c.state_history = dict(self.state_history)
+        c.winner = self.winner
+        c.done = self.done
+        c.draw = self.draw
+        return c
+
     def reset(self):
         """Reset to initial state. Returns initial observation."""
         self.board = [[None] * BOARD_SIZE for _ in range(BOARD_SIZE)]
