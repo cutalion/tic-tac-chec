@@ -199,3 +199,39 @@ func TestMCTSFindsWinningMove(t *testing.T) {
 		t.Errorf("MCTS should find winning move at (0,3), got piece=%v cell=%v", piece, cell)
 	}
 }
+
+// TODO: Re-enable after MCTS-guided training (Phase 2) improves the value network.
+// Current network gives optimistic values to non-blocking moves, so MCTS can't
+// discover that not blocking leads to a loss — even at 5000 simulations.
+//
+// func TestMCTSBlocksOpponentWin(t *testing.T) {
+// 	b, err := New(testModelPath, 50)
+// 	if err != nil {
+// 		t.Fatalf("failed to create bot: %v", err)
+// 	}
+// 	defer b.Destroy()
+//
+// 	g := engine.NewGame()
+// 	bp := g.Pieces.Get(engine.Black, engine.Pawn)
+// 	br := g.Pieces.Get(engine.Black, engine.Rook)
+// 	bb := g.Pieces.Get(engine.Black, engine.Bishop)
+// 	wp := g.Pieces.Get(engine.White, engine.Pawn)
+// 	wr := g.Pieces.Get(engine.White, engine.Rook)
+// 	wb := g.Pieces.Get(engine.White, engine.Bishop)
+//
+// 	g.Board = engine.Board{
+// 		{nil, nil, nil, wr},
+// 		{bp, br, bb, nil},
+// 		{nil, nil, nil, nil},
+// 		{wp, wb, nil, nil},
+// 	}
+//
+// 	piece, cell, err := b.SelectAction(g)
+// 	if err != nil {
+// 		t.Fatalf("SelectAction failed: %v", err)
+// 	}
+//
+// 	if cell.Row != 1 || cell.Col != 3 {
+// 		t.Errorf("MCTS should block at (1,3), got piece=%v cell=%v", piece, cell)
+// 	}
+// }
