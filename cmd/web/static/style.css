@@ -455,6 +455,7 @@ h1 {
     align-items: center;
     justify-content: center;
     border: 2px solid var(--cell-border);
+    touch-action: manipulation;
     border-radius: 8px;
     background: var(--cell-bg);
     font-size: 0;
@@ -527,6 +528,7 @@ h1 {
     align-items: center;
     justify-content: center;
     border: 2px solid var(--cell-border);
+    touch-action: manipulation;
     border-radius: 8px;
     background: var(--cell-bg);
     font-size: 0;

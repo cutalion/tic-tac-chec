@@ -75,6 +75,7 @@ async function init() {
   bindExit();
   bindHistory();
   bindInstall();
+  bindVisibility();
 
   state.token = await ensureClientToken();
   syncRoute();
@@ -1109,6 +1110,11 @@ function showEmojiReaction(emoji, fromColor) {
 function send(payload) {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     console.warn("socket is not open", payload);
+    if (state.phase !== "connectionLost") {
+      state.phase = "connectionLost";
+      render();
+      scheduleReconnect();
+    }
     return;
   }
 
@@ -1279,6 +1285,21 @@ function bindTheme() {
     const dark = !isDark();
     applyTheme(dark);
     localStorage.setItem("theme", dark ? "dark" : "light");
+  });
+}
+
+function bindVisibility() {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    if (state.phase === "connectionLost") return;
+    if (state.route !== "room" && state.route !== "lobby") return;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.debug("zombie socket detected on visibility change");
+      disconnectSocket();
+      state.phase = "connectionLost";
+      render();
+      scheduleReconnect();
+    }
   });
 }
 
