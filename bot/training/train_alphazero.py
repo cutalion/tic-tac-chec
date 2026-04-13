@@ -20,7 +20,7 @@ import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
 from model import PPONet
-from mcts_collect_fast import collect_alphazero_data_fast as collect_alphazero_data
+from mcts_parallel import collect_alphazero_data_parallel as collect_alphazero_data
 from evaluate_fast import evaluate_vs_random, evaluate_vs_opponent
 from export import export_onnx
 
@@ -166,7 +166,8 @@ def train_alphazero(
         # --- Collect MCTS self-play data ---
         net.eval()
         states, policy_targets, value_targets = collect_alphazero_data(
-            net, games_per_iter, num_simulations, device=device
+            net, games_per_iter, num_simulations, device=device,
+            filters=filters, num_res_blocks=num_res_blocks,
         )
         collect_time = time.time() - t0
 
