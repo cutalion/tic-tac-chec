@@ -83,7 +83,7 @@ func initBots() map[string]*bot.Bot {
 		}
 
 		modelPath := filepath.Join(modelsDir, name)
-		b, err := bot.New(modelPath)
+		b, err := bot.New(modelPath, 100)
 		if err != nil {
 			log.Printf("Failed to load %s: %v — skipping", modelPath, err)
 			continue
