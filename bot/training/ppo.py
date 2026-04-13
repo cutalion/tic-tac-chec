@@ -25,14 +25,16 @@ class RolloutBuffer:
         self.dones = []
         self.log_probs = []
         self.values = []
+        self.masks = []
 
-    def add(self, state, action, reward, done, log_prob, value):
+    def add(self, state, action, reward, done, log_prob, value, mask=None):
         self.states.append(state)
         self.actions.append(action)
         self.rewards.append(reward)
         self.dones.append(done)
         self.log_probs.append(log_prob)
         self.values.append(value)
+        self.masks.append(mask)
 
     def clear(self):
         self.states.clear()
@@ -41,9 +43,10 @@ class RolloutBuffer:
         self.dones.clear()
         self.log_probs.clear()
         self.values.clear()
+        self.masks.clear()
 
     def to_tensors(self, device="cpu"):
-        return (
+        result = (
             torch.tensor(np.array(self.states), dtype=torch.float32, device=device),
             torch.tensor(self.actions, dtype=torch.long, device=device),
             torch.tensor(self.rewards, dtype=torch.float32, device=device),
@@ -51,6 +54,9 @@ class RolloutBuffer:
             torch.tensor(self.log_probs, dtype=torch.float32, device=device),
             torch.tensor(self.values, dtype=torch.float32, device=device),
         )
+        if self.masks[0] is not None:
+            return result + (torch.tensor(np.array(self.masks), dtype=torch.bool, device=device),)
+        return result + (None,)
 
     def __len__(self):
         return len(self.states)
@@ -105,7 +111,7 @@ def _finish_game(game_idx, info, game_transitions, buffer):
         (game_transitions[game_idx][0], 0),
         (game_transitions[game_idx][1], 1),
     ]:
-        for i, (state, act, lp, val) in enumerate(transitions):
+        for i, (state, act, lp, val, mask) in enumerate(transitions):
             is_last = i == len(transitions) - 1
             if is_last:
                 if winner is None:
@@ -116,7 +122,7 @@ def _finish_game(game_idx, info, game_transitions, buffer):
                     r = -1.0
             else:
                 r = 0.0
-            buffer.add(state, act, r, float(is_last), lp, val)
+            buffer.add(state, act, r, float(is_last), lp, val, mask)
 
 
 def collect_rollouts(net: PPONet, num_games: int, device="cpu", opponent_pool=None):
@@ -192,18 +198,20 @@ def collect_rollouts(net: PPONet, num_games: int, device="cpu", opponent_pool=No
 
             obs = observations[game_idx]
 
+            mask = masks_batch[idx_in_batch]
+
             if opponents:
                 # Only store transitions for the learning agent's side
                 is_agent_turn = current_player == agent_colors[game_idx]
                 if is_agent_turn:
-                    transition = (obs, action, log_prob, value)
+                    transition = (obs, action, log_prob, value, mask)
                     if current_player == 0:
                         game_transitions[game_idx][0].append(transition)
                     else:
                         game_transitions[game_idx][1].append(transition)
             else:
                 # Self-play: store both sides
-                transition = (obs, action, log_prob, value)
+                transition = (obs, action, log_prob, value, mask)
                 if current_player == 0:
                     game_transitions[game_idx][0].append(transition)
                 else:
@@ -253,7 +261,7 @@ def ppo_update(
     device: str = "cpu",
 ):
     """Run PPO policy update on collected rollout data."""
-    states, actions, rewards, dones, old_log_probs, old_values = buffer.to_tensors(device)
+    states, actions, rewards, dones, old_log_probs, old_values, legal_masks = buffer.to_tensors(device)
     advantages, returns = compute_gae(rewards, old_values, dones)
     advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
@@ -261,6 +269,8 @@ def ppo_update(
 
     for _ in range(epochs):
         logits, values = net(states)
+        if legal_masks is not None:
+            logits[~legal_masks] = float("-inf")
         dist = torch.distributions.Categorical(logits=logits)
         new_log_probs = dist.log_prob(actions)
         entropy = dist.entropy().mean()

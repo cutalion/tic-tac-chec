@@ -14,13 +14,15 @@ import (
 
 // Bot plays Tic Tac Chec using an ONNX neural network model.
 type Bot struct {
-	session *ort.DynamicAdvancedSession
+	session     *ort.DynamicAdvancedSession
+	simulations int
 }
 
 // New creates a Bot that loads the ONNX model from the given path.
+// simulations controls MCTS: 0 means greedy argmax, >0 means MCTS with that many simulations.
 // Call ort.InitializeEnvironment() before creating a Bot,
 // and ort.DestroyEnvironment() when done.
-func New(modelPath string) (*Bot, error) {
+func New(modelPath string, simulations int) (*Bot, error) {
 	session, err := ort.NewDynamicAdvancedSession(
 		modelPath,
 		[]string{"state"},
@@ -31,7 +33,7 @@ func New(modelPath string) (*Bot, error) {
 		return nil, fmt.Errorf("bot: load model: %w", err)
 	}
 
-	return &Bot{session: session}, nil
+	return &Bot{session: session, simulations: simulations}, nil
 }
 
 // Infer runs the model on a game state and returns action logits (320 floats).
@@ -68,9 +70,53 @@ func (b *Bot) Infer(state []float32) ([]float32, error) {
 	return logits, nil
 }
 
-// SelectAction picks the best legal action given logits and a game state.
-// Applies action masking: illegal actions get -inf, then picks argmax.
+// InferWithValue runs the model and returns both action logits (320 floats)
+// and the state value estimate (single float).
+func (b *Bot) InferWithValue(state []float32) ([]float32, float32, error) {
+	inputShape := ort.Shape{1, NumChannels, BoardSize, BoardSize}
+	input, err := ort.NewTensor(inputShape, state)
+	if err != nil {
+		return nil, 0, fmt.Errorf("bot: create input tensor: %w", err)
+	}
+	defer input.Destroy()
+
+	outputShape := ort.Shape{1, ActionSpaceSize}
+	output, err := ort.NewEmptyTensor[float32](outputShape)
+	if err != nil {
+		return nil, 0, fmt.Errorf("bot: create output tensor: %w", err)
+	}
+	defer output.Destroy()
+
+	valueShape := ort.Shape{1, 1}
+	valueOutput, err := ort.NewEmptyTensor[float32](valueShape)
+	if err != nil {
+		return nil, 0, fmt.Errorf("bot: create value tensor: %w", err)
+	}
+	defer valueOutput.Destroy()
+
+	err = b.session.Run([]ort.ArbitraryTensor{input}, []ort.ArbitraryTensor{output, valueOutput})
+	if err != nil {
+		return nil, 0, fmt.Errorf("bot: run inference: %w", err)
+	}
+
+	logits := make([]float32, ActionSpaceSize)
+	copy(logits, output.GetData())
+	value := valueOutput.GetData()[0]
+	return logits, value, nil
+}
+
+// SelectAction picks the best legal action for the current position.
+// If simulations > 0, uses MCTS; otherwise uses greedy argmax.
 func (b *Bot) SelectAction(g *engine.Game) (engine.Piece, engine.Cell, error) {
+	if b.simulations > 0 {
+		return b.selectActionMCTS(g)
+	}
+	return b.selectActionArgmax(g)
+}
+
+// selectActionArgmax picks the best legal action given logits and a game state.
+// Applies action masking: illegal actions get -inf, then picks argmax.
+func (b *Bot) selectActionArgmax(g *engine.Game) (engine.Piece, engine.Cell, error) {
 	state := NewStateEncoder().Encode(g)
 
 	logits, err := b.Infer(state)
@@ -107,6 +153,11 @@ func (b *Bot) SelectAction(g *engine.Game) (engine.Piece, engine.Cell, error) {
 	}
 
 	return *boardPiece, dst, nil
+}
+
+// selectActionMCTS delegates to mctsSelectAction (defined in mcts.go).
+func (b *Bot) selectActionMCTS(g *engine.Game) (engine.Piece, engine.Cell, error) {
+	return mctsSelectAction(b, g, b.simulations)
 }
 
 // legalActions returns valid action indices for the current player.

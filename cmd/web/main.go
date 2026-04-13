@@ -83,7 +83,11 @@ func initBots() map[string]*bot.Bot {
 		}
 
 		modelPath := filepath.Join(modelsDir, name)
-		b, err := bot.New(modelPath)
+		// MCTS disabled (simulations=0): the current value head is uncalibrated
+		// (returns -0.34 for a near-win position), so MCTS trusts bad evaluations
+		// and plays worse than raw policy. Re-enable after MCTS-guided training
+		// improves the value network.
+		b, err := bot.New(modelPath, 0)
 		if err != nil {
 			log.Printf("Failed to load %s: %v — skipping", modelPath, err)
 			continue
