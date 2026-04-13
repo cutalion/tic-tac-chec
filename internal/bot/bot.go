@@ -68,6 +68,41 @@ func (b *Bot) Infer(state []float32) ([]float32, error) {
 	return logits, nil
 }
 
+// InferWithValue runs the model and returns both action logits (320 floats)
+// and the state value estimate (single float).
+func (b *Bot) InferWithValue(state []float32) ([]float32, float32, error) {
+	inputShape := ort.Shape{1, NumChannels, BoardSize, BoardSize}
+	input, err := ort.NewTensor(inputShape, state)
+	if err != nil {
+		return nil, 0, fmt.Errorf("bot: create input tensor: %w", err)
+	}
+	defer input.Destroy()
+
+	outputShape := ort.Shape{1, ActionSpaceSize}
+	output, err := ort.NewEmptyTensor[float32](outputShape)
+	if err != nil {
+		return nil, 0, fmt.Errorf("bot: create output tensor: %w", err)
+	}
+	defer output.Destroy()
+
+	valueShape := ort.Shape{1, 1}
+	valueOutput, err := ort.NewEmptyTensor[float32](valueShape)
+	if err != nil {
+		return nil, 0, fmt.Errorf("bot: create value tensor: %w", err)
+	}
+	defer valueOutput.Destroy()
+
+	err = b.session.Run([]ort.ArbitraryTensor{input}, []ort.ArbitraryTensor{output, valueOutput})
+	if err != nil {
+		return nil, 0, fmt.Errorf("bot: run inference: %w", err)
+	}
+
+	logits := make([]float32, ActionSpaceSize)
+	copy(logits, output.GetData())
+	value := valueOutput.GetData()[0]
+	return logits, value, nil
+}
+
 // SelectAction picks the best legal action given logits and a game state.
 // Applies action masking: illegal actions get -inf, then picks argmax.
 func (b *Bot) SelectAction(g *engine.Game) (engine.Piece, engine.Cell, error) {
