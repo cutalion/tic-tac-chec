@@ -1,8 +1,10 @@
 """PPO training: rollout collection and policy update for Tic Tac Chec.
 
-Rollout collection (T017): self-play games storing transitions.
-PPO update (T018): GAE advantages, clipped surrogate loss, critic loss, entropy bonus.
+Rollout collection: self-play and opponent-pool games storing transitions.
+PPO update: GAE advantages, clipped surrogate loss, critic loss, entropy bonus.
 """
+
+import random as pyrandom
 
 import numpy as np
 import torch
@@ -79,50 +81,106 @@ def select_action(net: PPONet, state: np.ndarray, legal_mask: np.ndarray, device
     return action.item(), dist.log_prob(action).item(), value.item()
 
 
-def collect_rollouts(net: PPONet, num_games: int, device="cpu"):
-    """Play num_games of self-play in parallel, collecting transitions for both sides.
+def _batched_select(net, states_batch, masks_batch, device):
+    """Batched forward pass + masked sampling. Returns (actions, log_probs, values) as numpy."""
+    states_t = torch.tensor(states_batch, dtype=torch.float32, device=device)
+    masks_t = torch.tensor(masks_batch, dtype=torch.bool, device=device)
 
-    All games run simultaneously: states are batched into a single tensor for
-    one forward pass per step, then each environment is stepped individually.
-    Games that finish early are replaced or skipped until all are done.
+    with torch.no_grad():
+        logits, values = net(states_t)
 
-    Returns a RolloutBuffer with all transitions.
+    logits[~masks_t] = float("-inf")
+    probs = F.softmax(logits, dim=-1)
+    dist = torch.distributions.Categorical(probs)
+    actions_t = dist.sample()
+    log_probs_t = dist.log_prob(actions_t)
+
+    return actions_t.cpu().numpy(), log_probs_t.cpu().numpy(), values.squeeze(-1).cpu().numpy()
+
+
+def _finish_game(game_idx, info, game_transitions, buffer):
+    """Assign terminal rewards and add transitions to buffer."""
+    winner = info.get("winner")
+    for transitions, color in [
+        (game_transitions[game_idx][0], 0),
+        (game_transitions[game_idx][1], 1),
+    ]:
+        for i, (state, act, lp, val) in enumerate(transitions):
+            is_last = i == len(transitions) - 1
+            if is_last:
+                if winner is None:
+                    r = 0.0
+                elif int(winner) == color:
+                    r = 1.0
+                else:
+                    r = -1.0
+            else:
+                r = 0.0
+            buffer.add(state, act, r, float(is_last), lp, val)
+
+
+def collect_rollouts(net: PPONet, num_games: int, device="cpu", opponent_pool=None):
+    """Play num_games in parallel, collecting transitions for the learning agent.
+
+    If opponent_pool is provided, each game randomly picks an opponent from the pool.
+    The learning agent (net) plays one color, the opponent plays the other.
+    Only transitions from the learning agent's side are stored for training.
+
+    If opponent_pool is None, all games are self-play (both sides use net).
+
+    Returns a RolloutBuffer with transitions.
     """
     buffer = RolloutBuffer()
 
     # Initialize all environments
     envs = [TicTacChecEnv() for _ in range(num_games)]
     observations = [env.encode_state() for env in envs]
-    active = list(range(num_games))  # indices of games still in progress
+    active = list(range(num_games))
 
     # Per-game transition lists: [white_transitions, black_transitions]
-    game_transitions = [
-        ([], []) for _ in range(num_games)
-    ]  # (white_list, black_list)
+    game_transitions = [([], []) for _ in range(num_games)]
+
+    # Assign opponents and sides for each game
+    if opponent_pool:
+        # Learning agent plays a random color per game
+        agent_colors = [pyrandom.randint(0, 1) for _ in range(num_games)]
+        opponents = [pyrandom.choice(opponent_pool) for _ in range(num_games)]
+    else:
+        agent_colors = None
+        opponents = None
 
     while active:
-        # Batch states and masks for all active games
         states_batch = np.array([observations[i] for i in active])
         masks_batch = np.array([envs[i].legal_action_mask() for i in active])
         players = [envs[i].turn for i in active]
 
-        # Single batched forward pass
-        states_t = torch.tensor(states_batch, dtype=torch.float32, device=device)
-        masks_t = torch.tensor(masks_batch, dtype=torch.bool, device=device)
+        # Batched forward pass for the learning agent
+        actions, log_probs, vals = _batched_select(net, states_batch, masks_batch, device)
 
-        with torch.no_grad():
-            logits, values = net(states_t)
+        # If using opponent pool, also get opponent actions for games where it's the opponent's turn
+        if opponents:
+            # Group active games by opponent for batched inference
+            opp_needs = []  # (idx_in_batch, game_idx) where opponent should move
+            for idx_in_batch, game_idx in enumerate(active):
+                if players[idx_in_batch] != agent_colors[game_idx]:
+                    opp_needs.append((idx_in_batch, game_idx))
 
-        # Mask illegal actions and sample
-        logits[~masks_t] = float("-inf")
-        probs = F.softmax(logits, dim=-1)
-        dist = torch.distributions.Categorical(probs)
-        actions_t = dist.sample()
-        log_probs_t = dist.log_prob(actions_t)
+            if opp_needs:
+                # Group by opponent identity for batched inference
+                opp_groups = {}
+                for idx_in_batch, game_idx in opp_needs:
+                    opp_id = id(opponents[game_idx])
+                    if opp_id not in opp_groups:
+                        opp_groups[opp_id] = (opponents[game_idx], [])
+                    opp_groups[opp_id][1].append((idx_in_batch, game_idx))
 
-        actions = actions_t.cpu().numpy()
-        log_probs = log_probs_t.cpu().numpy()
-        vals = values.squeeze(-1).cpu().numpy()
+                for opp_net, group in opp_groups.values():
+                    opp_indices = [idx for idx, _ in group]
+                    opp_states = states_batch[opp_indices]
+                    opp_masks = masks_batch[opp_indices]
+                    opp_actions, _, _ = _batched_select(opp_net, opp_states, opp_masks, device)
+                    for k, (idx_in_batch, game_idx) in enumerate(group):
+                        actions[idx_in_batch] = opp_actions[k]
 
         # Step each active environment
         newly_done = []
@@ -133,37 +191,31 @@ def collect_rollouts(net: PPONet, num_games: int, device="cpu"):
             current_player = players[idx_in_batch]
 
             obs = observations[game_idx]
-            transition = (obs, action, log_prob, value)
-            if current_player == 0:
-                game_transitions[game_idx][0].append(transition)
+
+            if opponents:
+                # Only store transitions for the learning agent's side
+                is_agent_turn = current_player == agent_colors[game_idx]
+                if is_agent_turn:
+                    transition = (obs, action, log_prob, value)
+                    if current_player == 0:
+                        game_transitions[game_idx][0].append(transition)
+                    else:
+                        game_transitions[game_idx][1].append(transition)
             else:
-                game_transitions[game_idx][1].append(transition)
+                # Self-play: store both sides
+                transition = (obs, action, log_prob, value)
+                if current_player == 0:
+                    game_transitions[game_idx][0].append(transition)
+                else:
+                    game_transitions[game_idx][1].append(transition)
 
             next_obs, reward, done, info = envs[game_idx].step(action)
             observations[game_idx] = next_obs
 
             if done:
                 newly_done.append(game_idx)
-                # Assign terminal rewards
-                winner = info.get("winner")
-                for transitions, color in [
-                    (game_transitions[game_idx][0], 0),
-                    (game_transitions[game_idx][1], 1),
-                ]:
-                    for i, (state, act, lp, val) in enumerate(transitions):
-                        is_last = i == len(transitions) - 1
-                        if is_last:
-                            if winner is None:
-                                r = 0.0
-                            elif int(winner) == color:
-                                r = 1.0
-                            else:
-                                r = -1.0
-                        else:
-                            r = 0.0
-                        buffer.add(state, act, r, float(is_last), lp, val)
+                _finish_game(game_idx, info, game_transitions, buffer)
 
-        # Remove finished games from active list
         if newly_done:
             active = [i for i in active if i not in newly_done]
 
@@ -174,34 +226,18 @@ def collect_rollouts(net: PPONet, num_games: int, device="cpu"):
 
 
 def compute_gae(rewards, values, dones, gamma=0.99, lam=0.95):
-    """Compute Generalized Advantage Estimation.
-
-    Args:
-        rewards: tensor of shape (T,) — reward at each timestep
-        values: tensor of shape (T,) — critic value estimate at each timestep
-        dones: tensor of shape (T,) — 1.0 if episode ended, 0.0 otherwise
-        gamma: discount factor (how much future rewards matter)
-        lam: GAE lambda (trade-off between bias and variance)
-
-    Returns:
-        (advantages, returns) — both tensors of shape (T,)
-        - advantages: how much better the action was than expected
-        - returns: discounted target values for the critic
-    """
+    """Compute Generalized Advantage Estimation."""
     T = len(rewards)
     advantages = torch.zeros(T, device=rewards.device)
     for t in reversed(range(T)):
         next_value = values[t + 1] if t < T - 1 else 0.0
-        done = 1 - dones[t]  # 1.0 if episode ended, 0.0 otherwise.
+        done = 1 - dones[t]
         prev_advantage = advantages[t + 1] if t < T - 1 else 0.0
 
-        delta = (
-            rewards[t] + gamma * next_value * done - values[t]
-        )  # done = 0 when game ended
+        delta = rewards[t] + gamma * next_value * done - values[t]
         advantages[t] = delta + gamma * lam * done * prev_advantage
 
     returns = advantages + values
-
     return advantages, returns
 
 
@@ -213,27 +249,11 @@ def ppo_update(
     clip_eps: float = 0.2,
     value_coef: float = 0.5,
     entropy_coef: float = 0.05,
+    max_grad_norm: float = 0.5,
     device: str = "cpu",
 ):
-    """Run PPO policy update on collected rollout data.
-
-    Args:
-        net: the PPO actor-critic network
-        optimizer: Adam or similar
-        buffer: collected rollout transitions
-        epochs: number of passes over the batch
-        clip_eps: PPO clipping parameter (0.2 is standard)
-        value_coef: weight for critic loss (0.5 is standard)
-        entropy_coef: weight for entropy bonus (encourages exploration)
-        device: "cpu" or "cuda"
-
-    Returns:
-        dict with training metrics: actor_loss, critic_loss, entropy, total_loss
-    """
-
-    states, actions, rewards, dones, old_log_probs, old_values = buffer.to_tensors(
-        device
-    )
+    """Run PPO policy update on collected rollout data."""
+    states, actions, rewards, dones, old_log_probs, old_values = buffer.to_tensors(device)
     advantages, returns = compute_gae(rewards, old_values, dones)
     advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
@@ -252,6 +272,7 @@ def ppo_update(
         total_loss = actor_loss + value_coef * critic_loss - entropy_coef * entropy
         optimizer.zero_grad()
         total_loss.backward()
+        torch.nn.utils.clip_grad_norm_(net.parameters(), max_grad_norm)
         optimizer.step()
 
     return {
