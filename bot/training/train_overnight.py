@@ -13,8 +13,9 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from model import PPONet
-from ppo import collect_rollouts, ppo_update
-from evaluate import evaluate_vs_random, evaluate_vs_opponent
+from ppo import ppo_update
+from ppo_fast import collect_rollouts_compiled as collect_rollouts
+from evaluate_fast import evaluate_vs_random, evaluate_vs_opponent
 from export import export_onnx
 
 MODELS_DIR = "../models"
@@ -34,7 +35,7 @@ POOL_SELF_PLAY_RATIO = 0.5  # fraction of games that are self-play (rest use poo
 def train_overnight(
     num_iterations: int = 5000,
     games_per_iter: int = 128,
-    eval_every: int = 25,
+    eval_every: int = 50,
     checkpoint_every: int = 100,
     lr: float = 3e-4,
     checkpoint_dir: str = "checkpoints",
@@ -112,6 +113,7 @@ def train_overnight(
             buffer.dones.extend(buf_pool.dones)
             buffer.log_probs.extend(buf_pool.log_probs)
             buffer.values.extend(buf_pool.values)
+            buffer.masks.extend(buf_pool.masks)
         else:
             buffer = collect_rollouts(net, num_games=games_per_iter, device=device)
 
