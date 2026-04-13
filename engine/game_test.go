@@ -225,3 +225,73 @@ func TestGame(t *testing.T) {
 	expectEqual(t, g.Status, GameOver)
 	expectEqual(t, *g.Winner, White)
 }
+
+func TestCloneIsIndependent(t *testing.T) {
+	g := NewGame()
+	// Place white pawn at (2,2)
+	g.Move(WhitePawn, Cell{2, 2})
+	// Place black pawn at (1,1)
+	g.Move(BlackPawn, Cell{1, 1})
+
+	clone := g.Clone()
+
+	// Verify clone matches original
+	if clone.Turn != g.Turn {
+		t.Fatalf("turn mismatch: got %v, want %v", clone.Turn, g.Turn)
+	}
+	if clone.PawnDirections != g.PawnDirections {
+		t.Fatalf("pawn directions mismatch")
+	}
+
+	// Verify board pieces point into clone's Pieces, not original's
+	for row := range BoardSize {
+		for col := range BoardSize {
+			cp := clone.Board[row][col]
+			op := g.Board[row][col]
+			if op == nil {
+				if cp != nil {
+					t.Fatalf("clone has piece at (%d,%d) but original doesn't", row, col)
+				}
+				continue
+			}
+			if cp == nil {
+				t.Fatalf("clone missing piece at (%d,%d)", row, col)
+			}
+			// Same value
+			if *cp != *op {
+				t.Fatalf("piece mismatch at (%d,%d): got %v, want %v", row, col, *cp, *op)
+			}
+			// Different pointer — must point into clone.Pieces, not g.Pieces
+			if cp == op {
+				t.Fatalf("clone board[%d][%d] still points to original Pieces", row, col)
+			}
+		}
+	}
+
+	// Mutate clone — original must be unaffected
+	clone.Move(WhiteRook, Cell{3, 3})
+	if g.Board[3][3] != nil {
+		t.Fatal("mutating clone affected original board")
+	}
+}
+
+func TestCloneWithWinner(t *testing.T) {
+	g := NewGame()
+	// Set up a won game state manually
+	winner := White
+	g.Winner = &winner
+	g.Status = GameOver
+
+	clone := g.Clone()
+
+	if clone.Winner == nil {
+		t.Fatal("clone Winner is nil")
+	}
+	if *clone.Winner != White {
+		t.Fatalf("clone Winner: got %v, want White", *clone.Winner)
+	}
+	// Must be a different pointer
+	if clone.Winner == g.Winner {
+		t.Fatal("clone Winner points to original")
+	}
+}
