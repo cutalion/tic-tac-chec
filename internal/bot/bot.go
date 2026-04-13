@@ -14,13 +14,15 @@ import (
 
 // Bot plays Tic Tac Chec using an ONNX neural network model.
 type Bot struct {
-	session *ort.DynamicAdvancedSession
+	session     *ort.DynamicAdvancedSession
+	simulations int
 }
 
 // New creates a Bot that loads the ONNX model from the given path.
+// simulations controls MCTS: 0 means greedy argmax, >0 means MCTS with that many simulations.
 // Call ort.InitializeEnvironment() before creating a Bot,
 // and ort.DestroyEnvironment() when done.
-func New(modelPath string) (*Bot, error) {
+func New(modelPath string, simulations int) (*Bot, error) {
 	session, err := ort.NewDynamicAdvancedSession(
 		modelPath,
 		[]string{"state"},
@@ -31,7 +33,7 @@ func New(modelPath string) (*Bot, error) {
 		return nil, fmt.Errorf("bot: load model: %w", err)
 	}
 
-	return &Bot{session: session}, nil
+	return &Bot{session: session, simulations: simulations}, nil
 }
 
 // Infer runs the model on a game state and returns action logits (320 floats).
@@ -103,9 +105,18 @@ func (b *Bot) InferWithValue(state []float32) ([]float32, float32, error) {
 	return logits, value, nil
 }
 
-// SelectAction picks the best legal action given logits and a game state.
-// Applies action masking: illegal actions get -inf, then picks argmax.
+// SelectAction picks the best legal action for the current position.
+// If simulations > 0, uses MCTS; otherwise uses greedy argmax.
 func (b *Bot) SelectAction(g *engine.Game) (engine.Piece, engine.Cell, error) {
+	if b.simulations > 0 {
+		return b.selectActionMCTS(g)
+	}
+	return b.selectActionArgmax(g)
+}
+
+// selectActionArgmax picks the best legal action given logits and a game state.
+// Applies action masking: illegal actions get -inf, then picks argmax.
+func (b *Bot) selectActionArgmax(g *engine.Game) (engine.Piece, engine.Cell, error) {
 	state := NewStateEncoder().Encode(g)
 
 	logits, err := b.Infer(state)
@@ -142,6 +153,11 @@ func (b *Bot) SelectAction(g *engine.Game) (engine.Piece, engine.Cell, error) {
 	}
 
 	return *boardPiece, dst, nil
+}
+
+// selectActionMCTS delegates to mctsSelectAction (defined in mcts.go).
+func (b *Bot) selectActionMCTS(g *engine.Game) (engine.Piece, engine.Cell, error) {
+	return mctsSelectAction(b, g, b.simulations)
 }
 
 // legalActions returns valid action indices for the current player.
