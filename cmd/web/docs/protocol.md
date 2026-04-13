@@ -99,7 +99,7 @@ Followed immediately by the initial game state.
 
 ## Game State
 
-Sent after every move and on room join:
+Sent after every move and on room join. **Important:** the game data is nested under `msg.state`, not at the top level.
 
 ```json
 {
@@ -122,9 +122,13 @@ Sent after every move and on room join:
 }
 ```
 
+To access the board: `msg["state"]["board"]`, the turn: `msg["state"]["turn"]`, etc.
+
 ### Board Layout
 
-The board is a 4x4 array: `board[row][col]`.
+The board is a 4x4 array: `state.board[row][col]`.
+
+**Row 0 is the top of the board (Black's side, rank 4). Row 3 is the bottom (White's side, rank 1).** This is the opposite of what you might expect — row index 0 is NOT rank 1.
 
 ```
          col 0 (a)  col 1 (b)  col 2 (c)  col 3 (d)
@@ -134,18 +138,31 @@ row 2 →   a2         b2         c2         d2
 row 3 →   a1         b1         c1         d1        ← White's side (rank 1)
 ```
 
+Converting between array indices and square notation:
+- Array to square: `square = "abcd"[col] + str(4 - row)` — e.g. `board[0][2]` → `"c4"`, `board[3][0]` → `"a1"`
+- Square to array: `col = "abcd".index(file)`, `row = 4 - int(rank)` — e.g. `"b3"` → `board[1][1]`
+
 Each cell is either `null` (empty) or `{"color": "white"|"black", "kind": "pawn"|"rook"|"bishop"|"knight"}`.
 
-### Determining Hand Pieces
+### Hand Pieces (implicit)
 
-Pieces not on the board are in the player's hand. Each player always has exactly 4 pieces (pawn, rook, bishop, knight). Scan the board to find which are placed; the rest are in hand and available for placement.
+**There is no `hands` field in the game state.** Hand pieces are determined implicitly: each player always has exactly 4 pieces (pawn, rook, bishop, knight). Pieces found on the board are "on the board"; the rest are "in hand" and available for placement.
+
+To compute a player's hand:
+```
+all_kinds = {"pawn", "rook", "bishop", "knight"}
+on_board = {cell.kind for row in board for cell in row if cell and cell.color == my_color}
+in_hand = all_kinds - on_board
+```
 
 ### Pawn Directions
 
-- `"toBlackSide"` — pawn moves toward row 0 (upward in the array).
-- `"toWhiteSide"` — pawn moves toward row 3 (downward in the array).
+The `pawnDirections` field uses **color keys** (`"white"`, `"black"`), not piece codes.
 
-White's pawn starts moving `toBlackSide`. When it reaches row 0, direction flips to `toWhiteSide`. When it reaches row 3, direction flips back. Same logic for Black's pawn. If a pawn is captured and returns to hand, its direction resets to the initial value.
+- `"toBlackSide"` — pawn moves toward row 0 (upward in the array, toward rank 4).
+- `"toWhiteSide"` — pawn moves toward row 3 (downward in the array, toward rank 1).
+
+White's pawn starts moving `"toBlackSide"`. When it reaches row 0, direction flips to `"toWhiteSide"`. When it reaches row 3, direction flips back. Same logic for Black's pawn. If a pawn is captured and returns to hand, its direction resets to the initial value.
 
 ### Game Status
 
@@ -159,6 +176,8 @@ Send a move message:
 ```json
 {"type": "move", "piece": "WP", "to": "b3"}
 ```
+
+The server also accepts `"cell"` as an alias for `"to"` (legacy support).
 
 ### Piece Codes
 
@@ -230,7 +249,7 @@ Send an emoji reaction:
 Opponent receives:
 
 ```json
-{"type": "reaction", "reaction": "👍", "player": "white", "roomId": "<room-id>"}
+{"type": "reaction", "reaction": "👍"}
 ```
 
 ### Connection Events
@@ -244,13 +263,74 @@ Opponent receives:
 ## Full Game Example
 
 ```
-1. POST /api/clients → {"token": "abc123"}
-2. POST /api/bot-game?token=abc123&difficulty=easy → {"roomId": "room-xyz"}
-3. WS /ws/room/room-xyz?token=abc123
-   ← {"type": "roomJoined", "roomId": "room-xyz", "color": "white"}
-   ← {"type": "gameState", "state": {"board": [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]], "turn": "white", "status": "started", "winner": null, "pawnDirections": {"white": "toBlackSide", "black": "toWhiteSide"}}}
-   → {"type": "move", "piece": "WR", "to": "b2"}
-   ← {"type": "gameState", "state": {"board": [...], "turn": "black", ...}}
-   ... (alternating moves)
-   ← {"type": "gameState", "state": {"board": [...], "turn": "white", "status": "over", "winner": "white", ...}}
+# 1. Get a token
+POST /api/clients
+← 201 {"token": "abc123"}
+
+# 2. Start a bot game
+POST /api/bot-game?token=abc123&difficulty=easy
+← 201 {"roomId": "room-xyz"}
+
+# 3. Connect to room via WebSocket
+WS wss://ttc.ctln.pw/ws/room/room-xyz?token=abc123
+```
+
+```
+# Server sends color assignment
+← {"type": "roomJoined", "roomId": "room-xyz", "color": "white"}
+
+# Server sends initial empty board (all nulls)
+← {
+     "type": "gameState",
+     "state": {
+       "board": [
+         [null, null, null, null],
+         [null, null, null, null],
+         [null, null, null, null],
+         [null, null, null, null]
+       ],
+       "turn": "white",
+       "status": "started",
+       "winner": null,
+       "pawnDirections": {"white": "toBlackSide", "black": "toWhiteSide"}
+     }
+   }
+
+# It's our turn (white). Place rook on b2.
+# All 4 pieces are in hand (none on board), so this is a placement.
+→ {"type": "move", "piece": "WR", "to": "b2"}
+
+# Server confirms with updated state — rook is now on the board
+← {
+     "type": "gameState",
+     "state": {
+       "board": [
+         [null, null, null, null],
+         [null, null, null, null],
+         [null, {"color": "white", "kind": "rook"}, null, null],
+         [null, null, null, null]
+       ],
+       "turn": "black",
+       "status": "started",
+       "winner": null,
+       "pawnDirections": {"white": "toBlackSide", "black": "toWhiteSide"}
+     }
+   }
+
+# Bot moves (we just receive the updated state)
+← {"type": "gameState", "state": {"board": [...], "turn": "white", ...}}
+
+# ... alternating moves ...
+
+# Game over — winner announced
+← {
+     "type": "gameState",
+     "state": {
+       "board": [...],
+       "turn": "white",
+       "status": "over",
+       "winner": "white",
+       "pawnDirections": {"white": "toBlackSide", "black": "toWhiteSide"}
+     }
+   }
 ```
