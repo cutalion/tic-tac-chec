@@ -685,6 +685,8 @@ function renderBoard(flipped) {
     }
   }
 
+  const handPlacement = state.selectedPiece && state.selectedPiece.source === "hand";
+
   for (let i = 0; i < 4; i += 1) {
     const engineRow = flipped ? 3 - i : i;
     const rankNum = 4 - engineRow;
@@ -702,6 +704,8 @@ function renderBoard(flipped) {
 
       const move = moves.find((m) => m.row === engineRow && m.col === col);
       if (move) {
+        cell.classList.add(move.capture ? "target-capture" : "target");
+      } else if (handPlacement && !state.board[engineRow][col]) {
         cell.classList.add("target");
       }
 

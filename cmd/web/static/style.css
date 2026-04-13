@@ -17,7 +17,7 @@
     --white-piece: #c02818;
     --black-piece: #082e5c;
     --selected: #1a1005;
-    --target: #2500a9;
+    --target-dot: rgba(0, 0, 0, 0.25);
     --result: #c02818;
     --win-shadow: #ffffff;
     --win-shadow-width: 6;
@@ -36,7 +36,7 @@
     --white-piece: #ff6b8a;
     --black-piece: #6bb3ff;
     --selected: #ffd966;
-    --target: #33ff99;
+    --target-dot: rgba(255, 255, 255, 0.35);
     --result: #ffd966;
     --win-shadow: rgba(0, 0, 0, 0.3);
     --win-shadow-width: 7;
@@ -546,12 +546,33 @@ h1 {
     border-color: var(--selected);
 }
 
-.board-cell.target {
-    border-color: var(--target);
+.board-cell.target::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 25%;
+    height: 25%;
+    border-radius: 50%;
+    background: var(--target-dot);
+    pointer-events: none;
+    z-index: 1;
 }
 
-.board-cell.target .piece-glyph {
-    opacity: 0.5;
+.board-cell.target-capture::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    border: 4px solid var(--target-dot);
+    background: none;
+    pointer-events: none;
+    z-index: 1;
 }
 
 .win-line {
