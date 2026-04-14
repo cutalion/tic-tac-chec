@@ -509,7 +509,6 @@ function renderTurnIndicator() {
       rematchArea.appendChild(rematchButton("Rematch", sendRematch));
     }
 
-    rematchArea.appendChild(rematchButton("Exit to lobby", leaveGameToLobby, "leave-btn"));
     turnIndicator.appendChild(rematchArea);
     return;
   }
@@ -878,11 +877,6 @@ function leaveCurrentPage() {
   navigateToHome();
 }
 
-function leaveGameToLobby() {
-  resetReconnect();
-  disconnectSocket();
-  navigateToLobby();
-}
 
 function scheduleReconnect() {
   cancelReconnect();
@@ -1068,7 +1062,7 @@ function renderEmojiButton() {
 
   const btn = document.createElement("button");
   btn.className = "emoji-btn";
-  btn.textContent = "\u{1F4AC}";
+  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
   btn.title = "Send reaction";
 
   btn.addEventListener("click", () => {

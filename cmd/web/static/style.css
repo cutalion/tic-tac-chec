@@ -313,13 +313,6 @@ h1 {
     background: var(--cell-active);
 }
 
-.leave-btn {
-    background: transparent;
-    border-color: transparent;
-    font-size: 14px;
-    color: var(--label);
-    padding: 8px 16px;
-}
 
 #error-message {
     font-size: 13px;
@@ -657,20 +650,23 @@ h1 {
 }
 
 .emoji-btn {
-    font-size: 24px;
-    background: none;
-    border: 2px solid var(--border);
+    background: var(--cell-bg);
+    border: none;
+    box-shadow: var(--cell-shadow);
     border-radius: 50%;
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     cursor: pointer;
-    transition: opacity 0.2s;
-    line-height: 1;
+    transition: box-shadow 0.2s;
     padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--label);
 }
 
 .emoji-btn:hover {
-    border-color: var(--accent);
+    color: var(--text);
 }
 
 .emoji-picker {
