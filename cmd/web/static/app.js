@@ -1306,7 +1306,7 @@ function applyTheme(dark) {
   }
 
   themeToggle.innerHTML = dark ? sunSVG : moonSVG;
-  themeColorMeta?.setAttribute("content", dark ? "#0a0a12" : "#fdf8ec");
+  themeColorMeta?.setAttribute("content", dark ? "#0a0a12" : "#f0ebe0");
 }
 
 function bindTheme() {
