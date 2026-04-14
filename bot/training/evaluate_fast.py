@@ -123,7 +123,7 @@ def evaluate_vs_opponent(net, opponent, num_games=100, device="cpu"):
 
         actions = {}
 
-        # Batched bot moves (sampling for variety)
+        # Batched bot moves (sampling for game diversity)
         if bot_indices:
             n = len(bot_indices)
             for i, game_idx in enumerate(bot_indices):
@@ -133,7 +133,7 @@ def evaluate_vs_opponent(net, opponent, num_games=100, device="cpu"):
             for i, game_idx in enumerate(bot_indices):
                 actions[game_idx] = int(bot_actions[i])
 
-        # Batched opponent moves (sampling for variety)
+        # Batched opponent moves (sampling for game diversity)
         if opp_indices:
             n = len(opp_indices)
             for i, game_idx in enumerate(opp_indices):
