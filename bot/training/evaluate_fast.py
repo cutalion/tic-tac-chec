@@ -133,13 +133,13 @@ def evaluate_vs_opponent(net, opponent, num_games=100, device="cpu"):
             for i, game_idx in enumerate(bot_indices):
                 actions[game_idx] = int(bot_actions[i])
 
-        # Batched opponent moves (greedy for reliable measurement)
+        # Batched opponent moves (sampling for game diversity)
         if opp_indices:
             n = len(opp_indices)
             for i, game_idx in enumerate(opp_indices):
                 states_buf[i] = observations[game_idx]
                 masks_buf[i] = envs[game_idx].legal_action_mask()
-            opp_actions = _batched_select_greedy(opponent, states_buf[:n], masks_buf[:n], device)
+            opp_actions = _batched_select_sample(opponent, states_buf[:n], masks_buf[:n], device)
             for i, game_idx in enumerate(opp_indices):
                 actions[game_idx] = int(opp_actions[i])
 
