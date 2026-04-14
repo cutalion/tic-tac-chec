@@ -1,11 +1,12 @@
 """Overnight training: longer run with auto-export of difficulty-tagged models.
 
 Exports ONNX models at milestones for easy/medium/hard bots.
-Usage: uv run python train_overnight.py
+Usage: uv run python train_overnight.py [checkpoint_to_resume]
 """
 
 import copy
 import os
+import shutil
 import sys
 import time
 
@@ -28,8 +29,13 @@ MILESTONES = [
 
 # Opponent pool settings
 POOL_MAX_SIZE = 10
-POOL_SAVE_EVERY = 100  # add current model to pool every N iterations
-POOL_SELF_PLAY_RATIO = 0.5  # fraction of games that are self-play (rest use pool)
+POOL_SAVE_EVERY = 100
+POOL_SELF_PLAY_RATIO = 0.5
+POOL_ADD_FIXED_AFTER_WIN_RATE = 0.60  # delay adding fixed opponent until agent is this strong vs random
+
+# Eval settings
+EVAL_VS_OPPONENT_GAMES = 400  # enough for ±3% precision
+EVAL_VS_RANDOM_GAMES = 100
 
 
 def train_overnight(
@@ -57,12 +63,18 @@ def train_overnight(
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     start_iteration = 1
 
+    # Restore exported milestones from checkpoint
+    exported = set()
+
     if resume_from and os.path.exists(resume_from):
         checkpoint = torch.load(resume_from, map_location=device, weights_only=True)
         net.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         start_iteration = checkpoint["iteration"] + 1
+        exported = set(checkpoint.get("exported", []))
         print(f"Resumed from {resume_from} at iteration {start_iteration}", flush=True)
+        if exported:
+            print(f"Previously exported milestones: {sorted(exported)}", flush=True)
 
     num_params = sum(p.numel() for p in net.parameters())
     print(f"Overnight training: {num_iterations} iterations, {games_per_iter} games/iter", flush=True)
@@ -74,35 +86,37 @@ def train_overnight(
     # Opponent pool: list of past model snapshots
     opponent_pool = []
     if use_opponent_pool:
-        # Seed the pool with the initial model
         initial_copy = PPONet(filters=filters, num_res_blocks=num_res_blocks).to(device)
         initial_copy.load_state_dict(net.state_dict())
         initial_copy.eval()
         opponent_pool.append(initial_copy)
         print(f"Opponent pool seeded (max {POOL_MAX_SIZE}, save every {POOL_SAVE_EVERY})", flush=True)
 
-    # Load fixed eval opponent (e.g., previous training run's best model)
+    # FIX 1: Load eval opponent into a protected copy (never overwritten by milestones)
     eval_opponent = None
+    fixed_opponent_added_to_pool = False
+    eval_target_path = os.path.join(checkpoint_dir, "ppo_eval_target.pt")
+
     if eval_opponent_checkpoint and os.path.exists(eval_opponent_checkpoint):
+        # Copy to a protected location that milestones cannot overwrite
+        if not os.path.exists(eval_target_path) or eval_opponent_checkpoint != eval_target_path:
+            shutil.copy2(eval_opponent_checkpoint, eval_target_path)
+            print(f"Eval opponent copied to {eval_target_path} (protected)", flush=True)
+
         eval_opponent = PPONet(filters=eval_opponent_filters, num_res_blocks=eval_opponent_res_blocks).to(device)
-        ckpt = torch.load(eval_opponent_checkpoint, map_location=device, weights_only=True)
+        ckpt = torch.load(eval_target_path, map_location=device, weights_only=True)
         eval_opponent.load_state_dict(ckpt["model_state_dict"])
         eval_opponent.eval()
-        print(f"Eval opponent loaded: {eval_opponent_checkpoint}", flush=True)
+        print(f"Eval opponent loaded from {eval_target_path}", flush=True)
 
-        # Add fixed opponent to pool to prevent forgetting its play style
-        if use_opponent_pool:
-            opponent_pool.append(eval_opponent)
-            print(f"Fixed opponent added to pool (permanent)", flush=True)
-
-    exported = set()
-    # Load best score from existing best checkpoint if available
+    # FIX 3: Load best score from existing best checkpoint
     best_path = os.path.join(checkpoint_dir, "ppo_best.pt")
     best_vs_opponent = 0.0
     if os.path.exists(best_path):
         best_ckpt = torch.load(best_path, map_location="cpu", weights_only=True)
         best_vs_opponent = best_ckpt.get("best_vs_opponent", 0.0)
         print(f"Loaded previous best: {best_vs_opponent:.1%} at iter {best_ckpt.get('iteration', '?')}", flush=True)
+
     last_win_rate = 0.0
     train_start = time.time()
 
@@ -138,10 +152,19 @@ def train_overnight(
             snapshot.load_state_dict(net.state_dict())
             snapshot.eval()
             opponent_pool.append(snapshot)
+
+            # FIX 6: Delay adding fixed opponent until agent is strong enough
+            if eval_opponent is not None and not fixed_opponent_added_to_pool:
+                if last_win_rate >= POOL_ADD_FIXED_AFTER_WIN_RATE:
+                    opponent_pool.append(eval_opponent)
+                    fixed_opponent_added_to_pool = True
+                    print(f"  Fixed opponent added to pool (win_rate={last_win_rate:.1%} >= {POOL_ADD_FIXED_AFTER_WIN_RATE:.0%})", flush=True)
+
             if len(opponent_pool) > POOL_MAX_SIZE:
-                # Keep permanent members (initial + fixed opponent) and latest self-play snapshots
-                permanent = [p for p in opponent_pool[:2] if p is not None]
-                recent = opponent_pool[2:][-POOL_MAX_SIZE + len(permanent):]
+                # Keep permanent members and latest self-play snapshots
+                n_permanent = 1 + (1 if fixed_opponent_added_to_pool else 0)
+                permanent = opponent_pool[:n_permanent]
+                recent = opponent_pool[n_permanent:][-POOL_MAX_SIZE + n_permanent:]
                 opponent_pool = permanent + recent
             print(f"  Pool updated: {len(opponent_pool)} opponents", flush=True)
 
@@ -170,8 +193,9 @@ def train_overnight(
 
         # Evaluate
         if iteration % eval_every == 0:
+            net.eval()  # FIX: switch to eval mode for evaluation
             win_rate, draw_rate, loss_rate, avg_length = evaluate_vs_random(
-                net, num_games=100, device=device
+                net, num_games=EVAL_VS_RANDOM_GAMES, device=device
             )
             writer.add_scalar("eval/win_rate", win_rate, iteration)
             writer.add_scalar("eval/draw_rate", draw_rate, iteration)
@@ -184,10 +208,10 @@ def train_overnight(
                 flush=True,
             )
 
-            # Evaluate against fixed eval opponent
+            # FIX 4: Evaluate against fixed eval opponent with more games and greedy play
             if eval_opponent is not None:
                 opp_wr, opp_dr, opp_lr, opp_len = evaluate_vs_opponent(
-                    net, eval_opponent, num_games=100, device=device
+                    net, eval_opponent, num_games=EVAL_VS_OPPONENT_GAMES, device=device
                 )
                 writer.add_scalar("eval/vs_opponent_win", opp_wr, iteration)
                 writer.add_scalar("eval/vs_opponent_draw", opp_dr, iteration)
@@ -201,19 +225,19 @@ def train_overnight(
                 # Save best checkpoint based on vs-opponent win rate
                 if opp_wr > best_vs_opponent:
                     best_vs_opponent = opp_wr
-                    best_path = os.path.join(checkpoint_dir, "ppo_best.pt")
                     torch.save({
                         "iteration": iteration,
                         "model_state_dict": net.state_dict(),
                         "optimizer_state_dict": optimizer.state_dict(),
                         "best_vs_opponent": best_vs_opponent,
+                        "exported": list(exported),
                     }, best_path)
                     print(
                         f"  NEW BEST: {opp_wr:.1%} vs opponent at iter {iteration} → {best_path}",
                         flush=True,
                     )
 
-            # Evaluate against latest pool opponent (shows self-improvement)
+            # Evaluate against latest pool opponent
             if opponent_pool and len(opponent_pool) > 1:
                 pool_wr, pool_dr, pool_lr, pool_len = evaluate_vs_opponent(
                     net, opponent_pool[-2], num_games=50, device=device
@@ -225,7 +249,9 @@ def train_overnight(
                     flush=True,
                 )
 
-            # Check milestones after each eval
+            net.train()  # Switch back to train mode
+
+            # FIX 2: Check milestones with persisted exported set
             for milestone_iter, name, min_wr in MILESTONES:
                 if name in exported:
                     continue
@@ -233,22 +259,24 @@ def train_overnight(
                     export_milestone(net, name, iteration, last_win_rate, checkpoint_dir, filters, num_res_blocks)
                     exported.add(name)
 
-        # Checkpoint
+        # Checkpoint (FIX 2: persist exported set)
         if iteration % checkpoint_every == 0:
             path = os.path.join(checkpoint_dir, f"ppo_{iteration:05d}.pt")
             torch.save({
                 "iteration": iteration,
                 "model_state_dict": net.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
+                "exported": list(exported),
             }, path)
             print(f"  Saved checkpoint: {path}", flush=True)
 
-    # Final save + export any remaining milestones
+    # Final save
     final_path = os.path.join(checkpoint_dir, "ppo_final.pt")
     torch.save({
         "iteration": num_iterations,
         "model_state_dict": net.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),
+        "exported": list(exported),
     }, final_path)
 
     for _, name, _ in MILESTONES:
@@ -256,7 +284,6 @@ def train_overnight(
             export_milestone(net, name, num_iterations, last_win_rate, checkpoint_dir, filters, num_res_blocks)
             exported.add(name)
 
-    # Always export "bot.onnx" as the strongest model
     best_onnx = os.path.join(MODELS_DIR, "bot.onnx")
     export_onnx(final_path, best_onnx, filters=filters, num_res_blocks=num_res_blocks)
     print(f"Exported best model: {best_onnx}", flush=True)
@@ -271,7 +298,8 @@ def train_overnight(
 
 
 def export_milestone(net, name, iteration, win_rate, checkpoint_dir, filters=64, num_res_blocks=0):
-    ckpt_path = os.path.join(checkpoint_dir, f"ppo_{name}.pt")
+    # FIX 1: Use milestone-specific names that cannot collide with eval target
+    ckpt_path = os.path.join(checkpoint_dir, f"ppo_milestone_{name}.pt")
     torch.save({
         "iteration": iteration,
         "model_state_dict": net.state_dict(),
@@ -300,5 +328,5 @@ if __name__ == "__main__":
         resume_from=resume,
         device=best_device(),
         use_opponent_pool=True,
-        eval_opponent_checkpoint="checkpoints/ppo_hard.pt",
+        eval_opponent_checkpoint="checkpoints/ppo_eval_target.pt",
     )
