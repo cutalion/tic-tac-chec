@@ -20,21 +20,23 @@ var (
 )
 
 type App struct {
-	clients       ClientService
-	lobbyRegistry LobbyRegistry
-	roomRegistry  RoomRegistry
-	bots          map[string]*bot.Bot
+	clients        ClientService
+	lobbyRegistry  LobbyRegistry
+	roomRegistry   RoomRegistry
+	bots           map[string]*bot.Bot
+	allowedOrigins []string
 }
 
-func NewApp(clients ClientService, bots map[string]*bot.Bot) *App {
+func NewApp(clients ClientService, bots map[string]*bot.Bot, allowedOrigins []string) *App {
 	roomRegistry := NewRoomRegistry()
 	lobbyRegistry := NewLobbyRegistry(roomRegistry)
 
 	return &App{
-		clients:       clients,
-		lobbyRegistry: lobbyRegistry,
-		roomRegistry:  roomRegistry,
-		bots:          bots,
+		clients:        clients,
+		lobbyRegistry:  lobbyRegistry,
+		roomRegistry:   roomRegistry,
+		bots:           bots,
+		allowedOrigins: allowedOrigins,
 	}
 }
 
@@ -179,7 +181,9 @@ func (a *App) Room(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ws, err := websocket.Accept(w, r, nil)
+	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+		OriginPatterns: a.allowedOrigins,
+	})
 	if err != nil {
 		return
 	}
@@ -317,7 +321,9 @@ func (a *App) authenticate(r *http.Request) (*Client, error) {
 }
 
 func (a *App) serveLobby(w http.ResponseWriter, r *http.Request, lobby *lobby, clientID ClientID) {
-	ws, err := websocket.Accept(w, r, nil)
+	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+		OriginPatterns: a.allowedOrigins,
+	})
 	if err != nil {
 		return
 	}

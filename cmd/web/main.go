@@ -22,8 +22,9 @@ type AnalyticsConfig struct {
 
 func main() {
 	bots := initBots()
+	allowedOrigins := parseAllowedOrigins()
 
-	app := NewApp(clients, bots)
+	app := NewApp(clients, bots, allowedOrigins)
 
 	mux := http.NewServeMux()
 	registerStaticRoutes(mux)
@@ -45,7 +46,33 @@ func main() {
 	}
 
 	log.Println("Listening on :" + port)
-	log.Fatal(http.ListenAndServe(":"+port, mux))
+	log.Fatal(http.ListenAndServe(":"+port, corsMiddleware(mux, app.allowedOrigins)))
+}
+
+func corsMiddleware(next http.Handler, allowedOrigins []string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if len(allowedOrigins) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		for _, origin := range allowedOrigins {
+			if r.Header.Get("Origin") == origin {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Vary", "Origin")
+				break
+			}
+		}
+
+		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 // initBots loads all ONNX models from the models directory.
@@ -109,6 +136,18 @@ func initBots() map[string]*bot.Bot {
 	}
 
 	return bots
+}
+
+func parseAllowedOrigins() []string {
+	raw := os.Getenv("ALLOWED_ORIGINS")
+	if raw == "" {
+		return []string{}
+	}
+	origins := strings.Split(raw, ",")
+	for i, o := range origins {
+		origins[i] = strings.TrimSpace(o)
+	}
+	return origins
 }
 
 func resolveAnalyticsConfig() AnalyticsConfig {
