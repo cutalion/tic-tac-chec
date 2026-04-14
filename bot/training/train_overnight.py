@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from model import PPONet
 from ppo import ppo_update
-from ppo_fast import collect_rollouts_compiled as collect_rollouts
+from ppo_vec import collect_rollouts_vec as collect_rollouts
 from evaluate_fast import evaluate_vs_random, evaluate_vs_opponent
 from export import export_onnx
 
@@ -33,7 +33,7 @@ POOL_SELF_PLAY_RATIO = 0.5  # fraction of games that are self-play (rest use poo
 
 
 def train_overnight(
-    num_iterations: int = 5000,
+    num_iterations: int = 100000,
     games_per_iter: int = 128,
     eval_every: int = 50,
     checkpoint_every: int = 100,
@@ -90,7 +90,19 @@ def train_overnight(
         eval_opponent.eval()
         print(f"Eval opponent loaded: {eval_opponent_checkpoint}", flush=True)
 
+        # Add fixed opponent to pool to prevent forgetting its play style
+        if use_opponent_pool:
+            opponent_pool.append(eval_opponent)
+            print(f"Fixed opponent added to pool (permanent)", flush=True)
+
     exported = set()
+    # Load best score from existing best checkpoint if available
+    best_path = os.path.join(checkpoint_dir, "ppo_best.pt")
+    best_vs_opponent = 0.0
+    if os.path.exists(best_path):
+        best_ckpt = torch.load(best_path, map_location="cpu", weights_only=True)
+        best_vs_opponent = best_ckpt.get("best_vs_opponent", 0.0)
+        print(f"Loaded previous best: {best_vs_opponent:.1%} at iter {best_ckpt.get('iteration', '?')}", flush=True)
     last_win_rate = 0.0
     train_start = time.time()
 
@@ -127,8 +139,10 @@ def train_overnight(
             snapshot.eval()
             opponent_pool.append(snapshot)
             if len(opponent_pool) > POOL_MAX_SIZE:
-                # Keep first (weakest) and evenly sample the rest
-                opponent_pool = [opponent_pool[0]] + opponent_pool[-POOL_MAX_SIZE + 1:]
+                # Keep permanent members (initial + fixed opponent) and latest self-play snapshots
+                permanent = [p for p in opponent_pool[:2] if p is not None]
+                recent = opponent_pool[2:][-POOL_MAX_SIZE + len(permanent):]
+                opponent_pool = permanent + recent
             print(f"  Pool updated: {len(opponent_pool)} opponents", flush=True)
 
         # Log to TensorBoard
@@ -183,6 +197,21 @@ def train_overnight(
                     f"loss={opp_lr:.1%} avg_len={opp_len:.0f}",
                     flush=True,
                 )
+
+                # Save best checkpoint based on vs-opponent win rate
+                if opp_wr > best_vs_opponent:
+                    best_vs_opponent = opp_wr
+                    best_path = os.path.join(checkpoint_dir, "ppo_best.pt")
+                    torch.save({
+                        "iteration": iteration,
+                        "model_state_dict": net.state_dict(),
+                        "optimizer_state_dict": optimizer.state_dict(),
+                        "best_vs_opponent": best_vs_opponent,
+                    }, best_path)
+                    print(
+                        f"  NEW BEST: {opp_wr:.1%} vs opponent at iter {iteration} → {best_path}",
+                        flush=True,
+                    )
 
             # Evaluate against latest pool opponent (shows self-improvement)
             if opponent_pool and len(opponent_pool) > 1:
