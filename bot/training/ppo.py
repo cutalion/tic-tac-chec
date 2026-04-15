@@ -254,36 +254,52 @@ def ppo_update(
     optimizer: torch.optim.Optimizer,
     buffer: RolloutBuffer,
     epochs: int = 4,
+    mini_batch_size: int = 256,
     clip_eps: float = 0.2,
     value_coef: float = 0.5,
     entropy_coef: float = 0.05,
     max_grad_norm: float = 0.5,
     device: str = "cpu",
 ):
-    """Run PPO policy update on collected rollout data."""
+    """Run PPO policy update with minibatch shuffling."""
     states, actions, rewards, dones, old_log_probs, old_values, legal_masks = buffer.to_tensors(device)
     advantages, returns = compute_gae(rewards, old_values, dones)
     advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
+    n = len(states)
     actor_loss, critic_loss, entropy, total_loss = 0, 0, 0, 0
 
     for _ in range(epochs):
-        logits, values = net(states)
-        if legal_masks is not None:
-            logits[~legal_masks] = float("-inf")
-        dist = torch.distributions.Categorical(logits=logits)
-        new_log_probs = dist.log_prob(actions)
-        entropy = dist.entropy().mean()
-        ratio = torch.exp(new_log_probs - old_log_probs)
-        surr1 = ratio * advantages
-        surr2 = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps) * advantages
-        actor_loss = -torch.min(surr1, surr2).mean()
-        critic_loss = F.mse_loss(values.squeeze(), returns)
-        total_loss = actor_loss + value_coef * critic_loss - entropy_coef * entropy
-        optimizer.zero_grad()
-        total_loss.backward()
-        torch.nn.utils.clip_grad_norm_(net.parameters(), max_grad_norm)
-        optimizer.step()
+        # Shuffle indices each epoch
+        indices = torch.randperm(n, device=device)
+
+        for start in range(0, n, mini_batch_size):
+            end = min(start + mini_batch_size, n)
+            idx = indices[start:end]
+
+            mb_states = states[idx]
+            mb_actions = actions[idx]
+            mb_old_log_probs = old_log_probs[idx]
+            mb_advantages = advantages[idx]
+            mb_returns = returns[idx]
+
+            logits, values = net(mb_states)
+            if legal_masks is not None:
+                mb_masks = legal_masks[idx]
+                logits[~mb_masks] = float("-inf")
+            dist = torch.distributions.Categorical(logits=logits)
+            new_log_probs = dist.log_prob(mb_actions)
+            entropy = dist.entropy().mean()
+            ratio = torch.exp(new_log_probs - mb_old_log_probs)
+            surr1 = ratio * mb_advantages
+            surr2 = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps) * mb_advantages
+            actor_loss = -torch.min(surr1, surr2).mean()
+            critic_loss = F.mse_loss(values.squeeze(), mb_returns)
+            total_loss = actor_loss + value_coef * critic_loss - entropy_coef * entropy
+            optimizer.zero_grad()
+            total_loss.backward()
+            torch.nn.utils.clip_grad_norm_(net.parameters(), max_grad_norm)
+            optimizer.step()
 
     return {
         "actor_loss": actor_loss,

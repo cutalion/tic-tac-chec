@@ -4,8 +4,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
 	"tic-tac-chec/internal/bot"
 
 	ort "github.com/yalue/onnxruntime_go"
@@ -75,15 +73,9 @@ func corsMiddleware(next http.Handler, allowedOrigins []string) http.Handler {
 	})
 }
 
-// initBots loads all ONNX models from the models directory.
-// Files named bot_<difficulty>.onnx become available as difficulty levels.
-// A plain bot.onnx is loaded as the default ("hard") bot.
+// initBots loads a single ONNX model and creates three difficulty levels
+// using different MCTS simulation counts: easy (0), medium (250), hard (500).
 func initBots() map[string]*bot.Bot {
-	modelsDir := os.Getenv("BOT_MODELS_DIR")
-	if modelsDir == "" {
-		modelsDir = "bot/models"
-	}
-
 	ortLibPath := os.Getenv("ORT_LIB_PATH")
 	if ortLibPath == "" {
 		log.Println("ORT_LIB_PATH not set, bot disabled")
@@ -92,49 +84,41 @@ func initBots() map[string]*bot.Bot {
 
 	ort.SetSharedLibraryPath(ortLibPath)
 	if err := ort.InitializeEnvironment(); err != nil {
-		log.Printf("Failed to init ONNX Runtime: %v — bot disabled", err)
+		log.Printf("Failed to initialize ONNX Runtime: %v - bot disabled", err)
 		return nil
 	}
 
-	entries, err := os.ReadDir(modelsDir)
+	modelPath := os.Getenv("BOT_MODEL_PATH")
+	if modelPath == "" {
+		modelPath = "bot/models/bot.onnx"
+	}
+
+	if _, err := os.Stat(modelPath); os.IsNotExist(err) {
+		log.Printf("Bot model not found: %s - bot disabled", modelPath)
+		return nil
+	}
+
+	easy, err := bot.New(modelPath, "easy")
 	if err != nil {
-		log.Printf("Failed to read models dir %s: %v — bot disabled", modelsDir, err)
+		log.Printf("Failed to create easy bot: %v - bot disabled", err)
+		return nil
+	}
+	medium, err := bot.New(modelPath, "medium")
+	if err != nil {
+		log.Printf("Failed to create medium bot: %v - bot disabled", err)
+		return nil
+	}
+	hard, err := bot.New(modelPath, "hard")
+	if err != nil {
+		log.Printf("Failed to create hard bot: %v - bot disabled", err)
 		return nil
 	}
 
-	bots := make(map[string]*bot.Bot)
-	for _, entry := range entries {
-		name := entry.Name()
-		if !strings.HasSuffix(name, ".onnx") {
-			continue
-		}
-
-		modelPath := filepath.Join(modelsDir, name)
-		// MCTS disabled (simulations=0): the current value head is uncalibrated
-		// (returns -0.34 for a near-win position), so MCTS trusts bad evaluations
-		// and plays worse than raw policy. Re-enable after MCTS-guided training
-		// improves the value network.
-		b, err := bot.New(modelPath, 0)
-		if err != nil {
-			log.Printf("Failed to load %s: %v — skipping", modelPath, err)
-			continue
-		}
-
-		// bot_easy.onnx → "easy", bot_medium.onnx → "medium", bot.onnx → "hard"
-		difficulty := "hard"
-		if strings.HasPrefix(name, "bot_") {
-			difficulty = strings.TrimSuffix(strings.TrimPrefix(name, "bot_"), ".onnx")
-		}
-
-		bots[difficulty] = b
-		log.Printf("Bot loaded: %s (%s)", difficulty, modelPath)
+	bots := map[string]*bot.Bot{
+		"easy":   easy,
+		"medium": medium,
+		"hard":   hard,
 	}
-
-	if len(bots) == 0 {
-		log.Println("No bot models found — bot disabled")
-		return nil
-	}
-
 	return bots
 }
 
