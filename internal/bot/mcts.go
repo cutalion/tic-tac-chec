@@ -26,7 +26,7 @@ func (n *node) ucbScore(cPUCT float32) float32 {
 	if n.visitCount == 0 {
 		return float32(math.Inf(1))
 	}
-	q := n.totalValue / float32(n.visitCount)
+	q := -n.totalValue / float32(n.visitCount) // negamax: parent wants moves good for itself, not the child's player
 	exploration := cPUCT * n.prior * float32(math.Sqrt(float64(n.parent.visitCount))) / float32(1+n.visitCount)
 	return q + exploration
 }
@@ -58,9 +58,9 @@ func mctsSelectAction(b *Bot, g *engine.Game, numSimulations int) (engine.Piece,
 		leaf := selectLeaf(root)
 
 		if leaf.isTerminal {
-			// terminalValue is from the parent's perspective (the player who just moved won).
-			// Backpropagate from parent so the sign aligns correctly.
-			backpropagate(leaf.parent, leaf.terminalValue)
+			// terminalValue=1.0 means parent's player won (the one who moved into this state).
+			// From the leaf's perspective, that's a loss (-1.0).
+			backpropagate(leaf, -leaf.terminalValue)
 		} else {
 			value, err := expand(b, leaf)
 			if err != nil {
