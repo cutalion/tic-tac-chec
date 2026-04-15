@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"tic-tac-chec/internal/bot"
 
@@ -110,11 +111,13 @@ func initBots() map[string]*bot.Bot {
 		}
 
 		modelPath := filepath.Join(modelsDir, name)
-		// MCTS disabled (simulations=0): the current value head is uncalibrated
-		// (returns -0.34 for a near-win position), so MCTS trusts bad evaluations
-		// and plays worse than raw policy. Re-enable after MCTS-guided training
-		// improves the value network.
-		b, err := bot.New(modelPath, 0)
+		mctsSimulations := 150
+		if v := os.Getenv("BOT_MCTS_SIMS"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil {
+				mctsSimulations = n
+			}
+		}
+		b, err := bot.New(modelPath, mctsSimulations)
 		if err != nil {
 			log.Printf("Failed to load %s: %v — skipping", modelPath, err)
 			continue
