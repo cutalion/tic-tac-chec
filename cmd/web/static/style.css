@@ -20,6 +20,7 @@
     --selected: #1a1005;
     --target-dot: #d4856a;
     --result: #8b4513;
+    --piece-stroke: #000000;
     --win-shadow: #ffffff;
     --win-shadow-width: 6;
 }
@@ -40,6 +41,7 @@
     --selected: #ffd966;
     --target-dot: #d4856a;
     --result: #ffd966;
+    --piece-stroke: #ffffff;
     --win-shadow: rgba(0, 0, 0, 0.3);
     --win-shadow-width: 7;
 }
