@@ -30,22 +30,19 @@ class SmartOpponentPool:
         self._evict_if_needed()
 
     def _evict_if_needed(self):
-        """Remove opponents the agent dominates (>90% win rate)."""
-        if len(self.opponents) <= self.max_size:
-            return
-
-        # Sort by win rate — remove easiest opponents first
-        # But never remove "fixed" opponents (name starts with "fixed_")
-        removable = [(name, wr) for name, wr in self.win_rates.items()
-                     if not name.startswith("fixed_")]
-        removable.sort(key=lambda x: -x[1])  # highest win rate first (easiest)
-
-        while len(self.opponents) > self.max_size and removable:
-            name_to_remove, wr = removable.pop(0)
-            if wr < 0.85:  # don't remove challenging opponents
+        """Enforce max pool size by removing easiest opponents."""
+        while len(self.opponents) > self.max_size:
+            # Find easiest removable opponent (highest win rate, not fixed)
+            removable = [(name, self.win_rates.get(name, 0.5))
+                         for name, _ in self.opponents
+                         if not name.startswith("fixed_")]
+            if not removable:
                 break
+            removable.sort(key=lambda x: -x[1])  # highest win rate first
+            name_to_remove = removable[0][0]
             self.opponents = [(n, net) for n, net in self.opponents if n != name_to_remove]
-            del self.win_rates[name_to_remove]
+            if name_to_remove in self.win_rates:
+                del self.win_rates[name_to_remove]
 
     def sample(self):
         """Sample an opponent weighted by difficulty (inverse win rate).

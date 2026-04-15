@@ -50,16 +50,18 @@ def train_overnight(
     resume_from: str = None,
     filters: int = 64,
     num_res_blocks: int = 0,
+    use_batch_norm: bool = True,
     use_opponent_pool: bool = False,
     eval_opponent_checkpoint: str = None,
     eval_opponent_filters: int = 64,
     eval_opponent_res_blocks: int = 0,
+    eval_opponent_use_bn: bool = True,
 ):
     os.makedirs(checkpoint_dir, exist_ok=True)
     os.makedirs(MODELS_DIR, exist_ok=True)
     writer = SummaryWriter(log_dir)
 
-    net = PPONet(filters=filters, num_res_blocks=num_res_blocks).to(device)
+    net = PPONet(filters=filters, num_res_blocks=num_res_blocks, use_batch_norm=use_batch_norm).to(device)
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     start_iteration = 1
     exported = set()
@@ -82,7 +84,7 @@ def train_overnight(
     if use_opponent_pool:
         pool = SmartOpponentPool(max_size=POOL_MAX_SIZE, device=device)
         # Seed with initial model
-        seed = PPONet(filters=filters, num_res_blocks=num_res_blocks).to(device)
+        seed = PPONet(filters=filters, num_res_blocks=num_res_blocks, use_batch_norm=use_batch_norm).to(device)
         seed.load_state_dict(net.state_dict())
         seed.eval()
         pool.add("v0_init", seed)
@@ -95,7 +97,7 @@ def train_overnight(
     if eval_opponent_checkpoint and os.path.exists(eval_opponent_checkpoint):
         if not os.path.exists(eval_target_path) or eval_opponent_checkpoint != eval_target_path:
             shutil.copy2(eval_opponent_checkpoint, eval_target_path)
-        eval_opponent = PPONet(filters=eval_opponent_filters, num_res_blocks=eval_opponent_res_blocks).to(device)
+        eval_opponent = PPONet(filters=eval_opponent_filters, num_res_blocks=eval_opponent_res_blocks, use_batch_norm=eval_opponent_use_bn).to(device)
         ckpt = torch.load(eval_target_path, map_location=device, weights_only=True)
         eval_opponent.load_state_dict(ckpt["model_state_dict"])
         eval_opponent.eval()
@@ -157,7 +159,7 @@ def train_overnight(
         if pool is not None and iteration % POOL_CHECK_EVERY == 0:
             if pool.should_add_to_pool(net, threshold=0.55):
                 pool_version += 1
-                snapshot = PPONet(filters=filters, num_res_blocks=num_res_blocks).to(device)
+                snapshot = PPONet(filters=filters, num_res_blocks=num_res_blocks, use_batch_norm=use_batch_norm).to(device)
                 snapshot.load_state_dict(net.state_dict())
                 snapshot.eval()
                 pool.add(f"v{pool_version}_iter{iteration}", snapshot)
