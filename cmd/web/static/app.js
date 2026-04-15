@@ -35,6 +35,7 @@ const state = {
   opponentWantsRematch: false,
   opponentStatus: null,
   installMessage: null,
+  score: { me: 0, opponent: 0 },
 };
 
 let ws = null;
@@ -87,7 +88,12 @@ function detectRoute() {
   const roomMatch = location.pathname.match(/^\/room\/([^/]+)$/);
   if (roomMatch) {
     state.route = "room";
-    state.roomId = decodeURIComponent(roomMatch[1]);
+    const newRoomId = decodeURIComponent(roomMatch[1]);
+    if (newRoomId !== state.roomId) {
+      state.score = { me: 0, opponent: 0 };
+      state.roomId = newRoomId;
+      loadScore();
+    }
     state.lobbyId = null;
     state.lobbyShareStatus = null;
     return;
@@ -343,6 +349,14 @@ function handleRoomMessage(data) {
 
       if (state.status === "over") {
         state.phase = "gameOver";
+        if (state.winner) {
+          if (state.winner === state.myColor) {
+            state.score.me++;
+          } else {
+            state.score.opponent++;
+          }
+          saveScore();
+        }
       } else {
         state.phase = "playing";
       }
@@ -490,13 +504,18 @@ function renderTurnIndicator() {
     turnIndicator.innerHTML = "";
     turnIndicator.className = "game-result";
 
-    const result = document.createElement("div");
+    const row = document.createElement("div");
+    row.className = "turn-row";
+    const result = document.createElement("span");
     if (state.winner) {
       result.textContent = state.winner === state.myColor ? "You win!" : "You lose!";
     } else {
       result.textContent = "Draw!";
     }
-    turnIndicator.appendChild(result);
+    row.appendChild(result);
+    const scoreEl = createScoreEl();
+    if (scoreEl) row.appendChild(scoreEl);
+    turnIndicator.appendChild(row);
 
     const rematchArea = document.createElement("div");
     rematchArea.className = "rematch-area";
@@ -527,8 +546,55 @@ function renderTurnIndicator() {
   }
 
   const isMyTurn = state.turn === state.myColor;
-  turnIndicator.textContent = isMyTurn ? "Your turn" : "Opponent's turn";
-  turnIndicator.className = isMyTurn ? `piece-${state.myColor}` : "";
+  turnIndicator.innerHTML = "";
+  turnIndicator.className = "";
+
+  const row = document.createElement("div");
+  row.className = "turn-row";
+  const turnText = document.createElement("span");
+  turnText.textContent = isMyTurn ? "Your turn" : "Opponent's turn";
+  if (isMyTurn) turnText.className = `piece-${state.myColor}`;
+  row.appendChild(turnText);
+  const scoreEl = createScoreEl();
+  if (scoreEl) row.appendChild(scoreEl);
+  turnIndicator.appendChild(row);
+}
+
+function scoreKey() {
+  return state.roomId ? `ttc-score-${state.roomId}` : null;
+}
+
+function saveScore() {
+  const key = scoreKey();
+  if (key) localStorage.setItem(key, JSON.stringify(state.score));
+}
+
+function loadScore() {
+  const key = scoreKey();
+  if (!key) return;
+  try {
+    const saved = JSON.parse(localStorage.getItem(key));
+    if (saved && typeof saved.me === "number" && typeof saved.opponent === "number") {
+      state.score = saved;
+    }
+  } catch (_) {}
+}
+
+function clearScore() {
+  const key = scoreKey();
+  if (key) localStorage.removeItem(key);
+}
+
+function createScoreEl() {
+  const { me, opponent } = state.score;
+  if (me === 0 && opponent === 0) return null;
+  const el = document.createElement("div");
+  el.className = "score-board";
+  el.innerHTML =
+    `<div class="score-half"><span class="score-num">${me}</span><span class="score-label">You</span></div>` +
+    `<span class="score-sep">\u2013</span>` +
+    `<div class="score-half"><span class="score-num">${opponent}</span><span class="score-label">Opp</span></div>`;
+  return el;
 }
 
 function renderError() {
