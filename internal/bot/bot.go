@@ -5,11 +5,25 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"os"
+	"strconv"
 	"tic-tac-chec/engine"
 	"tic-tac-chec/internal/game"
 	"time"
 
 	ort "github.com/yalue/onnxruntime_go"
+)
+
+const (
+	LEVEL_EASY   = "easy"
+	LEVEL_MEDIUM = "medium"
+	LEVEL_HARD   = "hard"
+)
+
+const (
+	EASY_MCTS_SIMS   = 0
+	MEDIUM_MCTS_SIMS = 500
+	HARD_MCTS_SIMS   = 1000
 )
 
 // Bot plays Tic Tac Chec using an ONNX neural network model.
@@ -19,10 +33,13 @@ type Bot struct {
 }
 
 // New creates a Bot that loads the ONNX model from the given path.
-// simulations controls MCTS: 0 means greedy argmax, >0 means MCTS with that many simulations.
+// level controls MCTS simulations:
+//
+//	0 means greedy argmax, >0 means MCTS with that many simulations.
+//
 // Call ort.InitializeEnvironment() before creating a Bot,
 // and ort.DestroyEnvironment() when done.
-func New(modelPath string, simulations int) (*Bot, error) {
+func New(modelPath string, level string) (*Bot, error) {
 	session, err := ort.NewDynamicAdvancedSession(
 		modelPath,
 		[]string{"state"},
@@ -31,6 +48,18 @@ func New(modelPath string, simulations int) (*Bot, error) {
 	)
 	if err != nil {
 		return nil, fmt.Errorf("bot: load model: %w", err)
+	}
+
+	simulations := 0
+	switch level {
+	case LEVEL_EASY:
+		simulations = fetchEnvInt("EASY_MCTS_SIMS", EASY_MCTS_SIMS)
+	case LEVEL_MEDIUM:
+		simulations = fetchEnvInt("MEDIUM_MCTS_SIMS", MEDIUM_MCTS_SIMS)
+	case LEVEL_HARD:
+		simulations = fetchEnvInt("HARD_MCTS_SIMS", HARD_MCTS_SIMS)
+	default:
+		return nil, fmt.Errorf("bot: unknown level: %s", level)
 	}
 
 	return &Bot{session: session, simulations: simulations}, nil
@@ -250,4 +279,13 @@ func (b *Bot) Destroy() {
 	if b.session != nil {
 		b.session.Destroy()
 	}
+}
+
+func fetchEnvInt(key string, defaultValue int) int {
+	val := os.Getenv(key)
+	if val == "" {
+		return defaultValue
+	}
+	n, _ := strconv.Atoi(val)
+	return n
 }
