@@ -223,7 +223,7 @@ def train_overnight(
             # Milestones
             for mi, name, min_wr in MILESTONES:
                 if name not in exported and iteration >= mi and last_win_rate >= min_wr:
-                    _export_milestone(net, name, iteration, last_win_rate, checkpoint_dir, filters, num_res_blocks)
+                    _export_milestone(net, name, iteration, last_win_rate, checkpoint_dir, filters, num_res_blocks, use_batch_norm)
                     exported.add(name)
 
             net.train()
@@ -250,11 +250,11 @@ def train_overnight(
 
     for _, name, _ in MILESTONES:
         if name not in exported:
-            _export_milestone(net, name, num_iterations, last_win_rate, checkpoint_dir, filters, num_res_blocks)
+            _export_milestone(net, name, num_iterations, last_win_rate, checkpoint_dir, filters, num_res_blocks, use_batch_norm)
             exported.add(name)
 
     best_onnx = os.path.join(MODELS_DIR, "bot.onnx")
-    export_onnx(final_path, best_onnx, filters=filters, num_res_blocks=num_res_blocks)
+    export_onnx(final_path, best_onnx, filters=filters, num_res_blocks=num_res_blocks, use_batch_norm=use_batch_norm)
 
     total = time.time() - train_start
     h, r = divmod(int(total), 3600)
@@ -263,11 +263,11 @@ def train_overnight(
     writer.close()
 
 
-def _export_milestone(net, name, iteration, win_rate, checkpoint_dir, filters, num_res_blocks):
+def _export_milestone(net, name, iteration, win_rate, checkpoint_dir, filters, num_res_blocks, use_batch_norm=True):
     ckpt_path = os.path.join(checkpoint_dir, f"ppo_milestone_{name}.pt")
     torch.save({"iteration": iteration, "model_state_dict": net.state_dict()}, ckpt_path)
     onnx_path = os.path.join(MODELS_DIR, f"bot_{name}.onnx")
-    export_onnx(ckpt_path, onnx_path, filters=filters, num_res_blocks=num_res_blocks)
+    export_onnx(ckpt_path, onnx_path, filters=filters, num_res_blocks=num_res_blocks, use_batch_norm=use_batch_norm)
     print(f"  MILESTONE '{name}' at iter {iteration} ({win_rate:.1%}): {onnx_path}", flush=True)
 
 
