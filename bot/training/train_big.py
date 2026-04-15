@@ -13,7 +13,7 @@ if __name__ == "__main__":
         games_per_iter=128,
         eval_every=50,
         checkpoint_every=100,
-        lr=3e-4,  # higher LR ok without batch norm
+        lr=1e-3,  # higher LR ok without batch norm
         checkpoint_dir="checkpoints_big",
         log_dir="runs/big",
         device=best_device(),
