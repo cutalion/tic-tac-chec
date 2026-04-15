@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"tic-tac-chec/internal/bot"
 
 	ort "github.com/yalue/onnxruntime_go"
