@@ -344,7 +344,7 @@ function handleRoomMessage(data) {
       state.status = data.state.status;
       state.winner = data.state.winner;
       state.pawnDirections = data.state.pawnDirections;
-      state.selectedPiece = null;
+      reconcileSelectedPiece();
       state.roomReady = true;
 
       if (state.status === "over") {
@@ -409,6 +409,8 @@ function render() {
   } else {
     exitBtn.classList.remove("visible");
   }
+
+  state.prev = null;
 }
 
 function renderRoute() {
@@ -714,7 +716,7 @@ function renderHand(color) {
       cell.appendChild(span);
 
       cell.addEventListener("click", () => {
-        if (state.turn !== state.myColor || color !== state.myColor) {
+        if (color !== state.myColor) {
           return;
         }
 
@@ -799,9 +801,7 @@ function renderBoard(flipped) {
       }
 
       cell.addEventListener("click", () => {
-        if (state.turn !== state.myColor) {
-          return;
-        }
+        const isMyTurn = state.turn === state.myColor;
 
         if (state.selectedPiece) {
           if (piece && piece.color === state.myColor) {
@@ -813,6 +813,10 @@ function renderBoard(flipped) {
             };
             state.prev = null;
             render();
+            return;
+          }
+
+          if (!isMyTurn) {
             return;
           }
 
@@ -1092,6 +1096,24 @@ function resetBoardState() {
   state.rematchSent = false;
   state.opponentWantsRematch = false;
   state.opponentStatus = null;
+}
+
+function reconcileSelectedPiece() {
+  if (!state.selectedPiece) return;
+
+  const justMovedMyself =
+    state.prev && state.prev.turn === state.myColor && state.turn !== state.myColor;
+  if (justMovedMyself || state.status === "over") {
+    state.selectedPiece = null;
+    return;
+  }
+
+  const sel = state.selectedPiece;
+  const onBoard = findPiecePosition(state.board, sel.code) !== null;
+  const shouldBeOnBoard = sel.source === "board";
+  if (onBoard !== shouldBeOnBoard) {
+    state.selectedPiece = null;
+  }
 }
 
 function isPieceOnBoard(color, kind) {
