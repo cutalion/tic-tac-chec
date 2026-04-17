@@ -259,7 +259,6 @@ func (b *Bot) playLoop(player *game.Player, commands chan game.Command) {
 			}
 
 			if e.Game.Turn == botColor {
-				time.Sleep(time.Duration(300+rand.Intn(700)) * time.Millisecond)
 				piece, cell, err := b.SelectAction(&e.Game)
 				if err != nil {
 					log.Printf("bot: SelectAction error: %v", err)
