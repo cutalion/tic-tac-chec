@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   workflow_run:
-    workflows: [Test]
+    workflows: [Build]
     types: [completed]
     branches: [main]
 
@@ -17,13 +17,15 @@ jobs:
           username: ttc
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            SHA=${{ github.event.workflow_run.head_sha }}
             cd ~/tic-tac-chec
             if [ ! -d .git ]; then
               git init
               git remote add origin https://github.com/${{ github.repository }}
-              git fetch origin main
-              git checkout main
-            else
-              git pull --ff-only
             fi
-            docker compose up -d --build
+            git fetch origin main
+            git checkout -f $SHA
+            export IMAGE_TAG=$SHA
+            docker compose pull
+            docker compose up -d --wait --wait-timeout 60
+            docker compose ps

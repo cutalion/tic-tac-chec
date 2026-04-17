@@ -1,5 +1,6 @@
 services:
   caddy:
+    image: ghcr.io/cutalion/tic-tac-chec-caddy:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile.caddy
@@ -12,6 +13,7 @@ services:
     restart: unless-stopped
 
   ssh:
+    image: ghcr.io/cutalion/tic-tac-chec-ssh:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile.ssh
@@ -26,6 +28,7 @@ services:
     restart: unless-stopped
 
   web:
+    image: ghcr.io/cutalion/tic-tac-chec-web:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile.web
