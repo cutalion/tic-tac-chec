@@ -1,36 +1,35 @@
-"""Fast MCTS self-play with batched leaf evaluation.
+"""Fast MCTS self-play with batched leaf evaluation and lazy node realization.
 
-Instead of evaluating one leaf at a time, collects leaves across multiple
-concurrent MCTS searches and evaluates them in a single batched forward pass.
+Two key optimizations over naive MCTS:
+1. Batched inference: collects leaves across multiple concurrent MCTS searches
+   and evaluates them in a single batched forward pass.
+2. Lazy realization: child nodes are created without environments during expand.
+   Envs are cloned only when a child is actually selected (~40x fewer clones).
 """
-
-import math
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from env import ACTION_SPACE_SIZE, TicTacChecEnv
-from model import PPONet
 from mcts_collect import (
     Node,
     select_leaf,
+    realize_node,
     backpropagate,
     add_dirichlet_noise,
     visit_counts_to_policy,
     get_temperature,
-    DEFAULT_CPUCT,
 )
 
 
 def expand_batch(leaves, net, device):
     """Expand multiple leaf nodes with a single batched forward pass.
 
-    Returns list of values (one per leaf, from current player's perspective).
+    Creates children WITHOUT environments (lazy). Returns list of values.
     """
     if not leaves:
         return []
 
-    # Encode all leaf states
     states = np.array([leaf.env.encode_state() for leaf in leaves], dtype=np.float32)
     states_t = torch.from_numpy(states).to(device)
 
@@ -56,18 +55,7 @@ def expand_batch(leaves, net, device):
         priors = F.softmax(legal_logits, dim=0).numpy()
 
         for j, action in enumerate(legal):
-            child_env = leaf.env.clone()
-            _, _, done, info = child_env.step(action)
-
-            child = Node(child_env, parent=leaf, action=action, prior=priors[j])
-
-            if done:
-                child.is_terminal = True
-                if info.get("winner") is not None:
-                    child.terminal_value = 1.0
-                else:
-                    child.terminal_value = 0.0
-
+            child = Node(env=None, parent=leaf, action=action, prior=float(priors[j]))
             leaf.children.append(child)
 
         results.append(value)
@@ -75,24 +63,19 @@ def expand_batch(leaves, net, device):
     return results
 
 
-def run_mcts_batch(game_roots, net, num_simulations, device):
+def run_mcts_batch(game_envs, net, num_simulations, device):
     """Run MCTS for multiple game positions simultaneously with batched evaluation.
 
     Args:
-        game_roots: list of (env, root_node_or_None) — positions to search
+        game_envs: list of environments — positions to search
         net: neural network for evaluation
         num_simulations: number of MCTS simulations per position
         device: torch device
 
     Returns: list of (visit_counts, actions) per game
     """
-    n_games = len(game_roots)
-
-    # Initialize roots
-    roots = []
-    for env in game_roots:
-        root = Node(env.clone())
-        roots.append(root)
+    # Initialize roots (roots always have envs)
+    roots = [Node(env.clone()) for env in game_envs]
 
     # Expand all roots in one batch
     values = expand_batch(roots, net, device)
@@ -102,20 +85,21 @@ def run_mcts_batch(game_roots, net, num_simulations, device):
 
     # Run remaining simulations with batched leaf evaluation
     for _ in range(num_simulations - 1):
-        # Select leaves from all trees
         leaves_to_expand = []
-        leaf_indices = []  # which game each leaf belongs to
+        terminal_leaves = []
 
-        for game_idx, root in enumerate(roots):
+        for root in roots:
             leaf = select_leaf(root)
-
             if leaf.is_terminal:
-                backpropagate(leaf, -leaf.terminal_value)
+                terminal_leaves.append(leaf)
             else:
                 leaves_to_expand.append(leaf)
-                leaf_indices.append(game_idx)
 
-        # Batch evaluate all non-terminal leaves
+        # Backprop terminal leaves immediately
+        for leaf in terminal_leaves:
+            backpropagate(leaf, -leaf.terminal_value)
+
+        # Batch evaluate and expand non-terminal leaves
         if leaves_to_expand:
             values = expand_batch(leaves_to_expand, net, device)
             for leaf, value in zip(leaves_to_expand, values):
@@ -136,8 +120,8 @@ def run_mcts_batch(game_roots, net, num_simulations, device):
 def play_games_batched(net, num_games, num_simulations, device):
     """Play multiple self-play games with batched MCTS.
 
-    All games run in parallel: at each move, MCTS searches for all active
-    games share batched neural net evaluations.
+    All games run in parallel: at each move, MCTS searches share
+    batched neural net evaluations.
 
     Returns list of training examples: (state, policy_target, value_target).
     """
@@ -145,15 +129,12 @@ def play_games_batched(net, num_games, num_simulations, device):
     active = list(range(num_games))
     move_numbers = [0] * num_games
 
-    # Per-game example storage: [(state, policy_target, player), ...]
     game_examples = [[] for _ in range(num_games)]
 
     while active:
-        # Run MCTS for all active games in one batched call
         active_envs = [envs[i] for i in active]
         results = run_mcts_batch(active_envs, net, num_simulations, device)
 
-        # Process results and step environments
         newly_done = []
         for idx_in_batch, game_idx in enumerate(active):
             move_numbers[game_idx] += 1
@@ -166,7 +147,6 @@ def play_games_batched(net, num_games, num_simulations, device):
 
             game_examples[game_idx].append((state, policy_target, current_player))
 
-            # Sample action from policy
             action = np.random.choice(ACTION_SPACE_SIZE, p=policy_target)
             envs[game_idx].step(action)
 
@@ -176,7 +156,6 @@ def play_games_batched(net, num_games, num_simulations, device):
         if newly_done:
             active = [i for i in active if i not in newly_done]
 
-    # Assign game outcomes
     all_examples = []
     for game_idx in range(num_games):
         env = envs[game_idx]
