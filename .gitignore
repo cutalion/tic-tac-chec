@@ -21,6 +21,12 @@ code-critic.md
 # Local environment
 .env
 
+# SQLite dev databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
 # SSH host keys
 .ssh/
 

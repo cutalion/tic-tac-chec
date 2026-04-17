@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"tic-tac-chec/cmd/web/store"
 	"tic-tac-chec/internal/bot"
 
 	ort "github.com/yalue/onnxruntime_go"
@@ -22,6 +23,11 @@ type AnalyticsConfig struct {
 func main() {
 	bots := initBots()
 	allowedOrigins := parseAllowedOrigins()
+	db, err := store.NewStore(dbPath())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
 	app := NewApp(clients, bots, allowedOrigins)
 
@@ -149,4 +155,12 @@ func resolveAnalyticsConfig() AnalyticsConfig {
 		PostHogKey:  key,
 		PostHogHost: host,
 	}
+}
+
+func dbPath() string {
+	env := os.Getenv("DB_PATH")
+	if env == "" {
+		env = "tic-tac-chec.db"
+	}
+	return env
 }
