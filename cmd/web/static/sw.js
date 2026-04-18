@@ -1,4 +1,4 @@
-const CACHE_NAME = "ttc-shell-v1";
+const CACHE_NAME = "ttc-shell-v5";
 const APP_SHELL = [
   "/",
   "/app.js",
@@ -9,6 +9,9 @@ const APP_SHELL = [
   "/icon-512.png",
   "/apple-touch-icon.png",
   "/favicon.ico",
+  "/fonts/fraunces-500.woff2",
+  "/fonts/inter-400.woff2",
+  "/fonts/inter-500.woff2",
 ];
 
 self.addEventListener("install", (event) => {

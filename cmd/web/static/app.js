@@ -349,13 +349,16 @@ function handleRoomMessage(data) {
 
       if (state.status === "over") {
         state.phase = "gameOver";
-        if (state.winner) {
+        const scoredKey = state.roomId ? `ttc-scored-${state.roomId}` : null;
+        const alreadyScored = scoredKey && localStorage.getItem(scoredKey);
+        if (state.winner && !alreadyScored) {
           if (state.winner === state.myColor) {
             state.score.me++;
           } else {
             state.score.opponent++;
           }
           saveScore();
+          if (scoredKey) localStorage.setItem(scoredKey, "1");
         }
       } else {
         state.phase = "playing";
@@ -366,6 +369,7 @@ function handleRoomMessage(data) {
     case "rematchStarted":
       state.phase = "playing";
       state.myColor = data.color;
+      if (state.roomId) localStorage.removeItem(`ttc-scored-${state.roomId}`);
       resetBoardState();
       render();
       break;
@@ -492,7 +496,7 @@ function renderTurnIndicator() {
   }
 
   if (state.route === "lobby") {
-    turnIndicator.textContent = state.lobbyId ? "Private Lobby" : "Matchmaking";
+    turnIndicator.textContent = state.lobbyId ? "Private Lobby" : "Quick Match";
     turnIndicator.className = "";
     return;
   }
@@ -515,23 +519,9 @@ function renderTurnIndicator() {
       result.textContent = "Draw!";
     }
     row.appendChild(result);
-    const scoreEl = createScoreEl();
-    if (scoreEl) row.appendChild(scoreEl);
     turnIndicator.appendChild(row);
-
-    const rematchArea = document.createElement("div");
-    rematchArea.className = "rematch-area";
-
-    if (state.rematchSent) {
-      rematchArea.textContent = "Waiting for opponent...";
-    } else if (state.opponentWantsRematch) {
-      rematchArea.textContent = "Opponent wants rematch!";
-      rematchArea.appendChild(rematchButton("Accept", sendRematch));
-    } else {
-      rematchArea.appendChild(rematchButton("Rematch", sendRematch));
-    }
-
-    turnIndicator.appendChild(rematchArea);
+    const scoreEl = createScoreEl();
+    if (scoreEl) turnIndicator.appendChild(scoreEl);
     return;
   }
 
@@ -554,12 +544,12 @@ function renderTurnIndicator() {
   const row = document.createElement("div");
   row.className = "turn-row";
   const turnText = document.createElement("span");
-  turnText.textContent = isMyTurn ? "Your turn" : "Opponent's turn";
-  if (isMyTurn) turnText.className = `piece-${state.myColor}`;
+  turnText.className = `turn-chip active turn-${state.turn}`;
+  turnText.textContent = isMyTurn ? "your turn" : "opponent's turn";
   row.appendChild(turnText);
-  const scoreEl = createScoreEl();
-  if (scoreEl) row.appendChild(scoreEl);
   turnIndicator.appendChild(row);
+  const scoreEl = createScoreEl();
+  if (scoreEl) turnIndicator.appendChild(scoreEl);
 }
 
 function scoreKey() {
@@ -585,17 +575,21 @@ function loadScore() {
 function clearScore() {
   const key = scoreKey();
   if (key) localStorage.removeItem(key);
+  if (state.roomId) localStorage.removeItem(`ttc-scored-${state.roomId}`);
 }
 
 function createScoreEl() {
   const { me, opponent } = state.score;
-  if (me === 0 && opponent === 0) return null;
   const el = document.createElement("div");
-  el.className = "score-board";
+  el.className = "score-strip";
   el.innerHTML =
-    `<div class="score-half"><span class="score-num">${me}</span><span class="score-label">You</span></div>` +
-    `<span class="score-sep">\u2013</span>` +
-    `<div class="score-half"><span class="score-num">${opponent}</span><span class="score-label">Opp</span></div>`;
+    `<span class="score-strip-name">Them</span>` +
+    `<span class="score-strip-score">` +
+      `<span class="score-num">${opponent}</span>` +
+      `<span class="score-sep">\u2013</span>` +
+      `<span class="score-num">${me}</span>` +
+    `</span>` +
+    `<span class="score-strip-name">You</span>`;
   return el;
 }
 
@@ -610,6 +604,12 @@ function renderGameArea() {
     return;
   }
 
+  if (state.route === "lobby" && !state.lobbyId) {
+    gameArea.innerHTML = "";
+    gameArea.appendChild(renderMatchmakingLobby());
+    return;
+  }
+
   if (state.route !== "room" || !state.board) {
     gameArea.innerHTML = "";
     return;
@@ -620,12 +620,16 @@ function renderGameArea() {
   const bottomColor = flipped ? "black" : "white";
 
   gameArea.innerHTML = "";
+  gameArea.classList.toggle("game-over", state.status === "over");
   gameArea.appendChild(renderHand(topColor));
   gameArea.appendChild(renderColLabels());
   const boardEl = renderBoard(flipped);
   gameArea.appendChild(boardEl);
   gameArea.appendChild(renderColLabels());
   gameArea.appendChild(renderHand(bottomColor));
+  if (state.status === "over") {
+    gameArea.appendChild(renderRematchActions());
+  }
   gameArea.appendChild(renderEmojiButton());
 
   if (state.winner) {
@@ -634,6 +638,33 @@ function renderGameArea() {
       requestAnimationFrame(() => drawWinLine(boardEl, winLine, state.winner));
     }
   }
+}
+
+function renderRematchActions() {
+  const wrap = document.createElement("div");
+  wrap.className = "rematch-area";
+
+  const homeBtn = document.createElement("button");
+  homeBtn.className = "rematch-btn rematch-btn-ghost";
+  homeBtn.textContent = "Home";
+  homeBtn.addEventListener("click", leaveCurrentPage);
+  wrap.appendChild(homeBtn);
+
+  const rematchBtn = document.createElement("button");
+  rematchBtn.className = "rematch-btn rematch-btn-primary";
+  if (state.rematchSent) {
+    rematchBtn.textContent = "Waiting\u2026";
+    rematchBtn.disabled = true;
+  } else if (state.opponentWantsRematch) {
+    rematchBtn.textContent = "Accept rematch";
+    rematchBtn.addEventListener("click", sendRematch);
+  } else {
+    rematchBtn.textContent = "Rematch";
+    rematchBtn.addEventListener("click", sendRematch);
+  }
+  wrap.appendChild(rematchBtn);
+
+  return wrap;
 }
 
 function renderInviteLobby() {
@@ -689,6 +720,32 @@ function renderInviteLobby() {
   card.appendChild(status);
 
   return card;
+}
+
+function renderMatchmakingLobby() {
+  const wrap = document.createElement("div");
+
+  const pulse = document.createElement("div");
+  pulse.className = "pulse";
+
+  const logo = document.createElement("div");
+  logo.className = "avatar";
+  logo.setAttribute("role", "presentation");
+  logo.addEventListener("click", () => {
+    const burst = document.createElement("div");
+    burst.className = "pulse-burst";
+    pulse.appendChild(burst);
+    burst.addEventListener("animationend", () => burst.remove());
+  });
+  pulse.appendChild(logo);
+  wrap.appendChild(pulse);
+
+  const label = document.createElement("p");
+  label.className = "lobby-label";
+  label.textContent = "Game starts when another player joins.";
+  wrap.appendChild(label);
+
+  return wrap;
 }
 
 function renderHand(color) {
@@ -1151,7 +1208,9 @@ function renderEmojiButton() {
 
   const btn = document.createElement("button");
   btn.className = "emoji-btn";
-  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+  btn.innerHTML =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>' +
+    '<span class="emoji-btn-label">react</span>';
   btn.title = "Send reaction";
 
   btn.addEventListener("click", () => {
@@ -1210,19 +1269,13 @@ function showEmojiReaction(emoji, fromColor) {
   el.className = "emoji-bubble";
   el.textContent = emoji;
 
-  const xPct = 10 + Math.random() * 80;
-  const wobble = 20 + Math.random() * 30;
-  const dir = Math.random() < 0.5 ? 1 : -1;
-  const duration = 3.0 + Math.random() * 1.0;
-
-  el.style.left = xPct + "%";
-  el.style.setProperty("--wobble", (dir * wobble) + "px");
-  el.style.animationDuration = duration + "s";
+  el.style.left = (10 + Math.random() * 80) + "%";
+  el.style.animationDuration = (2.5 + Math.random() * 1.0) + "s";
 
   document.body.appendChild(el);
 
   el.addEventListener("animationend", (e) => {
-    if (e.animationName === "bubble-rise") el.remove();
+    if (e.animationName === "bubble-up") el.remove();
   });
 }
 
