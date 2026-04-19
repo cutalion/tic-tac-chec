@@ -2,9 +2,29 @@ package game
 
 import (
 	"tic-tac-chec/engine"
+	"time"
 )
 
 type Event any
+
+type RoomEvent any
+
+type StateUpdate struct {
+	RoomID    RoomID
+	Game      engine.Game
+	Match     uint
+	UpdatedAt time.Time
+}
+
+type MoveApplied struct {
+	RoomID RoomID
+	By     PlayerID
+	Piece  engine.Piece
+	To     engine.Cell
+	Seq    uint
+	Match  uint
+	At     time.Time
+}
 
 type SnapshotEvent struct {
 	RoomID RoomID

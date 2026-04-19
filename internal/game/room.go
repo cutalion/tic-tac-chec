@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 	"tic-tac-chec/engine"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -39,6 +40,8 @@ type Room struct {
 	Reconnect             chan ReconnectInfo
 	WhiteRematchRequested bool
 	BlackRematchRequested bool
+	Match                 uint
+	subscribers           map[chan<- RoomEvent]struct{}
 	mu                    sync.RWMutex
 }
 
@@ -68,16 +71,14 @@ func NewRoom(player1, player2 Player) *Room {
 		Reconnect:             make(chan ReconnectInfo),
 		WhiteRematchRequested: false,
 		BlackRematchRequested: false,
+		Match:                 1,
+		subscribers:           make(map[chan<- RoomEvent]struct{}),
 	}
 }
 
 func (r *Room) Run() {
 	defer func() {
-		for _, player := range r.Players {
-			if player.Updates != nil {
-				close(player.Updates)
-			}
-		}
+		r.close()
 	}()
 
 	// before the game starts, send the paired event to the players
@@ -149,6 +150,68 @@ func (r *Room) Run() {
 	}
 }
 
+func (r *Room) close() {
+	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, Match: r.Match, UpdatedAt: time.Now()})
+
+	r.clearSubs()
+
+	for _, player := range r.Players {
+		if player.Updates != nil {
+			close(player.Updates)
+		}
+	}
+}
+
+// subscriber must be a buffered channel
+func (r *Room) Subscribe(subscriber chan<- RoomEvent) (cancel func()) {
+	r.mu.Lock()
+	r.subscribers[subscriber] = struct{}{}
+	r.mu.Unlock()
+
+	return func() {
+		r.unsubscribe(subscriber)
+	}
+}
+
+func (r *Room) unsubscribe(updates chan<- RoomEvent) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.subscribers, updates)
+}
+
+func (r *Room) emit(event RoomEvent) {
+	for _, subscriber := range r.subs() {
+		select {
+		case subscriber <- event:
+		default:
+			// subscriber is full, skip
+		}
+	}
+}
+
+func (r *Room) subs() []chan<- RoomEvent {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	subs := make([]chan<- RoomEvent, 0, len(r.subscribers))
+	for subscriber := range r.subscribers {
+		subs = append(subs, subscriber)
+	}
+
+	return subs
+}
+
+func (r *Room) clearSubs() {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, subscriber := range r.subs() {
+		close(subscriber)
+	}
+
+	clear(r.subscribers)
+}
+
 func (r *Room) handleMove(mover Player, move MoveCommand) {
 	if mover.Color != move.Piece.Color {
 		sendUpdateTo(mover, ErrorEvent{Error: ErrInvalidMove})
@@ -160,6 +223,10 @@ func (r *Room) handleMove(mover Player, move MoveCommand) {
 		sendUpdateTo(mover, ErrorEvent{Error: err})
 		return
 	}
+
+	now := time.Now()
+	r.emit(MoveApplied{RoomID: r.ID, By: mover.ID, Piece: move.Piece, To: move.To, Seq: r.Game.MoveCount, Match: r.Match, At: now})
+	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, Match: r.Match, UpdatedAt: now})
 
 	for _, player := range r.Players {
 		sendUpdateTo(player, SnapshotEvent{RoomID: r.ID, Game: *r.Game})
@@ -199,9 +266,12 @@ func (r *Room) startRematch() {
 	r.Game = engine.NewGame()
 	r.WhiteRematchRequested = false
 	r.BlackRematchRequested = false
+	r.Match++
 
 	// swap colors
 	r.Players[0].Color, r.Players[1].Color = r.Players[1].Color, r.Players[0].Color
+
+	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, Match: r.Match, UpdatedAt: time.Now()})
 
 	for _, player := range r.Players {
 		sendUpdateTo(player, PairedEvent{PlayerID: player.ID, Color: player.Color})

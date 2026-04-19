@@ -106,6 +106,7 @@ type Game struct {
 	PawnDirections PawnDirections
 	Status         GameStatus
 	Winner         *Color
+	MoveCount      uint
 }
 
 var (
@@ -171,6 +172,8 @@ func (g *Game) Move(selected Piece, cell Cell) error {
 	if err != nil {
 		return err
 	}
+
+	g.MoveCount++
 
 	if g.checkGameOver() {
 		g.Status = GameOver

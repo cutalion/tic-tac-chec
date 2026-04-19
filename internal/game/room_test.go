@@ -229,3 +229,141 @@ func TestReactionsWorks(t *testing.T) {
 		t.Fatalf("expected black to receive reaction '😂', but got: %s", event2.(ReactionEvent).Reaction)
 	}
 }
+
+func TestRoom_SubscribeReceivesMoveAppliedThenStateUpdate(t *testing.T) {
+	room, commands := setupRoom()
+	defer close(commands[0])
+
+	go room.Run()
+
+	subscriber := make(chan RoomEvent, 10)
+	cancel := room.Subscribe(subscriber)
+	defer cancel()
+
+	commands[0] <- MoveCommand{
+		Piece: engine.WhiteBishop,
+		To:    engine.Cell{Row: 0, Col: 0},
+	}
+	event1, ok := <-subscriber
+	if !ok {
+		t.Fatalf("expected move event to be received, but none was received")
+	}
+	if _, ok := event1.(MoveApplied); !ok {
+		t.Fatalf("expected MoveApplied, but got: %v", event1)
+	}
+
+	event2, ok := <-subscriber
+	if !ok {
+		t.Fatalf("expected state update to be received after move, but none was received")
+	}
+	if _, ok := event2.(StateUpdate); !ok {
+		t.Fatalf("expected StateUpdate, but got: %v", event2)
+	}
+}
+
+func TestRoom_CancelStopsDelivery(t *testing.T) {
+	room, commands := setupRoom()
+	defer close(commands[0])
+
+	go room.Run()
+
+	subscriber := make(chan RoomEvent, 10)
+	cancel := room.Subscribe(subscriber)
+	cancel()
+
+	commands[0] <- MoveCommand{
+		Piece: engine.WhiteBishop,
+		To:    engine.Cell{Row: 0, Col: 0},
+	}
+	select {
+	case <-subscriber:
+		t.Fatalf("expected no more events after cancel, but got one")
+	default:
+	}
+}
+
+func TestRoom_MultipleSubscribers(t *testing.T) {
+	room, commands := setupRoom()
+	defer close(commands[0])
+
+	go room.Run()
+
+	subscriber1 := make(chan RoomEvent, 10)
+	cancel1 := room.Subscribe(subscriber1)
+	defer cancel1()
+
+	subscriber2 := make(chan RoomEvent, 10)
+	cancel2 := room.Subscribe(subscriber2)
+	defer cancel2()
+
+	commands[0] <- MoveCommand{
+		Piece: engine.WhiteBishop,
+		To:    engine.Cell{Row: 0, Col: 0},
+	}
+	event1, ok := <-subscriber1
+	if !ok {
+		t.Fatalf("expected move event to be received, but none was received")
+	}
+	if _, ok := event1.(MoveApplied); !ok {
+		t.Fatalf("expected MoveApplied, but got: %v", event1)
+	}
+
+	event2, ok := <-subscriber2
+	if !ok {
+		t.Fatalf("expected move event to be received, but none was received")
+	}
+	if _, ok := event2.(MoveApplied); !ok {
+		t.Fatalf("expected MoveApplied, but got: %v", event2)
+	}
+}
+
+func TestRoom_SlowSubscriberDoesntStallOthers(t *testing.T) {
+	room, commands := setupRoom()
+	defer close(commands[0])
+
+	go room.Run()
+
+	slow := make(chan RoomEvent, 1)
+	cancelSlow := room.Subscribe(slow)
+	defer cancelSlow()
+
+	fast := make(chan RoomEvent, 16)
+	cancelFast := room.Subscribe(fast)
+	defer cancelFast()
+
+	commands[0] <- MoveCommand{Piece: engine.WhiteBishop, To: engine.Cell{Row: 0, Col: 0}}
+	commands[1] <- MoveCommand{Piece: engine.BlackBishop, To: engine.Cell{Row: 3, Col: 3}}
+
+	if _, ok := <-fast; !ok {
+		t.Fatalf("expected move event to be received, but none was received")
+	}
+	if _, ok := <-fast; !ok {
+		t.Fatalf("expected move event to be received, but none was received")
+	}
+	if _, ok := <-fast; !ok {
+		t.Fatalf("expected move event to be received, but none was received")
+	}
+	if _, ok := <-fast; !ok {
+		t.Fatalf("expected move event to be received, but none was received")
+	}
+}
+
+func TestRoom_QuitClosesSubscribers(t *testing.T) {
+	room, commands := setupRoom()
+	defer close(commands[0])
+
+	go room.Run()
+
+	sub := make(chan RoomEvent, 16)
+	cancel := room.Subscribe(sub)
+	defer cancel()
+
+	room.Quit <- struct{}{}
+
+	for {
+		_, ok := <-sub
+		if !ok {
+			return
+		}
+	}
+}

@@ -12,6 +12,7 @@ type GameState struct {
 	Status         GameStatus     `json:"status"`
 	Winner         *Turn          `json:"winner"`
 	PawnDirections PawnDirections `json:"pawnDirections"`
+	MoveCount      uint           `json:"moveCount"`
 }
 
 type Board engine.Board
@@ -250,6 +251,7 @@ func GameFromState(state *GameState) *engine.Game {
 	game.Status = engine.GameStatus(state.Status)
 	game.Winner = (*engine.Color)(state.Winner)
 	game.PawnDirections = engine.PawnDirections(state.PawnDirections)
+	game.MoveCount = state.MoveCount
 
 	return game
 }
@@ -261,5 +263,6 @@ func ToGameState(game *engine.Game) *GameState {
 		Status:         GameStatus(game.Status),
 		Winner:         (*Turn)(game.Winner),
 		PawnDirections: PawnDirections(game.PawnDirections),
+		MoveCount:      game.MoveCount,
 	}
 }
