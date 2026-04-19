@@ -1,9 +1,8 @@
 package main
 
 import (
-	"sync"
-
-	"github.com/google/uuid"
+	"context"
+	"tic-tac-chec/cmd/web/store"
 )
 
 type Client struct {
@@ -13,52 +12,32 @@ type Client struct {
 type ClientID string
 
 type ClientService interface {
-	Create() *Client
-	Lookup(id ClientID) (*Client, bool)
+	Create(ctx context.Context) (*Client, error)
+	Lookup(ctx context.Context, id ClientID) (*Client, error)
 }
 
 type clientService struct {
-	mu      sync.Mutex
-	clients map[ClientID]*Client
+	users *store.UserStore
 }
 
-func NewClientService() ClientService {
+func NewClientService(users *store.UserStore) ClientService {
 	return &clientService{
-		clients: make(map[ClientID]*Client),
+		users: users,
 	}
 }
 
-func (s *clientService) Create() *Client {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	id := s.generateID()
-	s.clients[id] = &Client{ID: id}
-	return s.clients[id]
-}
-
-func (s *clientService) generateID() (id ClientID) {
-	val, err := uuid.NewV7()
+func (s *clientService) Create(ctx context.Context) (*Client, error) {
+	user, err := s.users.Create(ctx)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	id = ClientID(val.String())
-
-	if _, exists := s.lookup(id); exists {
-		return s.generateID()
-	}
-
-	return id
+	return &Client{ID: ClientID(user.ID)}, nil
 }
 
-func (s *clientService) Lookup(id ClientID) (*Client, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	return s.lookup(id)
-}
-
-func (s *clientService) lookup(id ClientID) (*Client, bool) {
-	return s.clients[id], s.clients[id] != nil
+func (s *clientService) Lookup(ctx context.Context, id ClientID) (*Client, error) {
+	user, err := s.users.Get(ctx, string(id))
+	if err != nil {
+		return nil, err
+	}
+	return &Client{ID: ClientID(user.ID)}, nil
 }

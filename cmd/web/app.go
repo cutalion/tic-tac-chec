@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"tic-tac-chec/cmd/web/store"
 	"tic-tac-chec/engine"
 	"tic-tac-chec/internal/bot"
 	"tic-tac-chec/internal/game"
@@ -41,7 +42,11 @@ func NewApp(clients ClientService, bots map[string]*bot.Bot, allowedOrigins []st
 }
 
 func (a *App) CreateClient(w http.ResponseWriter, r *http.Request) {
-	client := a.clients.Create()
+	client, err := a.clients.Create(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(clientResponse{Token: string(client.ID)})
@@ -50,7 +55,7 @@ func (a *App) CreateClient(w http.ResponseWriter, r *http.Request) {
 func (a *App) Me(w http.ResponseWriter, r *http.Request) {
 	client, err := a.authenticate(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		a.handleAuthError(w, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -74,7 +79,7 @@ func (a *App) Lobby(w http.ResponseWriter, r *http.Request) {
 
 	client, err := a.authenticate(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		a.handleAuthError(w, err)
 		return
 	}
 
@@ -91,7 +96,7 @@ func (a *App) Lobby(w http.ResponseWriter, r *http.Request) {
 func (a *App) DefaultLobby(w http.ResponseWriter, r *http.Request) {
 	client, err := a.authenticate(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		a.handleAuthError(w, err)
 		return
 	}
 
@@ -106,7 +111,7 @@ func (a *App) BotGame(w http.ResponseWriter, r *http.Request) {
 
 	client, err := a.authenticate(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		a.handleAuthError(w, err)
 		return
 	}
 
@@ -165,7 +170,7 @@ func (a *App) Room(w http.ResponseWriter, r *http.Request) {
 
 	client, err := a.authenticate(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		a.handleAuthError(w, err)
 		return
 	}
 
@@ -312,9 +317,12 @@ func (a *App) authenticate(r *http.Request) (*Client, error) {
 		return nil, ErrUnauthorized
 	}
 
-	client, exists := a.clients.Lookup(ClientID(token))
-	if !exists {
-		return nil, ErrUnauthorized
+	client, err := a.clients.Lookup(r.Context(), ClientID(token))
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, ErrUnauthorized
+		}
+		return nil, err
 	}
 
 	return client, nil
@@ -374,6 +382,15 @@ func (a *App) sendMessage(ws *websocket.Conn, msg any) error {
 	}
 
 	return err
+}
+
+func (a *App) handleAuthError(w http.ResponseWriter, err error) {
+	if errors.Is(err, ErrUnauthorized) {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	http.Error(w, "internal server error", http.StatusInternalServerError)
 }
 
 type clientResponse struct {

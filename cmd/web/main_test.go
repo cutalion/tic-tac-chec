@@ -19,13 +19,13 @@ type fakeClientService struct {
 	nextID atomic.Uint32
 }
 
-func (f *fakeClientService) Create() *Client {
+func (f *fakeClientService) Create(ctx context.Context) (*Client, error) {
 	id := f.nextID.Add(1)
-	return &Client{ID: ClientID(fmt.Sprintf("c_%04d", id))}
+	return &Client{ID: ClientID(fmt.Sprintf("c_%04d", id))}, nil
 }
 
-func (f *fakeClientService) Lookup(id ClientID) (*Client, bool) {
-	return &Client{ID: id}, true
+func (f *fakeClientService) Lookup(ctx context.Context, id ClientID) (*Client, error) {
+	return &Client{ID: id}, nil
 }
 
 func FakeClientService() ClientService {
@@ -69,7 +69,7 @@ func TestCreateClientRespondsWithToken(t *testing.T) {
 func TestMeRespondsWithClient(t *testing.T) {
 	router, app := setupAppServer(t)
 
-	client := app.clients.Create()
+	client, _ := app.clients.Create(context.Background())
 
 	req, err := http.NewRequest("GET", "/api/me", nil)
 	if err != nil {
@@ -97,7 +97,7 @@ func TestLobbyPairsClients(t *testing.T) {
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	client := app.clients.Create()
+	client, _ := app.clients.Create(context.Background())
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
@@ -109,7 +109,7 @@ func TestLobbyPairsClients(t *testing.T) {
 		t.Errorf("expected type %s, got %s", "waiting", got.Type)
 	}
 
-	client2 := app.clients.Create()
+	client2, _ := app.clients.Create(context.Background())
 
 	if client2.ID == client.ID {
 		t.Fatal("client2 should have a different ID")
@@ -152,7 +152,7 @@ func TestLobbyWithIDPairsClients(t *testing.T) {
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	client := app.clients.Create()
+	client, _ := app.clients.Create(context.Background())
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
@@ -166,7 +166,7 @@ func TestLobbyWithIDPairsClients(t *testing.T) {
 		t.Errorf("expected type %s, got %s", "waiting", got.Type)
 	}
 
-	client2 := app.clients.Create()
+	client2, _ := app.clients.Create(context.Background())
 
 	if client2.ID == client.ID {
 		t.Fatal("client2 should have a different ID")
@@ -207,9 +207,9 @@ func TestRoomJoinClientNotParticipant(t *testing.T) {
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	client1 := app.clients.Create()
-	client2 := app.clients.Create()
-	client3 := app.clients.Create()
+	client1, _ := app.clients.Create(context.Background())
+	client2, _ := app.clients.Create(context.Background())
+	client3, _ := app.clients.Create(context.Background())
 
 	roomRegistry := app.roomRegistry.Create(Pairing{Players: [2]ClientID{client1.ID, client2.ID}})
 	go roomRegistry.Room.Run()
@@ -233,8 +233,8 @@ func TestRoomJoinClientParticipant(t *testing.T) {
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	client1 := app.clients.Create()
-	client2 := app.clients.Create()
+	client1, _ := app.clients.Create(context.Background())
+	client2, _ := app.clients.Create(context.Background())
 
 	roomEntry := app.roomRegistry.Create(Pairing{Players: [2]ClientID{client1.ID, client2.ID}})
 	go roomEntry.Room.Run()
@@ -258,8 +258,8 @@ func TestReactionMessage(t *testing.T) {
 	server := httptest.NewServer(router)
 	defer server.Close()
 
-	client1 := app.clients.Create()
-	client2 := app.clients.Create()
+	client1, _ := app.clients.Create(context.Background())
+	client2, _ := app.clients.Create(context.Background())
 
 	roomEntry := app.roomRegistry.Create(Pairing{Players: [2]ClientID{client1.ID, client2.ID}})
 	go roomEntry.Room.Run()

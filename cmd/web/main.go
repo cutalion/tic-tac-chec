@@ -11,7 +11,6 @@ import (
 	ort "github.com/yalue/onnxruntime_go"
 )
 
-var clients = NewClientService()
 var analyticsConfig = resolveAnalyticsConfig()
 
 type AnalyticsConfig struct {
@@ -29,6 +28,7 @@ func main() {
 	}
 	defer db.Close()
 
+	clients := NewClientService(db.Users())
 	app := NewApp(clients, bots, allowedOrigins)
 
 	mux := http.NewServeMux()
