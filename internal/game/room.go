@@ -40,7 +40,7 @@ type Room struct {
 	Reconnect             chan ReconnectInfo
 	WhiteRematchRequested bool
 	BlackRematchRequested bool
-	Match                 uint
+	GameNumber            uint
 	subscribers           map[chan<- RoomEvent]struct{}
 	mu                    sync.RWMutex
 }
@@ -71,7 +71,7 @@ func NewRoom(player1, player2 Player) *Room {
 		Reconnect:             make(chan ReconnectInfo),
 		WhiteRematchRequested: false,
 		BlackRematchRequested: false,
-		Match:                 1,
+		GameNumber:            1,
 		subscribers:           make(map[chan<- RoomEvent]struct{}),
 	}
 }
@@ -151,7 +151,7 @@ func (r *Room) Run() {
 }
 
 func (r *Room) close() {
-	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, Match: r.Match, UpdatedAt: time.Now()})
+	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, GameNumber: r.GameNumber, UpdatedAt: time.Now()})
 
 	r.clearSubs()
 
@@ -225,8 +225,8 @@ func (r *Room) handleMove(mover Player, move MoveCommand) {
 	}
 
 	now := time.Now()
-	r.emit(MoveApplied{RoomID: r.ID, By: mover.ID, Piece: move.Piece, To: move.To, Seq: r.Game.MoveCount, Match: r.Match, At: now})
-	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, Match: r.Match, UpdatedAt: now})
+	r.emit(MoveApplied{RoomID: r.ID, By: mover.ID, Piece: move.Piece, To: move.To, Seq: r.Game.MoveCount, GameNumber: r.GameNumber, At: now})
+	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, GameNumber: r.GameNumber, UpdatedAt: now})
 
 	for _, player := range r.Players {
 		sendUpdateTo(player, SnapshotEvent{RoomID: r.ID, Game: *r.Game})
@@ -266,12 +266,12 @@ func (r *Room) startRematch() {
 	r.Game = engine.NewGame()
 	r.WhiteRematchRequested = false
 	r.BlackRematchRequested = false
-	r.Match++
+	r.GameNumber++
 
 	// swap colors
 	r.Players[0].Color, r.Players[1].Color = r.Players[1].Color, r.Players[0].Color
 
-	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, Match: r.Match, UpdatedAt: time.Now()})
+	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, GameNumber: r.GameNumber, UpdatedAt: time.Now()})
 
 	for _, player := range r.Players {
 		sendUpdateTo(player, PairedEvent{PlayerID: player.ID, Color: player.Color})
