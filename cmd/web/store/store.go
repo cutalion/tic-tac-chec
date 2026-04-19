@@ -41,6 +41,10 @@ func (s *Store) Users() *UserStore {
 	return &UserStore{db: s.db}
 }
 
+func (s *Store) Players() *PlayerStore {
+	return &PlayerStore{db: s.db}
+}
+
 func parseTime(str string) (time.Time, error) {
 	return time.Parse(time.RFC3339, str)
 }

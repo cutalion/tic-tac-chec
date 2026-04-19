@@ -6,6 +6,8 @@ import (
 	"testing"
 	"tic-tac-chec/cmd/web/store"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func newTestStore(t *testing.T) *store.Store {
@@ -57,4 +59,15 @@ func TestUserStore_Get_NotFound(t *testing.T) {
 	if !errors.Is(err, store.ErrNotFound) {
 		t.Errorf("Expected ErrNotFound, got %v", err)
 	}
+}
+
+func TestUserStore_CreateInsertsPlayer(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	user, err := s.Users().Create(ctx)
+
+	require.NoError(t, err)
+	require.NotEmpty(t, user.ID)
+	require.NotEmpty(t, user.PlayerID)
+	require.NotZero(t, user.CreatedAt)
 }
