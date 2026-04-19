@@ -45,10 +45,21 @@ func (s *Store) Players() *PlayerStore {
 	return &PlayerStore{db: s.db}
 }
 
+func (s *Store) Games() *GameStore {
+	return &GameStore{db: s.db}
+}
+
 func parseTime(str string) (time.Time, error) {
 	return time.Parse(time.RFC3339, str)
 }
 
 func formatTime(t time.Time) string {
 	return t.UTC().Format(time.RFC3339)
+}
+
+func formatNullableTime(t *time.Time) any {
+	if t == nil {
+		return nil
+	}
+	return formatTime(*t)
 }

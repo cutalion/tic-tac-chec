@@ -10,16 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestStore(t *testing.T) *store.Store {
-	t.Helper()
-	s, err := store.NewStore(t.TempDir() + "/test.db")
-	if err != nil {
-		t.Fatalf("NewStore: %v", err)
-	}
-	t.Cleanup(func() { s.Close() })
-	return s
-}
-
 func TestUserStore_CreateAndGet(t *testing.T) {
 	s := newTestStore(t)
 	user1, err := s.Users().Create(context.Background())
