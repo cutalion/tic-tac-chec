@@ -6,6 +6,7 @@ import (
 
 	"tic-tac-chec/engine"
 
+	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 )
 
@@ -372,4 +373,38 @@ func TestRoom_QuitClosesSubscribers(t *testing.T) {
 			return
 		}
 	}
+}
+
+func TestRoom_RematchWithSubscriber(t *testing.T) {
+	room, commands := setupRoom()
+	defer close(commands[0])
+	defer close(commands[1])
+	defer close(room.Quit)
+
+	sub := make(chan RoomEvent, 1000)
+	cancel := room.Subscribe(sub)
+	defer cancel()
+
+	go room.Run()
+
+	firstEvent := <-sub
+	gs1, ok := firstEvent.(GameStarted)
+	require.True(t, ok, "first game event should be GameStarted, got %T", firstEvent)
+	require.Equal(t, uint(1), gs1.GameNumber)
+	initialWhite := gs1.WhitePlayer
+
+	commands[0] <- RematchCommand{PlayerID: room.Players[0].ID}
+	commands[1] <- RematchCommand{PlayerID: room.Players[1].ID}
+
+	var gs2 GameStarted
+	for {
+		ev := <-sub
+		if gs, ok := ev.(GameStarted); ok {
+			gs2 = gs
+			break
+		}
+	}
+
+	require.Equal(t, uint(2), gs2.GameNumber)
+	require.NotEqual(t, initialWhite, gs2.WhitePlayer, "colors should be swapped after rematch")
 }

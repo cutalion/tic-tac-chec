@@ -274,7 +274,6 @@ func (r *Room) handleReaction(mover Player, reaction ReactionCommand) {
 
 func (r *Room) startRematch() {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	r.Game = engine.NewGame()
 	r.WhiteRematchRequested = false
@@ -284,12 +283,21 @@ func (r *Room) startRematch() {
 	// swap colors
 	r.Players[0].Color, r.Players[1].Color = r.Players[1].Color, r.Players[0].Color
 
-	r.emit(GameStarted{RoomID: r.ID, Game: *r.Game, GameNumber: r.GameNumber, WhitePlayer: r.Players[0].ID, BlackPlayer: r.Players[1].ID, StartedAt: time.Now()})
-	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, GameNumber: r.GameNumber, UpdatedAt: time.Now()})
+	gameSnapshot := *r.Game
+	gameNumber := r.GameNumber
+	players := r.Players
+	whiteID := r.white().ID
+	blackID := r.black().ID
 
-	for _, player := range r.Players {
-		sendUpdateTo(player, PairedEvent{PlayerID: player.ID, Color: player.Color})
-		sendUpdateTo(player, SnapshotEvent{RoomID: r.ID, Game: *r.Game})
+	r.mu.Unlock()
+
+	now := time.Now().UTC()
+	r.emit(GameStarted{RoomID: r.ID, Game: gameSnapshot, GameNumber: gameNumber, WhitePlayer: whiteID, BlackPlayer: blackID, StartedAt: now})
+	r.emit(StateUpdate{RoomID: r.ID, Game: gameSnapshot, GameNumber: gameNumber, UpdatedAt: now})
+
+	for _, p := range players {
+		sendUpdateTo(p, PairedEvent{PlayerID: p.ID, Color: p.Color})
+		sendUpdateTo(p, SnapshotEvent{RoomID: r.ID, Game: gameSnapshot})
 	}
 }
 
