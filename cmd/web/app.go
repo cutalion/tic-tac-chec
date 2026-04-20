@@ -9,7 +9,6 @@ import (
 	"strings"
 	"tic-tac-chec/cmd/web/store"
 	"tic-tac-chec/engine"
-	"tic-tac-chec/internal/bot"
 	"tic-tac-chec/internal/game"
 	"tic-tac-chec/internal/parse"
 
@@ -25,14 +24,15 @@ type App struct {
 	clients        ClientService
 	lobbyRegistry  LobbyRegistry
 	roomRegistry   RoomRegistry
-	bots           map[string]*bot.Bot
+	bots           map[string]*Bot
 	allowedOrigins []string
 }
 
-func NewApp(db *store.Store, bots map[string]*bot.Bot, allowedOrigins []string) *App {
+func NewApp(db *store.Store, allowedOrigins []string) *App {
 	roomRegistry := NewRoomRegistry()
 	lobbyRegistry := NewLobbyRegistry(roomRegistry, db.Games())
 	clients := NewClientService(db.Users())
+	bots := initBots(context.Background(), db)
 
 	return &App{
 		db:             db,
@@ -120,23 +120,21 @@ func (a *App) BotGame(w http.ResponseWriter, r *http.Request) {
 
 	// Pick difficulty from query param, default to best available
 	difficulty := r.URL.Query().Get("difficulty")
-	gameBot := a.pickBot(difficulty)
-	if gameBot == nil {
+	bot := a.pickBot(difficulty)
+	if bot == nil {
 		http.Error(w, "bot is not available", http.StatusServiceUnavailable)
 		return
 	}
 
 	// Create human player with a commands channel
 	humanCommands := make(chan game.Command)
-	humanPlayer := game.NewPlayer(humanCommands)
+	humanPlayer := game.NewPlayerWithID(humanCommands, client.PlayerID)
 
-	// Create bot player
-	botPlayer := gameBot.RunPlayer()
-
-	// Use a synthetic client ID for the bot
+	botPlayer := bot.Model.RunPlayer(bot.Info.PlayerID)
 	botClientID := ClientID("bot")
 
 	entry := a.roomRegistry.CreateWithPlayers(humanPlayer, botPlayer, [2]ClientID{client.ID, botClientID})
+	go recordGames(a.db.Games(), entry.Room)
 	go entry.Room.Run()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -148,7 +146,7 @@ func (a *App) BotGame(w http.ResponseWriter, r *http.Request) {
 
 // pickBot returns the bot for the requested difficulty.
 // Falls back to: requested → "hard" → "medium" → "easy" → any available.
-func (a *App) pickBot(difficulty string) *bot.Bot {
+func (a *App) pickBot(difficulty string) *Bot {
 	if b, ok := a.bots[difficulty]; ok {
 		return b
 	}

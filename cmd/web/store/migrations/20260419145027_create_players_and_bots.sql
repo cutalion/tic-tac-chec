@@ -2,9 +2,12 @@
 CREATE TABLE bots (
     id         TEXT PRIMARY KEY,
     label      TEXT NOT NULL,
+    difficulty TEXT NOT NULL,
+    version    INTEGER NOT NULL,
     model_path TEXT NOT NULL,
-    mcts_sims  INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL
+    -- Number of MCTS simulations to run.
+    -- 0 means greedy argmax, >0 means MCTS with that many simulations.
+    mcts_sims  INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE players (
@@ -14,10 +17,10 @@ CREATE TABLE players (
     CHECK ((user_id IS NULL) <> (bot_id IS NULL))
 );
 
-INSERT INTO bots (id, label, model_path, mcts_sims, created_at) VALUES
-  ('easy-v1',   'Easy',   'bot/models/bot.onnx',   0, '1970-01-01T00:00:00Z'),
-  ('medium-v1', 'Medium', 'bot/models/bot.onnx', 250, '1970-01-01T00:00:00Z'),
-  ('hard-v1',   'Hard',   'bot/models/bot.onnx', 500, '1970-01-01T00:00:00Z');
+INSERT INTO bots (id, label, difficulty, version, model_path, mcts_sims) VALUES
+  ('easy-v1',   'Easy',   'easy',   1, 'bot/models/bot.onnx',   0),
+  ('medium-v1', 'Medium', 'medium', 1, 'bot/models/bot.onnx', 250),
+  ('hard-v1',   'Hard',   'hard',   1, 'bot/models/bot.onnx', 500);
 
 INSERT INTO players (id, bot_id) VALUES
   ('0194c000-0000-7001-8000-000000000001', 'easy-v1'),

@@ -14,32 +14,21 @@ import (
 	ort "github.com/yalue/onnxruntime_go"
 )
 
-const (
-	LEVEL_EASY   = "easy"
-	LEVEL_MEDIUM = "medium"
-	LEVEL_HARD   = "hard"
-)
-
-const (
-	EASY_MCTS_SIMS   = 0
-	MEDIUM_MCTS_SIMS = 500
-	HARD_MCTS_SIMS   = 1000
-)
-
-// Bot plays Tic Tac Chec using an ONNX neural network model.
-type Bot struct {
+// Model plays Tic Tac Chec using an ONNX neural network model.
+type Model struct {
 	session     *ort.DynamicAdvancedSession
 	simulations int
 }
 
 // New creates a Bot that loads the ONNX model from the given path.
-// level controls MCTS simulations:
+// difficulty controls MCTS simulations:
 //
 //	0 means greedy argmax, >0 means MCTS with that many simulations.
 //
 // Call ort.InitializeEnvironment() before creating a Bot,
 // and ort.DestroyEnvironment() when done.
-func New(modelPath string, level string) (*Bot, error) {
+// TODO: pass store.Bot
+func New(modelPath string, simulations int) (*Model, error) {
 	session, err := ort.NewDynamicAdvancedSession(
 		modelPath,
 		[]string{"state"},
@@ -50,23 +39,16 @@ func New(modelPath string, level string) (*Bot, error) {
 		return nil, fmt.Errorf("bot: load model: %w", err)
 	}
 
-	simulations := 0
-	switch level {
-	case LEVEL_EASY:
-		simulations = fetchEnvInt("EASY_MCTS_SIMS", EASY_MCTS_SIMS)
-	case LEVEL_MEDIUM:
-		simulations = fetchEnvInt("MEDIUM_MCTS_SIMS", MEDIUM_MCTS_SIMS)
-	case LEVEL_HARD:
-		simulations = fetchEnvInt("HARD_MCTS_SIMS", HARD_MCTS_SIMS)
-	default:
-		return nil, fmt.Errorf("bot: unknown level: %s", level)
+	bot := &Model{
+		session:     session,
+		simulations: simulations,
 	}
 
-	return &Bot{session: session, simulations: simulations}, nil
+	return bot, nil
 }
 
 // Infer runs the model on a game state and returns action logits (320 floats).
-func (b *Bot) Infer(state []float32) ([]float32, error) {
+func (m *Model) Infer(state []float32) ([]float32, error) {
 	inputShape := ort.Shape{1, NumChannels, BoardSize, BoardSize}
 	input, err := ort.NewTensor(inputShape, state)
 	if err != nil {
@@ -89,7 +71,7 @@ func (b *Bot) Infer(state []float32) ([]float32, error) {
 	}
 	defer valueOutput.Destroy()
 
-	err = b.session.Run([]ort.ArbitraryTensor{input}, []ort.ArbitraryTensor{output, valueOutput})
+	err = m.session.Run([]ort.ArbitraryTensor{input}, []ort.ArbitraryTensor{output, valueOutput})
 	if err != nil {
 		return nil, fmt.Errorf("bot: run inference: %w", err)
 	}
@@ -101,7 +83,7 @@ func (b *Bot) Infer(state []float32) ([]float32, error) {
 
 // InferWithValue runs the model and returns both action logits (320 floats)
 // and the state value estimate (single float).
-func (b *Bot) InferWithValue(state []float32) ([]float32, float32, error) {
+func (m *Model) InferWithValue(state []float32) ([]float32, float32, error) {
 	inputShape := ort.Shape{1, NumChannels, BoardSize, BoardSize}
 	input, err := ort.NewTensor(inputShape, state)
 	if err != nil {
@@ -123,7 +105,7 @@ func (b *Bot) InferWithValue(state []float32) ([]float32, float32, error) {
 	}
 	defer valueOutput.Destroy()
 
-	err = b.session.Run([]ort.ArbitraryTensor{input}, []ort.ArbitraryTensor{output, valueOutput})
+	err = m.session.Run([]ort.ArbitraryTensor{input}, []ort.ArbitraryTensor{output, valueOutput})
 	if err != nil {
 		return nil, 0, fmt.Errorf("bot: run inference: %w", err)
 	}
@@ -136,19 +118,19 @@ func (b *Bot) InferWithValue(state []float32) ([]float32, float32, error) {
 
 // SelectAction picks the best legal action for the current position.
 // If simulations > 0, uses MCTS; otherwise uses greedy argmax.
-func (b *Bot) SelectAction(g *engine.Game) (engine.Piece, engine.Cell, error) {
-	if b.simulations > 0 {
-		return b.selectActionMCTS(g)
+func (m *Model) SelectAction(g *engine.Game) (engine.Piece, engine.Cell, error) {
+	if m.simulations > 0 {
+		return m.selectActionMCTS(g)
 	}
-	return b.selectActionArgmax(g)
+	return m.selectActionArgmax(g)
 }
 
 // selectActionArgmax picks the best legal action given logits and a game state.
 // Applies action masking: illegal actions get -inf, then picks argmax.
-func (b *Bot) selectActionArgmax(g *engine.Game) (engine.Piece, engine.Cell, error) {
+func (m *Model) selectActionArgmax(g *engine.Game) (engine.Piece, engine.Cell, error) {
 	state := NewStateEncoder().Encode(g)
 
-	logits, err := b.Infer(state)
+	logits, err := m.Infer(state)
 	if err != nil {
 		return engine.Piece{}, engine.Cell{}, err
 	}
@@ -185,8 +167,8 @@ func (b *Bot) selectActionArgmax(g *engine.Game) (engine.Piece, engine.Cell, err
 }
 
 // selectActionMCTS delegates to mctsSelectAction (defined in mcts.go).
-func (b *Bot) selectActionMCTS(g *engine.Game) (engine.Piece, engine.Cell, error) {
-	return mctsSelectAction(b, g, b.simulations)
+func (m *Model) selectActionMCTS(g *engine.Game) (engine.Piece, engine.Cell, error) {
+	return mctsSelectAction(m, g, m.simulations)
 }
 
 // legalActions returns valid action indices for the current player.
@@ -230,18 +212,18 @@ func legalActions(g *engine.Game) []int {
 
 // RunPlayer creates a game.Player backed by the bot and starts a goroutine
 // that listens for game events and responds with moves.
-func (b *Bot) RunPlayer() game.Player {
+func (m *Model) RunPlayer(playerID string) game.Player {
 	commands := make(chan game.Command, 2)
-	player := game.NewPlayer(commands)
+	player := game.NewPlayerWithID(commands, playerID)
 
-	go b.playLoop(&player, commands)
+	go m.playLoop(&player, commands)
 
 	return player
 }
 
 // playLoop is the bot's event loop goroutine. It listens for game events
 // and responds with moves when it's the bot's turn.
-func (b *Bot) playLoop(player *game.Player, commands chan game.Command) {
+func (m *Model) playLoop(player *game.Player, commands chan game.Command) {
 	botColor := engine.White
 	botPlayerID := player.ID
 
@@ -259,7 +241,7 @@ func (b *Bot) playLoop(player *game.Player, commands chan game.Command) {
 			}
 
 			if e.Game.Turn == botColor {
-				piece, cell, err := b.SelectAction(&e.Game)
+				piece, cell, err := m.SelectAction(&e.Game)
 				if err != nil {
 					log.Printf("bot: SelectAction error: %v", err)
 					continue
@@ -274,9 +256,9 @@ func (b *Bot) playLoop(player *game.Player, commands chan game.Command) {
 	}
 }
 
-func (b *Bot) Destroy() {
-	if b.session != nil {
-		b.session.Destroy()
+func (m *Model) Destroy() {
+	if m.session != nil {
+		m.session.Destroy()
 	}
 }
 

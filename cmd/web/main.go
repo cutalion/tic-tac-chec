@@ -6,9 +6,6 @@ import (
 	"os"
 	"strings"
 	"tic-tac-chec/cmd/web/store"
-	"tic-tac-chec/internal/bot"
-
-	ort "github.com/yalue/onnxruntime_go"
 )
 
 var analyticsConfig = resolveAnalyticsConfig()
@@ -20,7 +17,6 @@ type AnalyticsConfig struct {
 }
 
 func main() {
-	bots := initBots()
 	allowedOrigins := parseAllowedOrigins()
 	db, err := store.NewStore(dbPath())
 	if err != nil {
@@ -28,7 +24,7 @@ func main() {
 	}
 	defer db.Close()
 
-	app := NewApp(db, bots, allowedOrigins)
+	app := NewApp(db, allowedOrigins)
 
 	mux := http.NewServeMux()
 	registerStaticRoutes(mux)
@@ -77,55 +73,6 @@ func corsMiddleware(next http.Handler, allowedOrigins []string) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-// initBots loads a single ONNX model and creates three difficulty levels
-// using different MCTS simulation counts: easy (0), medium (250), hard (500).
-func initBots() map[string]*bot.Bot {
-	ortLibPath := os.Getenv("ORT_LIB_PATH")
-	if ortLibPath == "" {
-		log.Println("ORT_LIB_PATH not set, bot disabled")
-		return nil
-	}
-
-	ort.SetSharedLibraryPath(ortLibPath)
-	if err := ort.InitializeEnvironment(); err != nil {
-		log.Printf("Failed to initialize ONNX Runtime: %v - bot disabled", err)
-		return nil
-	}
-
-	modelPath := os.Getenv("BOT_MODEL_PATH")
-	if modelPath == "" {
-		modelPath = "bot/models/bot.onnx"
-	}
-
-	if _, err := os.Stat(modelPath); os.IsNotExist(err) {
-		log.Printf("Bot model not found: %s - bot disabled", modelPath)
-		return nil
-	}
-
-	easy, err := bot.New(modelPath, "easy")
-	if err != nil {
-		log.Printf("Failed to create easy bot: %v - bot disabled", err)
-		return nil
-	}
-	medium, err := bot.New(modelPath, "medium")
-	if err != nil {
-		log.Printf("Failed to create medium bot: %v - bot disabled", err)
-		return nil
-	}
-	hard, err := bot.New(modelPath, "hard")
-	if err != nil {
-		log.Printf("Failed to create hard bot: %v - bot disabled", err)
-		return nil
-	}
-
-	bots := map[string]*bot.Bot{
-		"easy":   easy,
-		"medium": medium,
-		"hard":   hard,
-	}
-	return bots
 }
 
 func parseAllowedOrigins() []string {

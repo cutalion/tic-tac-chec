@@ -45,6 +45,10 @@ func (s *Store) Players() *PlayerStore {
 	return &PlayerStore{db: s.db}
 }
 
+func (s *Store) Bots() *BotStore {
+	return &BotStore{db: s.db}
+}
+
 func (s *Store) Games() *GameStore {
 	return &GameStore{db: s.db}
 }

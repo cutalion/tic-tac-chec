@@ -32,17 +32,17 @@ func (n *node) ucbScore(cPUCT float32) float32 {
 }
 
 // mctsSelectAction runs MCTS and returns the best action as (Piece, Cell).
-func mctsSelectAction(b *Bot, g *engine.Game, numSimulations int) (engine.Piece, engine.Cell, error) {
+func mctsSelectAction(b *Model, g *engine.Game, numSimulations int) (engine.Piece, engine.Cell, error) {
 	root := &node{game: g.Clone()}
 
 	if root.game.Status == engine.GameOver {
-		return engine.Piece{}, engine.Cell{}, fmt.Errorf("bot: game is already over")
+		return engine.Piece{}, engine.Cell{}, fmt.Errorf("model: game is already over")
 	}
 
 	// Expand root node first
 	value, err := expand(b, root)
 	if err != nil {
-		return engine.Piece{}, engine.Cell{}, fmt.Errorf("bot: expand root: %w", err)
+		return engine.Piece{}, engine.Cell{}, fmt.Errorf("model: expand root: %w", err)
 	}
 	backpropagate(root, value)
 
@@ -64,7 +64,7 @@ func mctsSelectAction(b *Bot, g *engine.Game, numSimulations int) (engine.Piece,
 		} else {
 			value, err := expand(b, leaf)
 			if err != nil {
-				return engine.Piece{}, engine.Cell{}, fmt.Errorf("bot: expand leaf: %w", err)
+				return engine.Piece{}, engine.Cell{}, fmt.Errorf("model: expand leaf: %w", err)
 			}
 			backpropagate(leaf, value)
 		}
@@ -79,7 +79,7 @@ func mctsSelectAction(b *Bot, g *engine.Game, numSimulations int) (engine.Piece,
 	}
 
 	if bestChild == nil {
-		return engine.Piece{}, engine.Cell{}, fmt.Errorf("bot: no children after MCTS")
+		return engine.Piece{}, engine.Cell{}, fmt.Errorf("model: no children after MCTS")
 	}
 
 	return decodeActionToMove(bestChild.action, g)
@@ -107,7 +107,7 @@ func selectLeaf(n *node) *node {
 // Calls the neural network to get policy priors and value estimate.
 // Returns the value estimate (from the node's player-to-move perspective)
 // for the caller to backpropagate.
-func expand(b *Bot, n *node) (float32, error) {
+func expand(b *Model, n *node) (float32, error) {
 	state := NewStateEncoder().Encode(n.game)
 	logits, value, err := b.InferWithValue(state)
 	if err != nil {
@@ -198,7 +198,7 @@ func decodeActionToMove(action int, g *engine.Game) (engine.Piece, engine.Cell, 
 
 	boardPiece := g.Board[src.Row][src.Col]
 	if boardPiece == nil {
-		return engine.Piece{}, engine.Cell{}, fmt.Errorf("bot: no piece at source %v", src)
+		return engine.Piece{}, engine.Cell{}, fmt.Errorf("model: no piece at source %v", src)
 	}
 
 	return *boardPiece, dst, nil

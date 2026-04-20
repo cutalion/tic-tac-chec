@@ -1,4 +1,4 @@
-//go:build bot_test
+//go:build model_test
 
 package bot
 
@@ -14,10 +14,10 @@ import (
 var testModelPath string
 
 func TestMain(m *testing.M) {
-	// Find project root (internal/bot -> ../../)
+	// Find project root (internal/model -> ../../)
 	root := filepath.Join("..", "..")
 	libPath := filepath.Join(root, "third_party", "onnxruntime-linux-x64-1.24.1", "lib", "libonnxruntime.so")
-	testModelPath = filepath.Join(root, "bot", "models", "bot.onnx")
+	testModelPath = filepath.Join(root, "model", "models", "model.onnx")
 
 	ort.SetSharedLibraryPath(libPath)
 	if err := ort.InitializeEnvironment(); err != nil {
@@ -81,15 +81,15 @@ func TestDecodeMoveAction(t *testing.T) {
 }
 
 func TestInferWithZeros(t *testing.T) {
-	bot, err := New(testModelPath, 0)
+	model, err := New(testModelPath, 0)
 	if err != nil {
-		t.Fatalf("failed to create bot: %v", err)
+		t.Fatalf("failed to create model: %v", err)
 	}
-	defer bot.Destroy()
+	defer model.Destroy()
 
 	// All-zero state (not a real game state, but tests the inference pipeline)
 	state := make([]float32, StateSize)
-	logits, err := bot.Infer(state)
+	logits, err := model.Infer(state)
 	if err != nil {
 		t.Fatalf("inference failed: %v", err)
 	}
@@ -112,14 +112,14 @@ func TestInferWithZeros(t *testing.T) {
 }
 
 func TestSelectAction(t *testing.T) {
-	bot, err := New(testModelPath, 0)
+	model, err := New(testModelPath, 0)
 	if err != nil {
-		t.Fatalf("failed to create bot: %v", err)
+		t.Fatalf("failed to create model: %v", err)
 	}
-	defer bot.Destroy()
+	defer model.Destroy()
 
 	g := engine.NewGame()
-	piece, cell, err := bot.SelectAction(g)
+	piece, cell, err := model.SelectAction(g)
 	if err != nil {
 		t.Fatalf("SelectAction failed: %v", err)
 	}
@@ -143,12 +143,12 @@ func TestSelectAction(t *testing.T) {
 	}
 }
 
-func TestBotPlaysFullGame(t *testing.T) {
-	bot, err := New(testModelPath, 0)
+func TestModelPlaysFullGame(t *testing.T) {
+	model, err := New(testModelPath, 0)
 	if err != nil {
-		t.Fatalf("failed to create bot: %v", err)
+		t.Fatalf("failed to create model: %v", err)
 	}
-	defer bot.Destroy()
+	defer model.Destroy()
 
 	g := engine.NewGame()
 
@@ -159,7 +159,7 @@ func TestBotPlaysFullGame(t *testing.T) {
 			return
 		}
 
-		piece, cell, err := bot.SelectAction(g)
+		piece, cell, err := model.SelectAction(g)
 		if err != nil {
 			t.Fatalf("move %d: SelectAction failed: %v", i, err)
 		}
@@ -176,7 +176,7 @@ func TestBotPlaysFullGame(t *testing.T) {
 func TestMCTSFindsWinningMove(t *testing.T) {
 	b, err := New(testModelPath, 50)
 	if err != nil {
-		t.Fatalf("failed to create bot: %v", err)
+		t.Fatalf("failed to create model: %v", err)
 	}
 	defer b.Destroy()
 
@@ -207,7 +207,7 @@ func TestMCTSFindsWinningMove(t *testing.T) {
 // func TestMCTSBlocksOpponentWin(t *testing.T) {
 // 	b, err := New(testModelPath, 50)
 // 	if err != nil {
-// 		t.Fatalf("failed to create bot: %v", err)
+// 		t.Fatalf("failed to create model: %v", err)
 // 	}
 // 	defer b.Destroy()
 //

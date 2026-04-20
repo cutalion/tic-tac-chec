@@ -26,6 +26,7 @@ func recordGames(games *store.GameStore, room *game.Room) {
 
 		switch e := event.(type) {
 		case game.GameStarted:
+			log.Printf("[PERSISTOR]: game started. Room: %s, White: %s, Black: %s\n", e.RoomID, e.WhitePlayer, e.BlackPlayer)
 			game, err := store.NewGame(string(e.RoomID), string(e.WhitePlayer), string(e.BlackPlayer))
 			if err != nil {
 				log.Printf("[PERSISTOR]: failed to create game: %v\n", err)
