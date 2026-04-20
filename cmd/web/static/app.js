@@ -85,6 +85,128 @@ const sunSVG =
 const moonSVG =
   '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
 
+const SOUND_URLS = {
+  place:   "/sounds/move.mp3",
+  move:    "/sounds/move.mp3",
+  capture: "/sounds/capture.mp3",
+  win:     "/sounds/win.mp3",
+  lose:    "/sounds/lose.mp3",
+};
+const SOUND_VOLUME = 0.7;
+
+let audioCtx = null;
+let masterGain = null;
+const soundBuffers = new Map();
+const soundLoading = new Map();
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return null;
+    audioCtx = new Ctor();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = SOUND_VOLUME;
+    masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+  return audioCtx;
+}
+
+function loadSound(name) {
+  if (soundBuffers.has(name)) return Promise.resolve(soundBuffers.get(name));
+  if (soundLoading.has(name)) return soundLoading.get(name);
+  const ctx = getAudioCtx();
+  const url = SOUND_URLS[name];
+  if (!ctx || !url) return Promise.resolve(null);
+  const promise = fetch(url)
+    .then((res) => (res.ok ? res.arrayBuffer() : null))
+    .then((data) => (data ? ctx.decodeAudioData(data) : null))
+    .then((buf) => {
+      if (buf) soundBuffers.set(name, buf);
+      soundLoading.delete(name);
+      return buf;
+    })
+    .catch((e) => {
+      soundLoading.delete(name);
+      console.debug("sound load failed", name, e);
+      return null;
+    });
+  soundLoading.set(name, promise);
+  return promise;
+}
+
+function playSound(name) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const buf = soundBuffers.get(name);
+  if (buf) {
+    playBuffer(ctx, buf);
+    return;
+  }
+  loadSound(name).then((loaded) => {
+    if (loaded) playBuffer(ctx, loaded);
+  });
+}
+
+function playBuffer(ctx, buf) {
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(masterGain);
+  try {
+    src.start();
+  } catch {
+    // ignore — happens if the context just suspended between state check and start
+  }
+}
+
+function preloadSounds() {
+  for (const name of Object.keys(SOUND_URLS)) loadSound(name);
+}
+
+function warmSoundsOnce() {
+  const once = () => {
+    getAudioCtx();
+    preloadSounds();
+    document.removeEventListener("pointerdown", once);
+    document.removeEventListener("keydown", once);
+  };
+  document.addEventListener("pointerdown", once, { once: true });
+  document.addEventListener("keydown", once, { once: true });
+}
+
+function playMoveSound(prev, next) {
+  if (!prev || !next) return;
+  if (!boardChanged(prev, next)) return;
+  const prevCount = countPieces(prev);
+  const nextCount = countPieces(next);
+  if (nextCount > prevCount) playSound("place");
+  else if (nextCount < prevCount) playSound("capture");
+  else playSound("move");
+}
+
+function boardChanged(a, b) {
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      const pa = a[r][c];
+      const pb = b[r][c];
+      if (!pa && !pb) continue;
+      if (!pa || !pb) return true;
+      if (pa.kind !== pb.kind || pa.color !== pb.color) return true;
+    }
+  }
+  return false;
+}
+
+function countPieces(board) {
+  let n = 0;
+  for (const row of board) {
+    for (const cell of row) {
+      if (cell) n++;
+    }
+  }
+  return n;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   init().catch((error) => {
     console.error("init failed", error);
@@ -100,6 +222,7 @@ async function init() {
   bindHistory();
   bindInstall();
   bindVisibility();
+  warmSoundsOnce();
   renderHomeBoard();
   initDifficulty();
 
@@ -450,8 +573,13 @@ function handleRoomMessage(data) {
       state.roomReady = true;
       state.roomEverReady = true;
 
+      playMoveSound(state.prev.board, state.board);
+
       if (state.status === "over") {
         state.phase = "gameOver";
+        if (state.winner) {
+          playSound(state.winner === state.myColor ? "win" : "lose");
+        }
         const scoredKey = state.roomId ? `ttc-scored-${state.roomId}` : null;
         const alreadyScored = scoredKey && localStorage.getItem(scoredKey);
         if (state.winner && !alreadyScored) {
