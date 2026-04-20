@@ -33,7 +33,7 @@ func TestBotStore_GetByPlayer(t *testing.T) {
 	assert.Equal(t, bot.Difficulty, "medium")
 	assert.Equal(t, bot.Version, 1)
 	assert.Equal(t, bot.PlayerID, "0194c000-0000-7001-8000-000000000002")
-	assert.Equal(t, bot.Mcts_Sims, 250)
+	assert.Equal(t, bot.Mcts_Sims, 100)
 }
 
 func TestBotStore_LoadBots(t *testing.T) {
