@@ -14,6 +14,7 @@ func registerStaticRoutes(mux *http.ServeMux) {
 	// Caddy handles all other static files.
 
 	mux.HandleFunc("GET /", indexPage())
+	mux.HandleFunc("GET /rules", indexPage())
 	mux.HandleFunc("GET /lobby", indexPage())
 	mux.HandleFunc("GET /lobby/{id}", indexPage())
 	mux.HandleFunc("GET /room/{id}", indexPage())

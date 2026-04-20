@@ -143,6 +143,25 @@ h1 {
     }
 }
 
+@media (min-width: 481px) {
+    body {
+        align-items: stretch;
+    }
+    #app {
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+    body:has(#home-view:not(.hidden)) .home-view {
+        flex: 1;
+    }
+    body:has(#home-view:not(.hidden)) .home-hero {
+        padding-bottom: 26px;
+    }
+    body:has(#home-view:not(.hidden)) .home-links {
+        margin-top: auto;
+    }
+}
+
 #app {
     width: 100%;
     max-width: 420px;
@@ -157,21 +176,182 @@ h1 {
 
 .home-view {
     width: 100%;
+    max-width: 360px;
+    align-self: center;
+    padding: 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
 
 .home-view.hidden {
     display: none;
 }
 
-.home-kicker {
+.home-hero {
+    display: flex;
+    justify-content: center;
+    padding: 6px 0 14px;
+}
+
+.home-board {
+    width: min(88%, 260px);
+    aspect-ratio: 1 / 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.home-cell {
+    position: relative;
+    aspect-ratio: 1;
+    background: var(--cell-bg);
+    border-radius: 10px;
+    box-shadow: var(--cell-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.home-cell.selected {
+    outline: 2px solid var(--selected);
+    outline-offset: 1px;
+}
+
+.home-cell .piece-glyph {
+    position: absolute;
+    inset: 12%;
+}
+
+.home-cell .dot {
+    width: 28%;
+    height: 28%;
+    border-radius: 50%;
+    background: var(--target-dot);
+    opacity: 0.85;
+}
+
+.home-cell .capture-ring {
+    position: absolute;
+    inset: 10%;
+    border-radius: 50%;
+    border: 3px solid var(--target-dot);
+    opacity: 0.85;
+    pointer-events: none;
+}
+
+.difficulty-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.difficulty-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0 2px;
+}
+
+.difficulty-label {
     font-family: "Inter", system-ui, sans-serif;
     font-size: 11px;
     font-weight: 500;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--label);
-    text-align: center;
-    margin-bottom: 10px;
+}
+
+.difficulty-hint {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.difficulty-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 3px;
+    background: var(--surface-2);
+    border-radius: 12px;
+}
+
+.difficulty-option {
+    padding: 10px 0;
+    background: transparent;
+    border: 0;
+    color: var(--muted);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    border-radius: 9px;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        color 0.15s;
+}
+
+.difficulty-option[aria-checked="true"] {
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.difficulty-option:focus-visible {
+    outline: 2px solid var(--selected);
+    outline-offset: 2px;
+}
+
+.home-cta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.home-rules-link {
+    align-self: center;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 8px 18px;
+    border-radius: 999px;
+    transition:
+        background 0.15s,
+        color 0.15s;
+}
+
+.home-rules-link:hover {
+    color: var(--text);
+    background: var(--surface-2);
+}
+
+.rules-view {
+    width: 100%;
+    max-width: 360px;
+    align-self: center;
+    padding: 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rules-view.hidden {
+    display: none;
+}
+
+body:has(#rules-view:not(.hidden)) #app {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+body:has(#rules-view:not(.hidden)) .rules-view {
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 .rules-card {
@@ -300,15 +480,19 @@ h1 {
 }
 
 .invite-card-title {
-    font-family: "Fraunces", Georgia, serif;
-    font-size: 18px;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 17px;
     font-weight: 500;
     letter-spacing: -0.01em;
     text-align: center;
 }
 
 .invite-card-text {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
     line-height: 1.5;
+    color: var(--muted);
     text-align: center;
 }
 

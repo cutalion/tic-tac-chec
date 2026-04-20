@@ -9,6 +9,7 @@ import (
 
 func registerStaticRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /", indexHandler())
+	mux.Handle("GET /rules", indexHandler())
 	mux.Handle("GET /lobby", indexHandler())
 	mux.Handle("GET /lobby/{id}", indexHandler())
 	mux.Handle("GET /room/{id}", indexHandler())

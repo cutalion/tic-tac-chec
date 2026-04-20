@@ -14,6 +14,21 @@ const PIECE_SVGS = {
 
 const KINDS = ["pawn", "rook", "bishop", "knight"];
 
+const HOME_BOARD = {
+  cells: [
+    { kind: "rook",   color: "black" }, null, { kind: "bishop", color: "white" }, { kind: "knight", color: "black" },
+    null, null, { kind: "bishop", color: "black" }, null,
+    null, { kind: "pawn",   color: "black" }, { kind: "rook",   color: "white" }, null,
+    { kind: "pawn",   color: "white" }, null, { kind: "knight", color: "white" }, null,
+  ],
+  selected: 2,
+  dots: [5, 7, 8],
+  captures: [],
+};
+
+const DIFFICULTIES = ["easy", "medium", "hard"];
+const DIFFICULTY_STORAGE_KEY = "ttc-bot-difficulty";
+
 const state = {
   phase: "connecting",
   route: "home",
@@ -37,6 +52,7 @@ const state = {
   opponentStatus: null,
   installMessage: null,
   score: { me: 0, opponent: 0 },
+  botDifficulty: "medium",
 };
 
 let ws = null;
@@ -51,12 +67,16 @@ const overlay = document.getElementById("overlay");
 const exitBtn = document.getElementById("exit-btn");
 const themeToggle = document.getElementById("theme-toggle");
 const homeView = document.getElementById("home-view");
+const rulesView = document.getElementById("rules-view");
+const openRulesBtn = document.getElementById("open-rules-btn");
+const homeBoardEl = document.getElementById("home-board");
 const joinLobbyBtn = document.getElementById("join-lobby-btn");
 const inviteFriendBtn = document.getElementById("invite-friend-btn");
 const playBotBtn = document.getElementById("play-bot-btn");
 const inviteStatus = document.getElementById("invite-status");
 const installAppBtn = document.getElementById("install-app-btn");
 const installStatus = document.getElementById("install-status");
+const difficultyButtons = Array.from(document.querySelectorAll(".difficulty-option"));
 const titleLink = document.querySelector(".title-link");
 const themeColorMeta = document.querySelector('meta[name="theme-color"]');
 
@@ -80,9 +100,63 @@ async function init() {
   bindHistory();
   bindInstall();
   bindVisibility();
+  renderHomeBoard();
+  initDifficulty();
 
   state.token = await ensureClientToken();
   syncRoute();
+}
+
+function renderHomeBoard() {
+  const dotSet = new Set(HOME_BOARD.dots);
+  const captureSet = new Set(HOME_BOARD.captures);
+
+  homeBoardEl.innerHTML = "";
+  for (let i = 0; i < 16; i++) {
+    const cell = document.createElement("div");
+    cell.className = "home-cell";
+    const piece = HOME_BOARD.cells[i];
+    if (piece) {
+      const glyph = document.createElement("span");
+      glyph.className = `piece-glyph piece-${piece.color}`;
+      glyph.innerHTML = PIECE_SVGS[piece.kind];
+      cell.appendChild(glyph);
+      if (i === HOME_BOARD.selected) {
+        cell.classList.add("selected");
+      }
+    }
+    if (dotSet.has(i)) {
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      cell.appendChild(dot);
+    } else if (captureSet.has(i)) {
+      const ring = document.createElement("span");
+      ring.className = "capture-ring";
+      cell.appendChild(ring);
+    }
+    homeBoardEl.appendChild(cell);
+  }
+}
+
+function initDifficulty() {
+  const stored = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
+  state.botDifficulty = DIFFICULTIES.includes(stored) ? stored : "medium";
+  syncDifficultyUI();
+  for (const btn of difficultyButtons) {
+    btn.addEventListener("click", () => {
+      const next = btn.dataset.difficulty;
+      if (!DIFFICULTIES.includes(next)) return;
+      state.botDifficulty = next;
+      localStorage.setItem(DIFFICULTY_STORAGE_KEY, next);
+      syncDifficultyUI();
+    });
+  }
+}
+
+function syncDifficultyUI() {
+  for (const btn of difficultyButtons) {
+    btn.setAttribute("aria-checked", String(btn.dataset.difficulty === state.botDifficulty));
+  }
 }
 
 function detectRoute() {
@@ -112,6 +186,14 @@ function detectRoute() {
 
   if (location.pathname === "/lobby") {
     state.route = "lobby";
+    state.lobbyId = null;
+    state.lobbyShareStatus = null;
+    state.roomId = null;
+    return;
+  }
+
+  if (location.pathname === "/rules") {
+    state.route = "rules";
     state.lobbyId = null;
     state.lobbyShareStatus = null;
     state.roomId = null;
@@ -212,7 +294,9 @@ async function tokenIsValid(token) {
 function connectLobby() {
   disconnectSocket();
   resetBoardState();
-  state.phase = "connecting";
+  if (state.phase !== "connectionLost") {
+    state.phase = "connecting";
+  }
   state.error = null;
   render();
 
@@ -284,7 +368,9 @@ function connectRoom() {
   }
 
   disconnectSocket();
-  state.phase = "connecting";
+  if (state.phase !== "connectionLost") {
+    state.phase = "connecting";
+  }
   state.roomReady = false;
   state.error = null;
   render();
@@ -436,13 +522,17 @@ function render() {
 
 function renderRoute() {
   const showHome = state.route === "home";
+  const showRules = state.route === "rules";
+  const showLobby = state.route === "lobby";
+  const hideGame = showHome || showRules;
   homeView.classList.toggle("hidden", !showHome);
+  rulesView.classList.toggle("hidden", !showRules);
   inviteStatus.textContent = showHome ? inviteStatus.textContent : "";
   installStatus.textContent = showHome ? state.installMessage || "" : "";
   installStatus.classList.toggle("hidden", !showHome || !state.installMessage);
-  turnIndicator.classList.toggle("hidden", showHome);
-  gameArea.classList.toggle("hidden", showHome);
-  errorMessage.classList.toggle("hidden", showHome);
+  turnIndicator.classList.toggle("hidden", hideGame || showLobby);
+  gameArea.classList.toggle("hidden", hideGame);
+  errorMessage.classList.toggle("hidden", hideGame);
 }
 
 function renderInstallCTA() {
@@ -470,7 +560,7 @@ function renderInstallCTA() {
 }
 
 function renderOverlay() {
-  if (state.route === "home") {
+  if (state.route === "home" || state.route === "rules") {
     hideOverlay();
     return;
   }
@@ -513,7 +603,7 @@ function renderTurnIndicator() {
   }
 
   if (state.route === "lobby") {
-    turnIndicator.textContent = state.lobbyId ? "Private Lobby" : "Quick Match";
+    turnIndicator.textContent = "";
     turnIndicator.className = "";
     return;
   }
@@ -690,7 +780,7 @@ function renderInviteLobby() {
 
   const title = document.createElement("h2");
   title.className = "invite-card-title";
-  title.textContent = state.phase === "connecting" ? "Preparing Invite" : "Invite a Friend";
+  title.textContent = state.phase === "connecting" ? "Setting up\u2026" : "Play with friend";
   card.appendChild(title);
 
   const howTo = document.createElement("p");
@@ -1066,6 +1156,10 @@ function navigateToHome() {
   navigate("/");
 }
 
+function navigateToRules() {
+  navigate("/rules");
+}
+
 function navigateToLobby() {
   navigate("/lobby");
 }
@@ -1118,10 +1212,13 @@ async function startBotGame() {
   inviteStatus.textContent = "Starting bot game...";
 
   try {
-    const response = await fetch("/api/bot-game", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${state.token}` },
-    });
+    const response = await fetch(
+      `/api/bot-game?difficulty=${encodeURIComponent(state.botDifficulty)}`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${state.token}` },
+      },
+    );
 
     if (!response.ok) {
       const text = await response.text();
@@ -1563,6 +1660,10 @@ function bindExit() {
   });
   playBotBtn.addEventListener("click", () => {
     startBotGame();
+  });
+  openRulesBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    navigateToRules();
   });
   titleLink.addEventListener("click", (event) => {
     event.preventDefault();
