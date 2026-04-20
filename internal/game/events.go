@@ -9,6 +9,15 @@ type Event any
 
 type RoomEvent any
 
+type GameStarted struct {
+	RoomID      RoomID
+	Game        engine.Game
+	GameNumber  uint
+	WhitePlayer PlayerID
+	BlackPlayer PlayerID
+	StartedAt   time.Time
+}
+
 type StateUpdate struct {
 	RoomID     RoomID
 	Game       engine.Game

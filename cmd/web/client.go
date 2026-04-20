@@ -6,7 +6,8 @@ import (
 )
 
 type Client struct {
-	ID ClientID
+	ID       ClientID
+	PlayerID string
 }
 
 type ClientID string
@@ -31,7 +32,7 @@ func (s *clientService) Create(ctx context.Context) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{ID: ClientID(user.ID)}, nil
+	return &Client{ID: ClientID(user.ID), PlayerID: user.PlayerID}, nil
 }
 
 func (s *clientService) Lookup(ctx context.Context, id ClientID) (*Client, error) {
@@ -39,5 +40,5 @@ func (s *clientService) Lookup(ctx context.Context, id ClientID) (*Client, error
 	if err != nil {
 		return nil, err
 	}
-	return &Client{ID: ClientID(user.ID)}, nil
+	return &Client{ID: ClientID(user.ID), PlayerID: user.PlayerID}, nil
 }

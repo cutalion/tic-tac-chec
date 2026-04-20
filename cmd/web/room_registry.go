@@ -34,15 +34,15 @@ func (rr *roomRegistry) Create(pairing Pairing) RoomEntry {
 	rr.mu.Lock()
 	defer rr.mu.Unlock()
 
-	p1 := game.NewPlayer(make(chan game.Command))
-	p2 := game.NewPlayer(make(chan game.Command))
+	p1 := game.NewPlayerWithID(make(chan game.Command), pairing.Players[0].PlayerID)
+	p2 := game.NewPlayerWithID(make(chan game.Command), pairing.Players[1].PlayerID)
 	room := game.NewRoom(p1, p2)
 
 	entry := RoomEntry{
 		Room: room,
 		Participants: [2]Participant{
-			Participant{ClientID: pairing.Players[0], PlayerID: p1.ID},
-			Participant{ClientID: pairing.Players[1], PlayerID: p2.ID},
+			Participant{ClientID: pairing.Players[0].ID, PlayerID: p1.ID},
+			Participant{ClientID: pairing.Players[1].ID, PlayerID: p2.ID},
 		},
 	}
 

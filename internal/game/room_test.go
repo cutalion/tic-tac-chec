@@ -234,11 +234,13 @@ func TestRoom_SubscribeReceivesMoveAppliedThenStateUpdate(t *testing.T) {
 	room, commands := setupRoom()
 	defer close(commands[0])
 
-	go room.Run()
-
 	subscriber := make(chan RoomEvent, 10)
 	cancel := room.Subscribe(subscriber)
 	defer cancel()
+
+	go room.Run()
+
+	<-subscriber // drain GameStarted message
 
 	commands[0] <- MoveCommand{
 		Piece: engine.WhiteBishop,
@@ -265,11 +267,11 @@ func TestRoom_CancelStopsDelivery(t *testing.T) {
 	room, commands := setupRoom()
 	defer close(commands[0])
 
-	go room.Run()
-
 	subscriber := make(chan RoomEvent, 10)
 	cancel := room.Subscribe(subscriber)
 	cancel()
+
+	go room.Run()
 
 	commands[0] <- MoveCommand{
 		Piece: engine.WhiteBishop,
@@ -286,8 +288,6 @@ func TestRoom_MultipleSubscribers(t *testing.T) {
 	room, commands := setupRoom()
 	defer close(commands[0])
 
-	go room.Run()
-
 	subscriber1 := make(chan RoomEvent, 10)
 	cancel1 := room.Subscribe(subscriber1)
 	defer cancel1()
@@ -296,10 +296,16 @@ func TestRoom_MultipleSubscribers(t *testing.T) {
 	cancel2 := room.Subscribe(subscriber2)
 	defer cancel2()
 
+	go room.Run()
+
+	<-subscriber1 // drain GameStarted message
+	<-subscriber2
+
 	commands[0] <- MoveCommand{
 		Piece: engine.WhiteBishop,
 		To:    engine.Cell{Row: 0, Col: 0},
 	}
+
 	event1, ok := <-subscriber1
 	if !ok {
 		t.Fatalf("expected move event to be received, but none was received")
@@ -321,8 +327,6 @@ func TestRoom_SlowSubscriberDoesntStallOthers(t *testing.T) {
 	room, commands := setupRoom()
 	defer close(commands[0])
 
-	go room.Run()
-
 	slow := make(chan RoomEvent, 1)
 	cancelSlow := room.Subscribe(slow)
 	defer cancelSlow()
@@ -330,6 +334,8 @@ func TestRoom_SlowSubscriberDoesntStallOthers(t *testing.T) {
 	fast := make(chan RoomEvent, 16)
 	cancelFast := room.Subscribe(fast)
 	defer cancelFast()
+
+	go room.Run()
 
 	commands[0] <- MoveCommand{Piece: engine.WhiteBishop, To: engine.Cell{Row: 0, Col: 0}}
 	commands[1] <- MoveCommand{Piece: engine.BlackBishop, To: engine.Cell{Row: 3, Col: 3}}
@@ -352,11 +358,11 @@ func TestRoom_QuitClosesSubscribers(t *testing.T) {
 	room, commands := setupRoom()
 	defer close(commands[0])
 
-	go room.Run()
-
 	sub := make(chan RoomEvent, 16)
 	cancel := room.Subscribe(sub)
 	defer cancel()
+
+	go room.Run()
 
 	room.Quit <- struct{}{}
 

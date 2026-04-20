@@ -28,8 +28,7 @@ func main() {
 	}
 	defer db.Close()
 
-	clients := NewClientService(db.Users())
-	app := NewApp(clients, bots, allowedOrigins)
+	app := NewApp(db, bots, allowedOrigins)
 
 	mux := http.NewServeMux()
 	registerStaticRoutes(mux)

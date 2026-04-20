@@ -3,40 +3,22 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/stretchr/testify/assert"
 )
-
-type fakeClientService struct {
-	nextID atomic.Uint32
-}
-
-func (f *fakeClientService) Create(ctx context.Context) (*Client, error) {
-	id := f.nextID.Add(1)
-	return &Client{ID: ClientID(fmt.Sprintf("c_%04d", id))}, nil
-}
-
-func (f *fakeClientService) Lookup(ctx context.Context, id ClientID) (*Client, error) {
-	return &Client{ID: id}, nil
-}
-
-func FakeClientService() ClientService {
-	return &fakeClientService{nextID: atomic.Uint32{}}
-}
 
 func setupAppServer(t *testing.T) (*http.ServeMux, *App) {
 	t.Helper()
 
-	clients := FakeClientService()
-	app := NewApp(clients, nil, nil) // nil bots and origins for tests
+	db := newTestStore(t)
+	app := NewApp(db, nil, nil) // nil bots and origins for tests
 
 	router := http.NewServeMux()
 	router.HandleFunc("/api/clients", app.CreateClient)
@@ -60,10 +42,7 @@ func TestCreateClientRespondsWithToken(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusCreated, rr.Code)
 	}
 
-	expectedBody := "{\"token\":\"c_0001\"}\n"
-	if expectedBody != rr.Body.String() {
-		t.Errorf("expected body %s, got '%s'", expectedBody, rr.Body.String())
-	}
+	assert.Regexp(t, `{"token":"[a-f0-9\-]+"}`, rr.Body.String())
 }
 
 func TestMeRespondsWithClient(t *testing.T) {
@@ -211,7 +190,7 @@ func TestRoomJoinClientNotParticipant(t *testing.T) {
 	client2, _ := app.clients.Create(context.Background())
 	client3, _ := app.clients.Create(context.Background())
 
-	roomRegistry := app.roomRegistry.Create(Pairing{Players: [2]ClientID{client1.ID, client2.ID}})
+	roomRegistry := app.roomRegistry.Create(Pairing{Players: [2]Client{*client1, *client2}})
 	go roomRegistry.Room.Run()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -236,7 +215,7 @@ func TestRoomJoinClientParticipant(t *testing.T) {
 	client1, _ := app.clients.Create(context.Background())
 	client2, _ := app.clients.Create(context.Background())
 
-	roomEntry := app.roomRegistry.Create(Pairing{Players: [2]ClientID{client1.ID, client2.ID}})
+	roomEntry := app.roomRegistry.Create(Pairing{Players: [2]Client{*client1, *client2}})
 	go roomEntry.Room.Run()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -261,7 +240,7 @@ func TestReactionMessage(t *testing.T) {
 	client1, _ := app.clients.Create(context.Background())
 	client2, _ := app.clients.Create(context.Background())
 
-	roomEntry := app.roomRegistry.Create(Pairing{Players: [2]ClientID{client1.ID, client2.ID}})
+	roomEntry := app.roomRegistry.Create(Pairing{Players: [2]Client{*client1, *client2}})
 	go roomEntry.Room.Run()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

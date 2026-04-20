@@ -60,6 +60,17 @@ func NewPlayer(commands <-chan Command) Player {
 	}
 }
 
+func NewPlayerWithID(commands <-chan Command, id string) Player {
+	return Player{
+		ID:       PlayerID(id),
+		Commands: commands,
+		// Room writes, UI reads. Bidirectional on the struct so both sides
+		// can access it. Buffered(1) to absorb timing gaps between UI Cmd dispatches.
+		Updates:         make(chan Event, 1),
+		ConnectionState: Connected,
+	}
+}
+
 func NewRoom(player1, player2 Player) *Room {
 	player1.Color, player2.Color = engine.White, engine.Black
 
@@ -80,6 +91,8 @@ func (r *Room) Run() {
 	defer func() {
 		r.close()
 	}()
+
+	r.emit(GameStarted{RoomID: r.ID, Game: *r.Game, GameNumber: r.GameNumber, WhitePlayer: r.Players[0].ID, BlackPlayer: r.Players[1].ID, StartedAt: time.Now()})
 
 	// before the game starts, send the paired event to the players
 	// and tell them their color
@@ -271,6 +284,7 @@ func (r *Room) startRematch() {
 	// swap colors
 	r.Players[0].Color, r.Players[1].Color = r.Players[1].Color, r.Players[0].Color
 
+	r.emit(GameStarted{RoomID: r.ID, Game: *r.Game, GameNumber: r.GameNumber, WhitePlayer: r.Players[0].ID, BlackPlayer: r.Players[1].ID, StartedAt: time.Now()})
 	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, GameNumber: r.GameNumber, UpdatedAt: time.Now()})
 
 	for _, player := range r.Players {

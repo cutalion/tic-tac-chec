@@ -21,6 +21,7 @@ var (
 )
 
 type App struct {
+	db             *store.Store
 	clients        ClientService
 	lobbyRegistry  LobbyRegistry
 	roomRegistry   RoomRegistry
@@ -28,11 +29,13 @@ type App struct {
 	allowedOrigins []string
 }
 
-func NewApp(clients ClientService, bots map[string]*bot.Bot, allowedOrigins []string) *App {
+func NewApp(db *store.Store, bots map[string]*bot.Bot, allowedOrigins []string) *App {
 	roomRegistry := NewRoomRegistry()
-	lobbyRegistry := NewLobbyRegistry(roomRegistry)
+	lobbyRegistry := NewLobbyRegistry(roomRegistry, db.Games())
+	clients := NewClientService(db.Users())
 
 	return &App{
+		db:             db,
 		clients:        clients,
 		lobbyRegistry:  lobbyRegistry,
 		roomRegistry:   roomRegistry,
@@ -90,7 +93,7 @@ func (a *App) Lobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.serveLobby(w, r, lobby, client.ID)
+	a.serveLobby(w, r, lobby, *client)
 }
 
 func (a *App) DefaultLobby(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +103,7 @@ func (a *App) DefaultLobby(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.serveLobby(w, r, a.lobbyRegistry.DefaultLobby(), client.ID)
+	a.serveLobby(w, r, a.lobbyRegistry.DefaultLobby(), *client)
 }
 
 func (a *App) BotGame(w http.ResponseWriter, r *http.Request) {
@@ -328,7 +331,7 @@ func (a *App) authenticate(r *http.Request) (*Client, error) {
 	return client, nil
 }
 
-func (a *App) serveLobby(w http.ResponseWriter, r *http.Request, lobby *lobby, clientID ClientID) {
+func (a *App) serveLobby(w http.ResponseWriter, r *http.Request, lobby *lobby, client Client) {
 	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		OriginPatterns: a.allowedOrigins,
 	})
@@ -337,12 +340,12 @@ func (a *App) serveLobby(w http.ResponseWriter, r *http.Request, lobby *lobby, c
 	}
 	defer ws.Close(websocket.StatusNormalClosure, "we're closing. bye!")
 
-	results, err := lobby.Join(clientID)
+	results, err := lobby.Join(client)
 	if err != nil {
 		ws.Close(websocket.StatusPolicyViolation, err.Error())
 		return
 	}
-	defer lobby.Leave(clientID)
+	defer lobby.Leave(client.ID)
 
 	if err := a.sendMessage(ws, lobbyWaitMessage{Type: "waiting"}); err != nil {
 		return

@@ -3,6 +3,8 @@ package main
 import (
 	"sync"
 
+	"tic-tac-chec/cmd/web/store"
+
 	"github.com/google/uuid"
 )
 
@@ -16,16 +18,18 @@ type lobbyRegistry struct {
 	mu           sync.Mutex
 	lobbies      map[LobbyID]*lobby
 	roomRegistry RoomRegistry
+	games        *store.GameStore
 }
 
 var (
 	DefaultLobbyID LobbyID = "default"
 )
 
-func NewLobbyRegistry(roomRegistry RoomRegistry) *lobbyRegistry {
+func NewLobbyRegistry(roomRegistry RoomRegistry, games *store.GameStore) *lobbyRegistry {
 	reg := lobbyRegistry{
 		lobbies:      make(map[LobbyID]*lobby),
 		roomRegistry: roomRegistry,
+		games:        games,
 	}
 
 	reg.createDefaultLobby()
@@ -61,7 +65,7 @@ func (lr *lobbyRegistry) Create() *lobby {
 		return lobby
 	}
 
-	lobby := NewLobby(id, lr.roomRegistry, EphemeralLobby)
+	lobby := NewLobby(id, lr.roomRegistry, lr.games, EphemeralLobby)
 	lr.lobbies[id] = lobby
 	return lobby
 }
@@ -74,7 +78,7 @@ func (lr *lobbyRegistry) createDefaultLobby() {
 		return
 	}
 
-	lobby := NewLobby(DefaultLobbyID, lr.roomRegistry, PersistentLobby)
+	lobby := NewLobby(DefaultLobbyID, lr.roomRegistry, lr.games, PersistentLobby)
 	lr.lobbies[DefaultLobbyID] = lobby
 }
 

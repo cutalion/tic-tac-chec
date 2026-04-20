@@ -4,11 +4,12 @@ import (
 	"errors"
 	"log"
 	"sync"
+	"tic-tac-chec/cmd/web/store"
 	"tic-tac-chec/internal/game"
 )
 
 type Pairing struct {
-	Players [2]ClientID
+	Players [2]Client
 }
 
 type PairingResult struct {
@@ -22,12 +23,12 @@ type completedPairing struct {
 }
 
 type waiter struct {
-	clientID ClientID
-	results  chan PairingResult
+	client  Client
+	results chan PairingResult
 }
 
 type Lobby interface {
-	Join(clientID ClientID) (<-chan PairingResult, error)
+	Join(client Client) (<-chan PairingResult, error)
 	Leave(clientID ClientID)
 }
 
@@ -36,6 +37,7 @@ type LobbyID string
 type lobby struct {
 	ID           LobbyID
 	roomRegistry RoomRegistry
+	games        *store.GameStore
 	waiter       *waiter
 
 	// persistent lobby persists after all players leave or both players joined
@@ -55,19 +57,19 @@ var (
 	ErrRoomNotFound = errors.New("room not found")
 )
 
-func NewLobby(id LobbyID, roomRegistry RoomRegistry, persistent bool) *lobby {
-	return &lobby{ID: id, roomRegistry: roomRegistry, persistent: persistent}
+func NewLobby(id LobbyID, roomRegistry RoomRegistry, games *store.GameStore, persistent bool) *lobby {
+	return &lobby{ID: id, roomRegistry: roomRegistry, games: games, persistent: persistent}
 }
 
-func (l *lobby) Join(clientID ClientID) (<-chan PairingResult, error) {
+func (l *lobby) Join(client Client) (<-chan PairingResult, error) {
 	// if there is no waiter, create a new one
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	log.Println("lobby join", clientID)
+	log.Println("lobby join", client.ID)
 
 	if l.completed != nil {
-		if clientID == l.completed.Pairing.Players[1] || clientID == l.completed.Pairing.Players[0] {
+		if client.ID == l.completed.Pairing.Players[1].ID || client.ID == l.completed.Pairing.Players[0].ID {
 			roomEntry, ok := l.roomRegistry.Lookup(l.completed.RoomID)
 			if !ok {
 				return nil, ErrRoomNotFound
@@ -86,8 +88,8 @@ func (l *lobby) Join(clientID ClientID) (<-chan PairingResult, error) {
 
 	if l.waiter == nil {
 		waiter := &waiter{
-			clientID: clientID,
-			results:  make(chan PairingResult, 1),
+			client:  client,
+			results: make(chan PairingResult, 1),
 		}
 
 		l.waiter = waiter
@@ -96,12 +98,12 @@ func (l *lobby) Join(clientID ClientID) (<-chan PairingResult, error) {
 	}
 
 	// rejoin
-	if l.waiter.clientID == clientID {
+	if l.waiter.client.ID == client.ID {
 		close(l.waiter.results)
 
 		waiter := &waiter{
-			clientID: clientID,
-			results:  make(chan PairingResult, 1),
+			client:  client,
+			results: make(chan PairingResult, 1),
 		}
 
 		l.waiter = waiter
@@ -117,17 +119,18 @@ func (l *lobby) Join(clientID ClientID) (<-chan PairingResult, error) {
 	results1 := waiter.results
 	results2 := make(chan PairingResult, 1)
 
-	roomEntry := l.roomRegistry.Create(Pairing{Players: [2]ClientID{waiter.clientID, clientID}})
+	roomEntry := l.roomRegistry.Create(Pairing{Players: [2]Client{waiter.client, client}})
+	go recordGames(l.games, roomEntry.Room)
 	go roomEntry.Room.Run()
 
 	result := PairingResult{
-		Pairing:   Pairing{Players: [2]ClientID{waiter.clientID, clientID}},
+		Pairing:   Pairing{Players: [2]Client{waiter.client, client}},
 		RoomEntry: roomEntry,
 	}
 
 	if !l.persistent {
 		l.completed = &completedPairing{
-			Pairing: Pairing{Players: [2]ClientID{waiter.clientID, clientID}},
+			Pairing: Pairing{Players: [2]Client{waiter.client, client}},
 			RoomID:  roomEntry.Room.ID,
 		}
 	}
@@ -146,7 +149,7 @@ func (l *lobby) Leave(clientID ClientID) {
 		return
 	}
 
-	if l.waiter.clientID == clientID {
+	if l.waiter.client.ID == clientID {
 		l.waiter = nil
 	}
 }
