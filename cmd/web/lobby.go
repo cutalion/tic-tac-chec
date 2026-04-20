@@ -120,7 +120,8 @@ func (l *lobby) Join(client Client) (<-chan PairingResult, error) {
 	results2 := make(chan PairingResult, 1)
 
 	roomEntry := l.roomRegistry.Create(Pairing{Players: [2]Client{waiter.client, client}})
-	go recordGames(l.games, roomEntry.Room)
+
+	runPersistor(l.games, roomEntry.Room)
 	go roomEntry.Room.Run()
 
 	result := PairingResult{

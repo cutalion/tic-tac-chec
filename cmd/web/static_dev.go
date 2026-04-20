@@ -29,7 +29,12 @@ func registerStaticRoutes(mux *http.ServeMux) {
 }
 
 func staticHandler() http.Handler {
-	return http.FileServer(http.Dir("cmd/web/static"))
+	fs := http.FileServer(http.Dir("cmd/web/static"))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Dev builds: never cache static assets, so edits are always picked up.
+		w.Header().Set("Cache-Control", "no-store")
+		fs.ServeHTTP(w, r)
+	})
 }
 
 func indexHandler() http.Handler {

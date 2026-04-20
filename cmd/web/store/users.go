@@ -25,18 +25,8 @@ const (
 )
 
 func (s *UserStore) Create(ctx context.Context) (User, error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return User{}, err
-	}
-
-	playerID, err := uuid.NewV7()
-	if err != nil {
-		return User{}, err
-	}
-
-	userIdStr := id.String()
-	playerIDStr := playerID.String()
+	userId := uuid.Must(uuid.NewV7()).String()
+	playerID := uuid.Must(uuid.NewV7()).String()
 	createdAt := time.Now()
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -45,11 +35,11 @@ func (s *UserStore) Create(ctx context.Context) (User, error) {
 	}
 	defer tx.Rollback()
 
-	if _, err = tx.ExecContext(ctx, insertUserSQL, userIdStr, formatTime(createdAt)); err != nil {
+	if _, err = tx.ExecContext(ctx, insertUserSQL, userId, formatTime(createdAt)); err != nil {
 		return User{}, err
 	}
 
-	if _, err = tx.ExecContext(ctx, insertPlayerSQL, playerIDStr, userIdStr, nil); err != nil {
+	if _, err = tx.ExecContext(ctx, insertPlayerSQL, playerID, userId, nil); err != nil {
 		return User{}, err
 	}
 
@@ -57,7 +47,7 @@ func (s *UserStore) Create(ctx context.Context) (User, error) {
 		return User{}, err
 	}
 
-	return User{ID: userIdStr, PlayerID: playerIDStr, CreatedAt: createdAt}, nil
+	return User{ID: userId, PlayerID: playerID, CreatedAt: createdAt}, nil
 }
 
 func (s *UserStore) Get(ctx context.Context, id string) (User, error) {

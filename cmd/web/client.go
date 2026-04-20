@@ -12,6 +12,10 @@ type Client struct {
 
 type ClientID string
 
+const (
+	BotClientID ClientID = "bot"
+)
+
 type ClientService interface {
 	Create(ctx context.Context) (*Client, error)
 	Lookup(ctx context.Context, id ClientID) (*Client, error)

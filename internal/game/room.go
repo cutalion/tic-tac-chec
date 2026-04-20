@@ -17,6 +17,7 @@ const (
 
 type RoomID string
 type PlayerID string
+type GameID string
 
 type Player struct {
 	ID              PlayerID
@@ -34,6 +35,7 @@ type ReconnectInfo struct {
 
 type Room struct {
 	ID                    RoomID
+	GameID                GameID // current game id
 	Players               [2]Player
 	Game                  *engine.Game
 	Quit                  chan struct{}
@@ -74,8 +76,12 @@ func NewPlayerWithID(commands <-chan Command, id string) Player {
 func NewRoom(player1, player2 Player) *Room {
 	player1.Color, player2.Color = engine.White, engine.Black
 
-	return &Room{
-		ID:                    RoomID(uuid.New().String()),
+	roomId := uuid.Must(uuid.NewV7()).String()
+	gameId := uuid.Must(uuid.NewV7()).String()
+
+	room := &Room{
+		ID:                    RoomID(roomId),
+		GameID:                GameID(gameId),
 		Game:                  engine.NewGame(),
 		Players:               [2]Player{player1, player2},
 		Quit:                  make(chan struct{}),
@@ -85,6 +91,8 @@ func NewRoom(player1, player2 Player) *Room {
 		GameNumber:            1,
 		subscribers:           make(map[chan<- RoomEvent]struct{}),
 	}
+
+	return room
 }
 
 func (r *Room) Run() {
@@ -92,12 +100,12 @@ func (r *Room) Run() {
 		r.close()
 	}()
 
-	r.emit(GameStarted{RoomID: r.ID, Game: *r.Game, GameNumber: r.GameNumber, WhitePlayer: r.Players[0].ID, BlackPlayer: r.Players[1].ID, StartedAt: time.Now()})
+	r.emit(NewGameStarted(r.ID, r.GameID, *r.Game, r.GameNumber, r.Players[0].ID, r.Players[1].ID, time.Now()))
 
-	// before the game starts, send the paired event to the players
-	// and tell them their color
+	// Before the game starts, send the paired event to each player.
+	// Use sendUpdateTo so restored Players (Updates=nil) don't block Run.
 	for _, player := range r.Players {
-		player.Updates <- PairedEvent{PlayerID: player.ID, Color: player.Color}
+		sendUpdateTo(player, PairedEvent{PlayerID: player.ID, Color: player.Color})
 	}
 
 	for {
@@ -164,7 +172,7 @@ func (r *Room) Run() {
 }
 
 func (r *Room) close() {
-	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, GameNumber: r.GameNumber, UpdatedAt: time.Now()})
+	r.emit(NewStateUpdate(r.ID, r.GameID, *r.Game, r.GameNumber, time.Now()))
 
 	r.clearSubs()
 
@@ -238,8 +246,8 @@ func (r *Room) handleMove(mover Player, move MoveCommand) {
 	}
 
 	now := time.Now()
-	r.emit(MoveApplied{RoomID: r.ID, By: mover.ID, Piece: move.Piece, To: move.To, Seq: r.Game.MoveCount, GameNumber: r.GameNumber, At: now})
-	r.emit(StateUpdate{RoomID: r.ID, Game: *r.Game, GameNumber: r.GameNumber, UpdatedAt: now})
+	r.emit(NewMoveApplied(r.ID, mover.ID, move.Piece, move.To, r.Game.MoveCount, r.GameNumber, now))
+	r.emit(NewStateUpdate(r.ID, r.GameID, *r.Game, r.GameNumber, now))
 
 	for _, player := range r.Players {
 		sendUpdateTo(player, SnapshotEvent{RoomID: r.ID, Game: *r.Game})
@@ -275,6 +283,8 @@ func (r *Room) handleReaction(mover Player, reaction ReactionCommand) {
 func (r *Room) startRematch() {
 	r.mu.Lock()
 
+	gameId := uuid.Must(uuid.NewV7()).String()
+	r.GameID = GameID(gameId)
 	r.Game = engine.NewGame()
 	r.WhiteRematchRequested = false
 	r.BlackRematchRequested = false
@@ -292,8 +302,8 @@ func (r *Room) startRematch() {
 	r.mu.Unlock()
 
 	now := time.Now().UTC()
-	r.emit(GameStarted{RoomID: r.ID, Game: gameSnapshot, GameNumber: gameNumber, WhitePlayer: whiteID, BlackPlayer: blackID, StartedAt: now})
-	r.emit(StateUpdate{RoomID: r.ID, Game: gameSnapshot, GameNumber: gameNumber, UpdatedAt: now})
+	r.emit(NewGameStarted(r.ID, r.GameID, gameSnapshot, gameNumber, whiteID, blackID, now))
+	r.emit(NewStateUpdate(r.ID, r.GameID, gameSnapshot, gameNumber, now))
 
 	for _, p := range players {
 		sendUpdateTo(p, PairedEvent{PlayerID: p.ID, Color: p.Color})

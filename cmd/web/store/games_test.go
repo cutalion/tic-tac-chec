@@ -17,7 +17,7 @@ func TestGameStore_CreateLoadRoundtripsState(t *testing.T) {
 	u1, _ := s.Users().Create(ctx)
 	u2, _ := s.Users().Create(ctx)
 
-	game1, _ := store.NewGame("room-1", u1.PlayerID, u2.PlayerID)
+	game1 := store.NewGame("game-1", "room-1", u1.PlayerID, u2.PlayerID)
 	game1.State = []byte("initial state")
 
 	s.Games().Create(ctx, game1)
@@ -57,7 +57,7 @@ func TestGameStore_Create_SelfPlayRejected(t *testing.T) {
 	ctx := context.Background()
 	u1, _ := s.Users().Create(ctx)
 
-	game, _ := store.NewGame("room-1", u1.PlayerID, u1.PlayerID)
+	game := store.NewGame("game-1", "room-1", u1.PlayerID, u1.PlayerID)
 	err := s.Games().Create(ctx, game)
 	require.Error(t, err)
 }
@@ -75,7 +75,7 @@ func TestGameStore_UpdateStateChangesOnlyStateAndUpdatedAt(t *testing.T) {
 	u1, _ := s.Users().Create(ctx)
 	u2, _ := s.Users().Create(ctx)
 
-	game, _ := store.NewGame("room-1", u1.PlayerID, u2.PlayerID)
+	game := store.NewGame("game-1", "room-1", u1.PlayerID, u2.PlayerID)
 	createdAt := time.Now().Add(-10 * time.Second)
 	game.CreatedAt = createdAt
 	game.UpdatedAt = createdAt
@@ -107,7 +107,7 @@ func TestGameStore_Finish(t *testing.T) {
 	u1, _ := s.Users().Create(ctx)
 	u2, _ := s.Users().Create(ctx)
 
-	game, _ := store.NewGame("room-1", u1.PlayerID, u2.PlayerID)
+	game := store.NewGame("game-1", "room-1", u1.PlayerID, u2.PlayerID)
 	game.State = []byte("initial state")
 	err := s.Games().Create(ctx, game)
 	require.NoError(t, err)
@@ -140,9 +140,9 @@ func TestGameStore_LoadLatestByRoom(t *testing.T) {
 	u1, _ := s.Users().Create(ctx)
 	u2, _ := s.Users().Create(ctx)
 
-	game1, _ := store.NewGame("room-1", u1.PlayerID, u2.PlayerID)
-	game2, _ := store.NewGame("room-1", u2.PlayerID, u1.PlayerID)
-	game3, _ := store.NewGame("room-1", u1.PlayerID, u2.PlayerID)
+	game1 := store.NewGame("game-1", "room-1", u1.PlayerID, u2.PlayerID)
+	game2 := store.NewGame("game-2", "room-1", u2.PlayerID, u1.PlayerID)
+	game3 := store.NewGame("game-3", "room-1", u1.PlayerID, u2.PlayerID)
 
 	state := []byte("initial state")
 	game1.State = state

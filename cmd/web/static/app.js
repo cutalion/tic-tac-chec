@@ -22,6 +22,7 @@ const state = {
   lobbyShareStatus: null,
   roomId: null,
   roomReady: false,
+  roomEverReady: false,
   myColor: null,
   board: null,
   turn: null,
@@ -92,6 +93,7 @@ function detectRoute() {
     if (newRoomId !== state.roomId) {
       state.score = { me: 0, opponent: 0 };
       state.roomId = newRoomId;
+      state.roomEverReady = false;
       loadScore();
     }
     state.lobbyId = null;
@@ -146,15 +148,30 @@ async function ensureClientToken() {
   const hashParams = new URLSearchParams(location.hash.slice(1));
   const clientId = hashParams.get("clientId");
 
-  if (clientId && (await tokenIsValid(clientId))) {
-    removeFromHashParams("clientId");
-    localStorage.setItem(tokenKey, clientId);
-    return clientId;
+  if (clientId) {
+    // Network errors during hash validation propagate up — don't silently
+    // fall through to creating a new client when the server is down.
+    if (await tokenIsValid(clientId)) {
+      removeFromHashParams("clientId");
+      localStorage.setItem(tokenKey, clientId);
+      return clientId;
+    }
+    // Server explicitly rejected the hash clientId; fall through to stored.
   }
 
   const stored = localStorage.getItem(tokenKey);
-  if (stored && (await tokenIsValid(stored))) {
-    return stored;
+  if (stored) {
+    try {
+      if (await tokenIsValid(stored)) {
+        return stored;
+      }
+      // Server rejected stored token: clear and issue a new one.
+    } catch (error) {
+      // Network error: keep the stored token and bubble up so callers can
+      // retry later instead of losing identity during an outage.
+      console.warn("token validation unreachable, keeping stored token", error);
+      throw error;
+    }
   }
 
   localStorage.removeItem(tokenKey);
@@ -181,16 +198,15 @@ function removeFromHashParams(paramName) {
   window.history.replaceState({}, "", nextURL);
 }
 
+// Returns true if the server confirmed the token is valid, false if the server
+// explicitly rejected it (401/403). Throws on network errors so callers can
+// distinguish "server is down" from "my token is bad" — network errors must
+// NOT clear the stored token.
 async function tokenIsValid(token) {
-  try {
-    const response = await fetch("/api/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.ok;
-  } catch (error) {
-    console.warn("token validation failed", error);
-    return false;
-  }
+  const response = await fetch("/api/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.ok;
 }
 
 function connectLobby() {
@@ -307,7 +323,7 @@ function connectRoom() {
       return;
     }
 
-    if (!state.roomReady) {
+    if (!state.roomEverReady) {
       navigateToLobby();
       return;
     }
@@ -346,6 +362,7 @@ function handleRoomMessage(data) {
       state.pawnDirections = data.state.pawnDirections;
       reconcileSelectedPiece();
       state.roomReady = true;
+      state.roomEverReady = true;
 
       if (state.status === "over") {
         state.phase = "gameOver";

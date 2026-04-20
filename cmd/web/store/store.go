@@ -12,6 +12,10 @@ type Store struct {
 	db *sql.DB
 }
 
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
 var ErrNotFound = errors.New("store: not found")
 
 func NewStore(path string) (*Store, error) {

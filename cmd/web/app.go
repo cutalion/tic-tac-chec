@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -29,12 +30,21 @@ type App struct {
 }
 
 func NewApp(db *store.Store, allowedOrigins []string) *App {
-	roomRegistry := NewRoomRegistry()
+	bots := initBots(context.Background(), db)
+	spawnBot := func(botID string) (game.Player, bool) {
+		for _, bot := range bots {
+			if bot.Info.ID == botID {
+				return bot.Model.RunPlayer(bot.Info.PlayerID), true
+			}
+		}
+		return game.Player{}, false
+	}
+
+	roomRegistry := NewRoomRegistry(db.Games(), db.Players(), spawnBot)
 	lobbyRegistry := NewLobbyRegistry(roomRegistry, db.Games())
 	clients := NewClientService(db.Users())
-	bots := initBots(context.Background(), db)
 
-	return &App{
+	app := &App{
 		db:             db,
 		clients:        clients,
 		lobbyRegistry:  lobbyRegistry,
@@ -42,6 +52,8 @@ func NewApp(db *store.Store, allowedOrigins []string) *App {
 		bots:           bots,
 		allowedOrigins: allowedOrigins,
 	}
+	app.restoreActiveGames(context.Background())
+	return app
 }
 
 func (a *App) CreateClient(w http.ResponseWriter, r *http.Request) {
@@ -131,10 +143,10 @@ func (a *App) BotGame(w http.ResponseWriter, r *http.Request) {
 	humanPlayer := game.NewPlayerWithID(humanCommands, client.PlayerID)
 
 	botPlayer := bot.Model.RunPlayer(bot.Info.PlayerID)
-	botClientID := ClientID("bot")
 
-	entry := a.roomRegistry.CreateWithPlayers(humanPlayer, botPlayer, [2]ClientID{client.ID, botClientID})
-	go recordGames(a.db.Games(), entry.Room)
+	entry := a.roomRegistry.CreateWithPlayers(humanPlayer, botPlayer, [2]ClientID{client.ID, BotClientID})
+
+	runPersistor(a.db.Games(), entry.Room)
 	go entry.Room.Run()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -175,8 +187,8 @@ func (a *App) Room(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roomEntry, exists := a.roomRegistry.Lookup(roomID)
-	if !exists {
+	roomEntry, found := a.roomRegistry.Lookup(roomID)
+	if !found {
 		http.Error(w, "room not found", http.StatusNotFound)
 		return
 	}
@@ -392,6 +404,101 @@ func (a *App) handleAuthError(w http.ResponseWriter, err error) {
 	}
 
 	http.Error(w, "internal server error", http.StatusInternalServerError)
+}
+
+func (a *App) buildRoomFromGame(ctx context.Context, g store.Game) (RoomEntry, error) {
+	whitePlayer, err := a.db.Players().Get(ctx, g.WhitePlayerID)
+	if err != nil {
+		return RoomEntry{}, ErrRoomNotFound
+	}
+	blackPlayer, err := a.db.Players().Get(ctx, g.BlackPlayerID)
+	if err != nil {
+		return RoomEntry{}, ErrRoomNotFound
+	}
+
+	gamePlayerWhite, clientWhite, err := a.playerFor(whitePlayer)
+	if err != nil {
+		return RoomEntry{}, ErrRoomNotFound
+	}
+	gamePlayerBlack, clientBlack, err := a.playerFor(blackPlayer)
+	if err != nil {
+		return RoomEntry{}, ErrRoomNotFound
+	}
+
+	var gameState engine.Game
+	err = json.Unmarshal(g.State, &gameState)
+	if err != nil {
+		return RoomEntry{}, ErrRoomNotFound
+	}
+
+	room := game.NewRoom(gamePlayerWhite, gamePlayerBlack)
+	room.ID = game.RoomID(g.RoomID)
+	room.GameID = game.GameID(g.ID)
+	room.Game = &gameState
+
+	entry := RoomEntry{
+		Room: room,
+		Participants: [2]Participant{
+			{ClientID: clientWhite, PlayerID: gamePlayerWhite.ID},
+			{ClientID: clientBlack, PlayerID: gamePlayerBlack.ID},
+		},
+	}
+	return entry, nil
+}
+
+func (a *App) playerFor(p store.Player) (game.Player, ClientID, error) {
+	switch {
+	case p.BotID != nil:
+		player, ok := a.spawnBot(*p.BotID)
+		if !ok {
+			return game.Player{}, "", fmt.Errorf("bot %s is not available", *p.BotID)
+		}
+
+		return player, BotClientID, nil
+	case p.UserID != nil:
+		player := game.Player{
+			ID:              game.PlayerID(p.ID),
+			ConnectionState: game.Disconnected,
+			// disconnected, will establish channels and set color on reconnect
+			Commands: nil,
+			Updates:  nil,
+			Color:    engine.Color(0),
+		}
+
+		return player, ClientID(*p.UserID), nil
+	default:
+		return game.Player{}, "", fmt.Errorf("player neither bot nor user")
+	}
+}
+
+func (a *App) spawnBot(botID string) (game.Player, bool) {
+	for _, bot := range a.bots {
+		if bot.Info.ID == botID {
+			return bot.Model.RunPlayer(bot.Info.PlayerID), true
+		}
+	}
+	return game.Player{}, false
+}
+
+func (a *App) restoreActiveGames(ctx context.Context) {
+	games, err := a.db.Games().LoadActive(ctx)
+	if err != nil {
+		return
+	}
+
+	for _, g := range games {
+		roomEntry, err := a.buildRoomFromGame(ctx, g)
+		if err != nil {
+			log.Printf("restore: skip game=%s: %v", g.ID, err)
+			continue
+		}
+
+		a.roomRegistry.Add(roomEntry)
+
+		runPersistor(a.db.Games(), roomEntry.Room)
+		go roomEntry.Room.Run()
+	}
+	log.Printf("restore: restored %d active games", len(games))
 }
 
 type clientResponse struct {
