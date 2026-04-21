@@ -297,3 +297,31 @@ func connectWs(t *testing.T, ctx context.Context, url string, client *Client) (*
 func wsURL(httpURL string) string {
 	return strings.Replace(httpURL, "http://", "ws://", 1)
 }
+
+func TestStaticRoutesServeIndexForKnownPathsAnd404ForUnknown(t *testing.T) {
+	mux := http.NewServeMux()
+	registerStaticRoutes(mux)
+
+	tests := []struct {
+		path   string
+		status int
+	}{
+		{"/", http.StatusOK},
+		{"/rules", http.StatusOK},
+		{"/lobby", http.StatusOK},
+		{"/lobby/abc123", http.StatusOK},
+		{"/room/xyz", http.StatusOK},
+		{"/nonexistent", http.StatusNotFound},
+		{"/foo/bar", http.StatusNotFound},
+		{"/random/deep/path", http.StatusNotFound},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.path, func(t *testing.T) {
+			req := httptest.NewRequest("GET", tc.path, nil)
+			rr := httptest.NewRecorder()
+			mux.ServeHTTP(rr, req)
+			assert.Equal(t, tc.status, rr.Code, "path %s", tc.path)
+		})
+	}
+}

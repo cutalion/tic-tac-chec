@@ -8,7 +8,7 @@ import (
 )
 
 func registerStaticRoutes(mux *http.ServeMux) {
-	mux.Handle("GET /", indexHandler())
+	mux.Handle("GET /{$}", indexHandler())
 	mux.Handle("GET /rules", indexHandler())
 	mux.Handle("GET /lobby", indexHandler())
 	mux.Handle("GET /lobby/{id}", indexHandler())
@@ -28,6 +28,8 @@ func registerStaticRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /fonts/", staticHandler())
 	mux.Handle("GET /sounds/", staticHandler())
 	mux.Handle("GET /docs/", http.StripPrefix("/docs/", http.FileServer(http.Dir("cmd/web/docs"))))
+
+	mux.Handle("GET /", notFoundHandler())
 }
 
 func staticHandler() http.Handler {
@@ -48,6 +50,20 @@ func indexHandler() http.Handler {
 		}
 
 		writeTemplatedAsset(w, "text/html; charset=utf-8", raw)
+	})
+}
+
+func notFoundHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, err := os.ReadFile("cmd/web/pages/notfound.html")
+		if err != nil {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write(raw)
 	})
 }
 

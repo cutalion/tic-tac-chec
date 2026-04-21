@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f0ebe0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a12" media="(prefers-color-scheme: dark)" />
+    <meta name="robots" content="noindex" />
+    <title>Off the board — Tic Tac Chec</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-v2.png" />
+    <link rel="preload" href="/fonts/fraunces-500.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-400.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+        @font-face {
+            font-family: "Fraunces";
+            src: url("/fonts/fraunces-500.woff2") format("woff2");
+            font-weight: 500;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: "Inter";
+            src: url("/fonts/inter-400.woff2") format("woff2");
+            font-weight: 400;
+            font-display: swap;
+        }
+
+        :root {
+            --bg: #f0ebe0;
+            --text: #1a1005;
+            --muted: #6f6354;
+            --cell-bg: #faf6ef;
+            --accent: #8b4513;
+            --cell-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0a0a12;
+                --text: #e0e0f0;
+                --muted: #8888aa;
+                --cell-bg: #1a1a2e;
+                --accent: #ffd966;
+                --cell-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            display: grid;
+            place-items: center;
+            padding: 32px 24px;
+            text-align: center;
+            line-height: 1.55;
+        }
+
+        .stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+            max-width: 44ch;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(4, 60px);
+            grid-template-rows: repeat(4, 60px);
+            gap: 4px;
+        }
+        @media (max-width: 480px) {
+            .board {
+                grid-template-columns: repeat(4, 48px);
+                grid-template-rows: repeat(4, 48px);
+                gap: 3px;
+            }
+            .digit { font-size: 1.9rem; }
+        }
+
+        .cell {
+            background: var(--cell-bg);
+            border-radius: 6px;
+            box-shadow: var(--cell-shadow);
+        }
+
+        .digit {
+            background: var(--cell-bg);
+            border-radius: 6px;
+            box-shadow: var(--cell-shadow);
+            font-family: "Fraunces", Georgia, serif;
+            font-weight: 500;
+            font-size: 2.4rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: digit-in 480ms ease both;
+        }
+        .digit:nth-of-type(1) { animation-delay: 60ms; }
+        .digit:nth-of-type(2) { animation-delay: 220ms; }
+        .digit:nth-of-type(3) { animation-delay: 380ms; }
+
+        @keyframes digit-in {
+            from { opacity: 0; transform: scale(0.7); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        h1 {
+            font-family: "Fraunces", Georgia, serif;
+            font-size: clamp(1.8rem, 5.5vw, 2.4rem);
+            font-weight: 500;
+            letter-spacing: -0.015em;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        p {
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        a.home {
+            display: inline-block;
+            color: var(--text);
+            text-decoration: none;
+            border-bottom: 1px solid var(--accent);
+            padding-bottom: 2px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            margin-top: 4px;
+            transition: color 120ms;
+        }
+        a.home:hover,
+        a.home:focus-visible {
+            color: var(--accent);
+            outline: none;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .digit { animation: none; }
+        }
+    </style>
+</head>
+<body>
+    <main class="stage">
+        <div class="board" role="presentation" aria-hidden="true">
+            <div class="digit">4</div>
+            <div class="cell"></div>
+            <div class="cell"></div>
+            <div class="cell"></div>
+            <div class="cell"></div>
+            <div class="digit">0</div>
+            <div class="cell"></div>
+            <div class="cell"></div>
+            <div class="cell"></div>
+            <div class="cell"></div>
+            <div class="digit">4</div>
+            <div class="cell"></div>
+            <div class="cell"></div>
+            <div class="cell"></div>
+            <div class="cell"></div>
+            <div class="cell"></div>
+        </div>
+        <h1>Three isn&rsquo;t four.</h1>
+        <p>This square is off the 4×4 board. No winning line here.</p>
+        <a class="home" href="/">← Back to the board</a>
+    </main>
+</body>
+</html>
