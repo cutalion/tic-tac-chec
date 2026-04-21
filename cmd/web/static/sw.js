@@ -1,17 +1,22 @@
-const CACHE_NAME = "ttc-shell-v5";
+const CACHE_NAME = "ttc-shell-v7";
 const APP_SHELL = [
   "/",
   "/app.js",
   "/style.css",
   "/manifest.json",
-  "/icon.svg",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/apple-touch-icon.png",
+  "/icon-v2.svg",
+  "/icon-192-v2.png",
+  "/icon-512-v2.png",
+  "/apple-touch-icon-v2.png",
   "/favicon.ico",
   "/fonts/fraunces-500.woff2",
   "/fonts/inter-400.woff2",
   "/fonts/inter-500.woff2",
+  "/ttc_logo.png",
+  "/sounds/move.mp3",
+  "/sounds/capture.mp3",
+  "/sounds/win.mp3",
+  "/sounds/lose.mp3",
 ];
 
 self.addEventListener("install", (event) => {
