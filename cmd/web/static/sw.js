@@ -1,12 +1,12 @@
-const CACHE_NAME = "ttc-shell-v7";
+const CACHE_NAME = "ttc-shell-v10";
 const APP_SHELL = [
   "/",
   "/app.js",
   "/style.css",
   "/manifest.json",
-  "/icon-v2.svg",
   "/icon-192-v2.png",
   "/icon-512-v2.png",
+  "/icon-512-maskable-v2.png",
   "/apple-touch-icon-v2.png",
   "/favicon.ico",
   "/fonts/fraunces-500.woff2",
