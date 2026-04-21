@@ -373,6 +373,12 @@ function runHomeDemo() {
   rook.style.transition = `transform ${HOME_DEMO.moveDurationMs}ms cubic-bezier(0.4, 0.1, 0.2, 1)`;
   rook.style.transform = `translate(${toRect.left - fromRect.left}px, ${toRect.top - fromRect.top}px)`;
 
+  // Play the capture sound as the rook visually impacts the pawn. The ease-out
+  // curve has the rook reach the target well before the 700ms transition
+  // formally ends, and relying on `transitionend` pushed the sound ~200–400ms
+  // past the visual landing. A deterministic timer matches the impact moment.
+  setTimeout(() => playSound("capture"), HOME_DEMO.moveDurationMs - 120);
+
   rook.addEventListener(
     "transitionend",
     () => {
@@ -382,7 +388,6 @@ function runHomeDemo() {
       finalRook.className = "piece-glyph piece-black";
       finalRook.innerHTML = PIECE_SVGS.rook;
       toCell.appendChild(finalRook);
-      playSound("capture");
       setTimeout(() => {
         drawWinLine(homeBoardEl, HOME_DEMO.winLine, HOME_DEMO.color);
       }, HOME_DEMO.lineDelayMs);
