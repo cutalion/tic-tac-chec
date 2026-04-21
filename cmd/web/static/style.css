@@ -181,7 +181,7 @@ h1 {
     padding: 0 12px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 12px;
 }
 
 .home-view.hidden {
@@ -190,17 +190,32 @@ h1 {
 
 .home-hero {
     display: flex;
-    justify-content: center;
-    padding: 6px 0 14px;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    padding: 0 0 20px;
 }
 
 .home-board {
-    width: min(88%, 260px);
+    position: relative;
+    width: min(72%, 200px);
     aspect-ratio: 1 / 1;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(4, 1fr);
     gap: 6px;
+}
+
+.home-slogan {
+    margin: 0;
+    font-family: "Fraunces", Georgia, serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 20px;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    text-align: center;
+    color: var(--accent);
 }
 
 .home-cell {
@@ -241,31 +256,39 @@ h1 {
     pointer-events: none;
 }
 
+.home-cell.home-target {
+    cursor: pointer;
+}
+
+.home-cell.home-target .capture-ring {
+    animation: home-pulse-ring 1.4s ease-in-out infinite;
+    transform-origin: center;
+}
+
+@keyframes home-pulse-ring {
+    0%,
+    100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.14);
+    }
+}
+
+.home-floating-glyph.piece-glyph {
+    position: absolute;
+    inset: auto;
+    z-index: 2;
+    pointer-events: none;
+    will-change: transform;
+}
+
 .difficulty-group {
     display: flex;
     flex-direction: column;
     gap: 8px;
-}
-
-.difficulty-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 0 2px;
-}
-
-.difficulty-label {
-    font-family: "Inter", system-ui, sans-serif;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--label);
-}
-
-.difficulty-hint {
-    font-size: 12px;
-    color: var(--muted);
 }
 
 .difficulty-options {
@@ -413,6 +436,10 @@ body:has(#rules-view:not(.hidden)) .rules-view {
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+#play-bot-btn {
+    margin-bottom: 14px;
 }
 
 .home-links {
@@ -996,6 +1023,20 @@ body:has(#rules-view:not(.hidden)) .rules-view {
     pointer-events: none;
 }
 
+.win-line line {
+    stroke-dasharray: var(--dash-len, 0);
+    animation: win-line-draw 520ms ease-out forwards;
+}
+
+@keyframes win-line-draw {
+    from {
+        stroke-dashoffset: var(--dash-len, 0);
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
 .win-line line.shadow {
     stroke: var(--win-shadow);
     stroke-width: var(--win-shadow-width);
@@ -1173,9 +1214,9 @@ body:has(#rules-view:not(.hidden)) .rules-view {
 
 /* Larger landing title via :has() — no JS required */
 body:has(#home-view:not(.hidden)) h1 {
-    font-size: 28px;
-    padding: 20px 0 16px;
-    line-height: 36px;
+    font-size: 26px;
+    padding: 12px 0 8px;
+    line-height: 32px;
 }
 
 body:has(#home-view:not(.hidden)) #app {

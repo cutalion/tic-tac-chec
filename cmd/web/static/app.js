@@ -21,10 +21,26 @@ const HOME_BOARD = {
     null, { kind: "pawn",   color: "black" }, { kind: "rook",   color: "white" }, null,
     { kind: "pawn",   color: "white" }, null, { kind: "knight", color: "white" }, null,
   ],
-  selected: 2,
-  dots: [5, 7, 8],
-  captures: [],
+  selected: 0,
+  dots: [1, 4, 8],
+  captures: [2, 12],
 };
+
+const HOME_DEMO = {
+  from: 0,
+  to: 12,
+  color: "black",
+  winLine: [
+    { row: 3, col: 0 },
+    { row: 2, col: 1 },
+    { row: 1, col: 2 },
+    { row: 0, col: 3 },
+  ],
+  moveDurationMs: 700,
+  lineDelayMs: 420,
+};
+
+let homeDemoPlayed = false;
 
 const DIFFICULTIES = ["easy", "medium", "hard"];
 const DIFFICULTY_STORAGE_KEY = "ttc-bot-difficulty";
@@ -43,6 +59,7 @@ const state = {
   turn: null,
   status: null,
   winner: null,
+  winLineShown: false,
   selectedPiece: null,
   pawnDirections: null,
   prev: null,
@@ -238,6 +255,9 @@ function renderHomeBoard() {
   for (let i = 0; i < 16; i++) {
     const cell = document.createElement("div");
     cell.className = "home-cell";
+    cell.dataset.idx = i;
+    cell.dataset.row = Math.floor(i / 4);
+    cell.dataset.col = i % 4;
     const piece = HOME_BOARD.cells[i];
     if (piece) {
       const glyph = document.createElement("span");
@@ -257,8 +277,69 @@ function renderHomeBoard() {
       ring.className = "capture-ring";
       cell.appendChild(ring);
     }
+    if (i === HOME_DEMO.to) {
+      cell.classList.add("home-target");
+    }
     homeBoardEl.appendChild(cell);
   }
+
+  homeBoardEl.addEventListener("click", handleHomeDemoClick);
+}
+
+function handleHomeDemoClick(event) {
+  if (homeDemoPlayed) return;
+  const cell = event.target.closest(".home-cell");
+  if (!cell) return;
+  if (Number(cell.dataset.idx) !== HOME_DEMO.to) return;
+  homeDemoPlayed = true;
+  runHomeDemo();
+}
+
+function runHomeDemo() {
+  const fromCell = homeBoardEl.querySelector(`[data-idx="${HOME_DEMO.from}"]`);
+  const toCell = homeBoardEl.querySelector(`[data-idx="${HOME_DEMO.to}"]`);
+  if (!fromCell || !toCell) return;
+  const rook = fromCell.querySelector(".piece-glyph");
+  if (!rook) return;
+
+  for (const el of homeBoardEl.querySelectorAll(".dot, .capture-ring")) {
+    el.remove();
+  }
+  fromCell.classList.remove("selected");
+  toCell.classList.remove("home-target");
+
+  const boardRect = homeBoardEl.getBoundingClientRect();
+  const fromRect = fromCell.getBoundingClientRect();
+  const toRect = toCell.getBoundingClientRect();
+
+  rook.classList.add("home-floating-glyph");
+  rook.style.left = `${fromRect.left - boardRect.left + fromRect.width * 0.12}px`;
+  rook.style.top = `${fromRect.top - boardRect.top + fromRect.height * 0.12}px`;
+  rook.style.width = `${fromRect.width * 0.76}px`;
+  rook.style.height = `${fromRect.height * 0.76}px`;
+  homeBoardEl.appendChild(rook);
+
+  void rook.offsetWidth;
+
+  rook.style.transition = `transform ${HOME_DEMO.moveDurationMs}ms cubic-bezier(0.4, 0.1, 0.2, 1)`;
+  rook.style.transform = `translate(${toRect.left - fromRect.left}px, ${toRect.top - fromRect.top}px)`;
+
+  rook.addEventListener(
+    "transitionend",
+    () => {
+      toCell.querySelector(".piece-glyph")?.remove();
+      rook.remove();
+      const finalRook = document.createElement("span");
+      finalRook.className = "piece-glyph piece-black";
+      finalRook.innerHTML = PIECE_SVGS.rook;
+      toCell.appendChild(finalRook);
+      playSound("capture");
+      setTimeout(() => {
+        drawWinLine(homeBoardEl, HOME_DEMO.winLine, HOME_DEMO.color);
+      }, HOME_DEMO.lineDelayMs);
+    },
+    { once: true }
+  );
 }
 
 function initDifficulty() {
@@ -870,7 +951,9 @@ function renderGameArea() {
   if (state.winner) {
     const winLine = findWinLine(state.board, state.winner);
     if (winLine) {
-      requestAnimationFrame(() => drawWinLine(boardEl, winLine, state.winner));
+      const animate = !state.winLineShown;
+      state.winLineShown = true;
+      requestAnimationFrame(() => drawWinLine(boardEl, winLine, state.winner, animate));
     }
   }
 }
@@ -1157,7 +1240,7 @@ function renderColLabels() {
   return labels;
 }
 
-function drawWinLine(boardEl, winLine, color) {
+function drawWinLine(boardEl, winLine, color, animate = true) {
   const first = winLine[0];
   const last = winLine[winLine.length - 1];
   const firstCell = boardEl.querySelector(`[data-row="${first.row}"][data-col="${first.col}"]`);
@@ -1183,6 +1266,7 @@ function drawWinLine(boardEl, winLine, color) {
   y1 -= (dy / len) * extend;
   x2 += (dx / len) * extend;
   y2 += (dy / len) * extend;
+  const totalLen = len + 2 * extend;
 
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("class", `win-line piece-${color}`);
@@ -1204,6 +1288,12 @@ function drawWinLine(boardEl, winLine, color) {
   line.setAttribute("x2", x2);
   line.setAttribute("y2", y2);
   svg.appendChild(line);
+
+  if (animate) {
+    for (const ln of [shadow, line]) {
+      ln.style.setProperty("--dash-len", String(totalLen));
+    }
+  }
 
   boardEl.appendChild(svg);
 }
@@ -1390,6 +1480,7 @@ function resetBoardState() {
   state.turn = null;
   state.status = null;
   state.winner = null;
+  state.winLineShown = false;
   state.pawnDirections = null;
   state.selectedPiece = null;
   state.rematchSent = false;
