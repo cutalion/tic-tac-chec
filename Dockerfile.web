@@ -8,7 +8,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM debian:bookworm-slim
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates curl && \
+    apt-get install -y --no-install-recommends ca-certificates curl sqlite3 && \
     curl -sL https://github.com/microsoft/onnxruntime/releases/download/v1.24.1/onnxruntime-linux-x64-1.24.1.tgz \
     | tar xz -C /opt && \
     apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*

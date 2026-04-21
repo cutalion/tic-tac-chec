@@ -34,8 +34,11 @@ services:
       dockerfile: Dockerfile.web
     env_file:
       - .env
+    environment:
+      - DB_PATH=/data/ttc.db
     volumes:
       - ./bot/models:/app/bot/models:ro
+      - ttc-db:/data
     mem_limit: 256m
     mem_reservation: 128m
     restart: unless-stopped
@@ -44,3 +47,4 @@ volumes:
   caddy-data:
   caddy-config:
   ssh-keys:
+  ttc-db:
