@@ -124,9 +124,6 @@ function getAudioCtx() {
     masterGain = audioCtx.createGain();
     masterGain.gain.value = SOUND_VOLUME;
     masterGain.connect(audioCtx.destination);
-    audioCtx.addEventListener("statechange", () => {
-      if (audioCtx.state === "running") syncLobbySonar();
-    });
   }
   if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
   return audioCtx;
@@ -177,52 +174,6 @@ function playBuffer(ctx, buf) {
   } catch {
     // ignore — happens if the context just suspended between state check and start
   }
-}
-
-// Sonar ping: 900 → 420 Hz sine sweep with exponential decay, ~0.9s tail.
-// Matches the .pulse ring animation cadence (1.2s per ring).
-const SONAR_PERIOD_MS = 1200;
-
-function playSonarPing(ctx, when) {
-  const t = when ?? ctx.currentTime;
-  const osc = ctx.createOscillator();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(900, t);
-  osc.frequency.exponentialRampToValueAtTime(420, t + 0.35);
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(0.25, t + 0.015);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
-  osc.connect(gain).connect(masterGain);
-  osc.start(t);
-  osc.stop(t + 1.0);
-}
-
-let sonarIntervalId = null;
-
-function startSonar() {
-  if (sonarIntervalId) return;
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const ctx = getAudioCtx();
-  if (!ctx || ctx.state !== "running") return;
-  playSonarPing(ctx, ctx.currentTime + 0.05);
-  sonarIntervalId = setInterval(() => {
-    const c = getAudioCtx();
-    if (!c || c.state !== "running") return;
-    playSonarPing(c, c.currentTime + 0.02);
-  }, SONAR_PERIOD_MS);
-}
-
-function stopSonar() {
-  if (!sonarIntervalId) return;
-  clearInterval(sonarIntervalId);
-  sonarIntervalId = null;
-}
-
-function syncLobbySonar() {
-  const shouldPlay = state.route === "lobby" && !state.lobbyId;
-  if (shouldPlay) startSonar();
-  else stopSonar();
 }
 
 function preloadSounds() {
@@ -773,7 +724,6 @@ function render() {
   renderOverlay();
   renderGameArea();
   renderInstallCTA();
-  syncLobbySonar();
 
   if (state.route !== "home") {
     exitBtn.classList.add("visible");
@@ -1109,8 +1059,6 @@ function renderMatchmakingLobby() {
     burst.className = "pulse-burst";
     pulse.appendChild(burst);
     burst.addEventListener("animationend", () => burst.remove());
-    const ctx = getAudioCtx();
-    if (ctx) playSonarPing(ctx, ctx.currentTime + 0.01);
   });
   pulse.appendChild(logo);
   wrap.appendChild(pulse);
