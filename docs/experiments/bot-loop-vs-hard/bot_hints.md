@@ -56,6 +56,33 @@ _Updated by the /loop task. Each run: read this, play a game, append observation
 | 43 | 2026-04-22 08:07 | white | **🏆 WIN** | 147 | row 2 = WP WR WB WN (TT+depth 6, maxPly 150 worked — won with 3 plies to spare) | `20260422-080704.json` |
 | 44 | 2026-04-22 08:10 | white | **🏆 WIN** | 59 | row 1 = WN WB WP WR | `20260422-081059.json` |
 | 45 | 2026-04-22 08:12 | white | **🏆 WIN** | 49 | row 0 (top rank) = WB WP WR WN — fastest win so far | `20260422-081248.json` |
+| 46 | 2026-04-22 08:36 | white | error | 6 | depth-7 smoke test — single move timed out >6 min | `20260422-083654.json` |
+| 47 | 2026-04-22 08:43 | white | error (ws EOF) | 0 | transient server hang-up during handshake; retried | `20260422-084329.json` |
+| 48 | 2026-04-22 08:44 | white | **🏆 WIN** | 67 | col a = WP WB WR WN (depth 6 restored) | `20260422-084410.json` |
+| 49 | 2026-04-22 08:46 | white | draw (clean) | 150 | my=0 opp=0 at new cap 150 | `20260422-084648.json` |
+| 50 | 2026-04-22 08:51 | white | **🏆 WIN** | 59 | row 1 = WN WB WP WR | `20260422-085152.json` |
+| 51 | 2026-04-22 09:06 | white | draw (clean) | 150 | smoke test, persistent TT, depth 6 — 2m55s (was 3m43s per-move TT) | `20260422-090646.json` |
+| 52 | 2026-04-22 09:09 | white | error | 18 | depth-7 + persistent-TT smoke test; timed out at 6:05 (ply 6→18 improvement) | `20260422-090956.json` |
+| 53 | 2026-04-22 09:16 | white | **🏆 WIN** | 139 | row 1 = WP WR WN WB | `20260422-091616.json` |
+| 54 | 2026-04-22 09:19 | white | **🏆 WIN** | 17 | row 1 = WP WR WB WN — **FASTEST WIN EVER** | `20260422-091923.json` |
+| 55 | 2026-04-22 09:20 | white | **🏆 WIN** | 125 | row 3 (bottom) = WP WB WN WR | `20260422-092039.json` |
+| 56 | 2026-04-22 09:36 | white | **🏆 WIN** | 45 | Zobrist smoke, depth 6 — **1m34s** (was 2m55s with string TT) | `20260422-093652.json` |
+| 57 | 2026-04-22 09:38 | white | error | 50 | depth-7 Zobrist smoke — timed out 6:03 (reached ply 50 vs earlier ply 18) | `20260422-093842.json` |
+| 58 | 2026-04-22 09:45 | white | draw | 150 | depth-7 top-K=5 smoke — finished in 5:51 but top-5 too narrow to win | `20260422-094504.json` |
+| 59 | 2026-04-22 09:51 | white | draw (clean) | 150 | depth 6 + Zobrist, my=0 opp=0 | `20260422-095123.json` |
+| 60 | 2026-04-22 09:54 | white | draw (clean) | 150 | depth 6 + Zobrist, my=0 opp=0 | `20260422-095405.json` |
+| 61 | 2026-04-22 09:56 | white | **🏆 WIN** | 115 | row 3 (bottom) = WR WB WN WP | `20260422-095643.json` |
+| 62 | 2026-04-22 10:06 | white | **🏆 WIN** | 59 | depth 7 smoke — anti-diag WP-WB-WN-WR (the bot's own signature line, turned against it) — 7m25s | `20260422-100619.json` |
+| 63 | 2026-04-22 10:13 | white | **🏆 WIN** | 127 | depth 7 — col d = WR WB WP WN | `20260422-101355.json` |
+| 64 | 2026-04-22 10:23 | white | **🏆 WIN** | 59 | depth 7 — anti-diag WP-WB-WN-WR (identical board to game #62) | `20260422-102314.json` |
+| 65 | 2026-04-22 10:38 | white | **🏆 WIN** | 11 | PARALLEL depth 7 smoke — col c (WB-WP-WR-WN), 2m27s, **NEW PLY-COUNT RECORD** | `20260422-103827.json` |
+| 66 | 2026-04-22 10:41 | white | **🏆 WIN** | 15 | parallel depth 7 — anti-diag WP-WR-WN-WB | `20260422-104107.json` |
+| 67 | 2026-04-22 10:43 | white | **🏆 WIN** | 101 | parallel depth 7 — row 3 (WB-WR-WN-WP) | `20260422-104359.json` |
+| 68 | 2026-04-22 11:06 | white | **🏆 WIN** | 41 | **DEPTH 8** parallel smoke — col c (WN-WB-WR-WP), 11m50s | `20260422-110621.json` |
+| 69 | 2026-04-22 11:18 | white | **🏆 WIN** | 39 | depth 8 parallel — row 1 (WB-WN-WP-WR) | `20260422-111848.json` |
+| 70 | 2026-04-22 11:36 | white | loss-likely | 150 | depth 7 parallel — opp 3-lines=1 on anti-diag (BN-BB-·-BR) at cap | `20260422-113635.json` |
+| 71 | 2026-04-22 11:43 | white | **🏆 WIN** | 21 | depth 7 parallel — anti-diag (WR-WP-WN-WB) | `20260422-114344.json` |
+| 72 | 2026-04-22 11:46 | white | **🏆 WIN** | 35 | depth 7 parallel — col d (WR-WB-WP-WN) | `20260422-114659.json` |
 
 ## Observed bot strategies
 
@@ -167,6 +194,75 @@ When we keep replacing a rook on b2/c3 to "block", the bot's bishop just sweeps 
   - Game #42: cap with `my 3-lines=1` on row 3 (WR-·-WN-WB, b1 empty). One move from a third win.
 - Depth 6 doesn't just repeat depth 5's wins — it finds *new* winning patterns, especially long combinations on rows. The hand-count eval term also helps: we less often sacrifice pieces unnecessarily.
 
+### Run #21 (🏆 2 WINS + 1 loss-likely, depth 7 validation) — variance on display
+- Reverted to depth 7 parallel for a 3-game validation (depth 8 at ~12 min each couldn't fit 3 games in the 30-min cron interval).
+- **Results: 2 wins + 1 loss-likely at cap 150.**
+  - Game #70: loss-likely — bot had 3-in-anti-diag (BN-BB-·-BR at d4-c3-b2-a1 with b2 empty) at cap. Our search saw it but couldn't prevent it given a single-ply deficit; depth 8 might have caught this.
+  - Game #71: win ply 21 on anti-diag (WR-WP-WN-WB) — same line, won by us.
+  - Game #72: win ply 35 on col d (WR-WB-WP-WN).
+- Both wins again on the bot's "signature" lines (anti-diag and column d) — exact roles reversed.
+- **Combined runs #14–21: 19 wins + 3 draws + 1 loss-likely / 23 games (82.6% win rate, still 0 confirmed losses).**
+- Confirms variance: same code produces 3W sometimes, 2W+1D other times. 5-10% of games go to cap with opp advantage.
+
+### Run #20 (🏆🏆 2 WINS / 2 GAMES, parallel depth 8) — deepest search tested
+- Bumped `abSearch` to depth 7 (8-ply horizon total). Kept all run #19 infrastructure (parallel top-K, syncTT, Zobrist, persistent TT, 12-min timeout).
+- Wall-time budget: **11m50s smoke, 11m~ game B** — right at the 12-min limit. 359% CPU (~3.5 cores saturated).
+- Only played 2 games this iteration (3rd would push beyond the 30-min cron interval):
+  - Game #68 (smoke): col c (WN-WB-WR-WP) at ply 41.
+  - Game #69: row 1 (WB-WN-WP-WR) at ply 39.
+- **Both won — 100% at depth 8 (small sample).**
+- Observation: depth-8 wins average ~40 plies; depth-7 wins averaged ~47. The extra ply of lookahead lets us close games earlier, which matters since depth 8 is 5× more wall time than depth 7.
+- **Combined runs #14–20: 17 wins + 3 draws over 20 games (85% win rate, 0 losses).**
+
+### Run #19 (🏆🏆🏆 3 WINS / 3 GAMES, parallel depth 7) — blazing fast
+- **Parallel top-K search** with 4 goroutines sharing a mutex-protected `syncTT` (RWMutex for reads, Mutex for writes; write overhead is small because leaf-eval positions are often cache misses anyway).
+- **Wall time cut 7m25s → 2m27s** at depth 7 (3× speedup). CPU: 359% (~3.5 cores saturated out of 4 requested workers). Mutex contention is negligible at this workload; alpha-beta's leaf evals dominate.
+- 3 serial games: **🏆🏆🏆 3 WINS**.
+  - Game #65 (smoke): col c (WB-WP-WR-WN) at **ply 11 — new ply-count record** (prev was 17 in run #16).
+  - Game #66: anti-diag (WP-WR-WN-WB).
+  - Game #67: row 3 bottom (WB-WR-WN-WP) at ply 101.
+- **Combined runs #14–19: 15 wins + 3 draws over 18 games (83% win rate, 0 losses).**
+
+### Run #18 (🏆🏆🏆 3 WINS / 3 GAMES at DEPTH 7) — the simplest unlock won
+- Raised the client `--timeout` default from 6 min → 12 min. Bumped `abSearch` depth to 6 (total 7-ply horizon).
+- Smoke test: WIN at ply 59 in 7m25s — depth 7 finally finishes within the wall budget.
+- 3 serial games: **🏆🏆🏆 3 WINS**.
+  - Game #62 (smoke): anti-diag WP-WB-WN-WR at d4-c3-b2-a1 (59 plies).
+  - Game #63: col d WR-WB-WP-WN (127 plies).
+  - Game #64: anti-diag WP-WB-WN-WR — **identical to game #62**. Even with jitter, the depth-7 search finds a dominant line so clearly that early-game randomness doesn't change the outcome.
+- **Notable**: the bot's signature weapon (anti-diagonal a1-b2-c3-d4, which it used to beat us in runs #2–3 and #9) is now exactly how we beat it.
+- Combined runs #14–18: **12 wins + 3 draws over 15 games (80% win rate, 0 losses).**
+
+### Run #17 (🏆 1 WIN + 2 DRAWS) — Zobrist TT; depth 7 still just out of reach
+- Implemented **Zobrist hashing** for the TT key: `uint64` XOR of precomputed random values per `(cell, color, kind)` + a side-to-move bit. Seeded deterministically (PCG with fixed seeds).
+- Smoke test at depth 6: **1m34s** per game (was 2m55s with string TT) — ~50% cut.
+- Smoke test at depth 7: reached **ply 50 before 6:03 timeout** (was ply 18 with string TT). Big improvement but still over the default 6-min client timeout.
+- Tried **depth 7 + top-K=5 + Zobrist**: finished in 5:51 but only drew (top-5 too narrow to explore winning lines).
+- Reverted to production (depth 6, top-K=10, Zobrist, persistent TT). Ran 3 serial games: **1 WIN + 2 clean DRAWS** at cap 150.
+  - Game #59, #60: clean draws with `my=0, opp=0` 3-lines.
+  - Game #61: win ply 115 on row 3 (WR-WB-WN-WP).
+- Combined runs #14–17: **9 WINS + 3 DRAWS over 12 games** (75% win rate, 0 losses). Variance is real — the random jitter (run #2) that broke determinism also means some opening lines converge to drawn endgames with no forced win available.
+
+### Run #16 (🏆🏆🏆 3 WINS / 3 GAMES) — second perfect run, persistent TT
+- Threaded the **transposition table across turns within a single game** (previously fresh per-move). Allocated once in `runGame`, passed into `pickMoveWithHistory`, cleared when it exceeds 200k entries.
+- Effect: smoke test dropped 3m43s → 2m55s (~20% faster). Positions explored in turn N genuinely benefit turn N+1.
+- **Retried depth 7 with persistent TT: still timed out** (6:05 wall, ply 18 vs. ply 6 before). Improvement confirmed, but not enough — depth 7 needs bigger optimizations (Zobrist hashing, parallel search, SSE for board state).
+- Reverted to depth 6 and played 3 serial games: **🏆 3 WINS / 3 GAMES**.
+  - Game #53: win ply 139 on row 1 (WP-WR-WN-WB).
+  - Game #54: **win at ply 17** — **fastest win of the entire experiment**. Also on row 1 (WP-WR-WB-WN). Only 9 of our moves; the bot's defensive attention seems to have gone to row 0 and row 3 while row 1 was open.
+  - Game #55: win ply 125 on row 3 bottom rank (WP-WB-WN-WR).
+- **All 3 wins on rows.** Combined runs #14–16: **8 wins + 1 draw over 9 games**, with a single run being the benchmark metric.
+
+### Run #15 (🏆 2 WINS + 1 DRAW) — polish phase; depth 7 ruled out
+- **Depth 7 smoke test failed**: single move took >6 min, game erred at ply 6 after 6:16. At 4x4 with placements in hand, branching ≈30–50 per side; depth 7 has no chance within the default timeout. Depth 6 remains the production depth.
+- Also discovered: **BLACK is unreachable** via the current server API. `NewRoom(player1, player2)` at `internal/game/room.go:77` hardcodes player1→White; `BotGame` endpoint always passes the human first. Would need server changes to test as black.
+- After reverting to depth 6, played 3 serial games: **2 WINS + 1 clean DRAW**. Slight variance from run #14's 3W, but within expected range.
+  - Game #48: win on col a (WP-WB-WR-WN) ply 67.
+  - Game #49: clean draw at the new cap 150.
+  - Game #50: win on row 1 (WN-WB-WP-WR) ply 59.
+- One transient WS EOF error at start (retried successfully) — minor server flakiness, not our code.
+- **Stability confirmed**: 5 of 6 games won in runs #14–15, with the other being a clean 150-ply draw.
+
 ### Run #14 (🏆🏆🏆 3 WINS / 3 GAMES) — FIRST PERFECT RUN
 - Added a **transposition table** with bound flags (EXACT / LOWER / UPPER) scoped to each pickMoveWithHistory call, keyed by `boardSignature + side-to-move`. Raised `maxPly` 120 → 150.
 - Wall time per game: 60s–3m40s (fluctuates with game length). TT didn't speed us up in absolute terms, but it did allow depth 6 to finish within 150-ply budgets consistently.
@@ -192,11 +288,24 @@ When we keep replacing a rook on b2/c3 to "block", the bot's bishop just sweeps 
 11. ✅ Hand-count added to leaf eval.
 12. ✅ maxPly raised 120 → 150.
 13. ✅ Transposition table with bound flags.
-14. **3 WINS / 3 GAMES. Goal achieved.** Subsequent work is polish.
-15. **Try playing as BLACK.** Unexplored; could reveal asymmetry in the bot's strength.
-16. **Iterative deepening.** Currently fixed depth 6. Under tight time budgets iterative deepening is more robust.
-17. **Hints programmatic consumption.** Still `_ = hints`; now largely unnecessary since minimax subsumes most tactical logic.
-18. **Celebrate + refactor.** Much of the 1-ply heuristic code is now dead weight (subsumed by alpha-beta). Could clean up lineDefend/reinforce/attacker logic — alpha-beta handles these via search.
+14. ✅ 3 WINS / 3 GAMES.
+15. ❌ Depth 7 — single move >6 min, unusable at current optimization level.
+16. ❌ Playing as BLACK — blocked by server-side color assignment. Would need server modification.
+17. ✅ Run #15 confirms stability: 2W+1D after run #14's 3W.
+18. ✅ TT across turns (run #16) — ~20% faster.
+19. ✅ Zobrist hashing (run #17) — additional ~50% faster (depth 6 now 1m34s).
+20. ✅ Runs #14–17: 9W+3D/12 games.
+21. ✅ Raised `--timeout` default 6→12 min (run #18) — enables depth 7.
+22. ✅ Depth 7 + top-K=10 + Zobrist + persistent TT: 3W/3G (run #18).
+23. ✅ Runs #14–18: 12W+3D/15 games.
+24. ✅ **Parallel top-K landed (run #19)** — 3× speedup at depth 7.
+25. ✅ Depth 8 landed (run #20).
+26. ✅ Run #21 validated depth 7 stability: 19W+3D+1L-likely / 23 games (82.6%).
+27. **Open: iterative deepening** — would let depth 8 run on most turns, falling back to depth 7 when deadlines loom.
+28. **Open: ONNX bot_hard as move-order prior** — unlocks depth 9.
+29. **Open: aspiration windows** — 30-50% faster pruning.
+30. **Open: opening book** — first 4 plies could be pre-computed; save seconds per game.
+31. **Hints programmatic consumption.** Still `_ = hints`; low priority.
 
 ## Protocol notes (so future runs don't re-discover)
 
@@ -213,10 +322,13 @@ When we keep replacing a rook on b2/c3 to "block", the bot's bishop just sweeps 
 
 - **Determinism trap (mitigated):** added 0–2-point jitter to every score, games are now genuinely different. But jitter is a band-aid — a fuller fix is minimax with a tie-break rule using hash of the move.
 - **Progress measurement:** 3 losses in run #1 → 3 draws in run #2. Next target: first win (or at least 1 win in 3 games). If run #3 is again 3 draws at ply cap, the heuristic is plateauing and it's time to drop in the local ONNX model via `internal/bot/` + `bot/models/bot_hard.onnx` as the move picker (need `ORT_LIB_PATH` exported).
-- **Concrete code-changes for run #15 (polish phase):**
-  - Since we achieved 3W/3G, subsequent runs are about robustness and calibration rather than pushing the bar.
-  - **Try depth 7** now that TT is in place. Might be too slow, but worth a smoke test.
-  - **Try as BLACK**. Inspect server: `GET /api/me` or lobby flow might allow choosing color. Current `/api/bot-game?difficulty=hard` always returns white (server picks randomly? need to check). Repeat 3-game to see if black is disadvantaged.
+- **Concrete code-changes for run #21 (if pursuing):**
+  - ✅ Depth 8 landed: 2W/2G but at the edge of the 12-min timeout.
+  - **Raise `--timeout` to 15 min** if pushing to depth 9 (smaller safety margin for depth 8 as a side effect).
+  - **Iterative deepening** now becomes important — at depth 8 some positions may timeout. ID would return depth-7 result as a fallback.
+  - **Aspiration windows** — after the first candidate returns a score X, search the rest with `(X-50, X+50)` window; on fail, re-search with full window. Prunes much more.
+  - **ONNX bot_hard move prior** — the big unlock for depth 9.
+  - Goal: sustain ≥85% win rate across more iterations; push toward 90%+.
   - **Refactor cleanup**: the `line-defend/-reinforce/-abandon` terms and the 2-ply forced-loss/win helpers are now redundant — alpha-beta subsumes them. Could delete to simplify, but the 1-ply heuristic is still used for child-ordering, so keep it lean.
 - **Summary of the journey (14 iterations):**
   - Started with 3 losses in 46-plies, ended with **3 wins in 3 games**.

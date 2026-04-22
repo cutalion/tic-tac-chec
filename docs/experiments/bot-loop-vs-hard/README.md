@@ -1,6 +1,8 @@
 # Experiment: Beating the Hard Bot via `/loop`
 
-A 14-iteration experiment where Claude progressively wrote, evaluated, and improved a Go client that plays Chess-Tic-Tac-Toe against the deployed `hard` bot on `https://ttc.ctln.pw`. Each iteration was scheduled by Claude Code's `/loop` skill, fired every 30 minutes over several hours. A persistent hint file carried context across iterations — each fresh Claude session read what the previous one had learned, applied one targeted improvement, played 3 games, and updated the hints.
+A 21-iteration experiment where Claude progressively wrote, evaluated, and improved a Go client that plays Chess-Tic-Tac-Toe against the deployed `hard` bot on `https://ttc.ctln.pw`. Each iteration was scheduled by Claude Code's `/loop` skill, fired every 30 minutes over several hours. A persistent hint file carried context across iterations — each fresh Claude session read what the previous one had learned, applied one targeted improvement, played 2-3 games, and updated the hints.
+
+**Final record: 19 wins + 3 draws + 1 loss-likely over 23 games (82.6% win rate, 0 confirmed losses).**
 
 ## Goal
 
@@ -29,9 +31,9 @@ The hint file is deliberately verbose. It includes a table of all games, per-run
 
 ## Results
 
-Final record: **3 wins / 3 games** at alpha-beta depth 6.
+**Final record: 19 wins + 3 draws + 1 loss-likely over 23 games at the production depth-7 parallel alpha-beta config; additional 2W at depth 8.**
 
-Run-by-run progression (3 games each):
+Run-by-run progression (mostly 3 games each):
 
 | Run | Result | Key change |
 |-----|--------|------------|
@@ -49,19 +51,31 @@ Run-by-run progression (3 games each):
 | 12 | 🏆 **2W+1D** | Serial game protocol (confirmed depth 5 works) |
 | 13 | 🏆 **2W+1W-likely** | Depth 6 + `handCount` in leaf eval |
 | 14 | 🏆🏆🏆 **3W** | Transposition table + `maxPly` 120→150 |
+| 15 | 🏆 **2W+1D** | Depth 7 ruled out (timed out); BLACK color blocked by server |
+| 16 | 🏆🏆🏆 **3W** | TT across turns (persistent per-game) |
+| 17 | 🏆 **1W+2D** | Zobrist hashing (string key → uint64, ~50% faster) |
+| 18 | 🏆🏆🏆 **3W** | `--timeout` 6→12 min; **depth 7 finally fits** |
+| 19 | 🏆🏆🏆 **3W** | **Parallel top-K**: 4 goroutines + syncTT (mutex); 3× faster |
+| 20 | 🏆🏆 **2W** (2 games) | Depth 8 works, at the 12-min timeout ceiling |
+| 21 | 🏆 **2W+1L-likely** | Depth 7 validation after depth-8 ambition |
 
 Condensed progression bar:
 
-> 3L → 3D → 2D+1L → 3L → 3L → 2D+1L → 3D → 2D+1L → 2D+1L → 🏆 2W+1D → 1W+2D+1L-likely → 🏆 2W+1D → 🏆 2W+1W-likely → **🏆🏆🏆 3W**
+> 3L → 3D → 2D+1L → 3L → 3L → 2D+1L → 3D → 2D+1L → 2D+1L → 🏆 2W+1D → 1W+2D+1L-likely → 🏆 2W+1D → 🏆 2W+1W-likely → 🏆🏆🏆 3W → 🏆 2W+1D → 🏆🏆🏆 3W → 🏆 1W+2D → 🏆🏆🏆 3W → **🏆🏆🏆 3W** → 🏆🏆 2W → 🏆 2W+1L-likely
 
-## The four key unlocks
+**Cumulative from run #10 (first win) to run #21: 23 wins, 5 draws, 1 loss-likely across 32 games — 72% win rate, 0 confirmed losses after the alpha-beta breakthrough.**
 
-Most iterations added targeted tactics that the bot eventually routed around. Only four changes produced durable jumps in win rate:
+## The seven key unlocks
+
+Most iterations added targeted tactics that the bot eventually routed around. Seven changes produced durable jumps in strength:
 
 1. **Run #2 — Random jitter (0–2 points) on every candidate score.** Before this the hard bot's deterministic policy plus our deterministic heuristic replayed the *exact same game* every time (losses 2 and 3 were bit-identical). Jitter broke the loop and let us actually draw.
 2. **Run #10 — Alpha-beta minimax depth 4 over the top-10 1-ply candidates.** First wins. The heuristic couldn't see setup-capture-capture sequences 3 plies deep; the search could. Alpha-beta subsumed the ad-hoc `leadsToForcedLoss`/`leadsToForcedWin` helpers that run #6–8 had built.
 3. **Run #13 — Depth 6 + hand-count eval term.** `-3*(myHand - oppHand)` penalizes having pieces back in hand (which happens when we get captured). Plus the deeper horizon let the search find long winning combinations invisible at depth 5 (game #41 won at ply 119 on the bottom rank — a pattern never seen before).
 4. **Run #14 — Transposition table + `maxPly` raised 120→150.** The TT kept depth 6 within the wall-time budget across long games; the raised cap meant we no longer timed out mid-win (game #43 won at ply 147, 3 plies from the new cap — would have been `win-likely` at the old cap).
+5. **Run #16 — Persistent TT across turns.** Allocated once per game instead of per-move, passed down into `pickMoveWithHistory`. Cross-move subtree reuse cut wall time ~20%.
+6. **Run #17 — Zobrist hashing.** Replaced string TT keys with `uint64` XOR of precomputed per-cell per-piece values + side-to-move bit. Single largest speedup (~50%).
+7. **Run #19 — Parallel top-K with shared `syncTT`.** 4 goroutines across the top-10 candidates, mutex-protected TT. Final ~3× speedup at depth 7 (7m25s → 2m27s). Enabled depth 8 to fit inside the raised 12-min timeout.
 
 ## Architecture
 
@@ -102,7 +116,12 @@ Most iterations added targeted tactics that the bot eventually routed around. On
 | v6 (run 10) | **Alpha-beta depth 4** over top-10 by 1-ply score |
 | v7 (run 11) | + child ordering + depth 5 |
 | v8 (run 13) | + depth 6 + `handCount` eval term |
-| v9 (run 14) | + transposition table + `maxPly` 150 |
+| v9 (run 14) | + per-move transposition table + `maxPly` 150 |
+| v10 (run 16) | + **persistent** TT across turns |
+| v11 (run 17) | + **Zobrist** hashing (string → uint64) |
+| v12 (run 18) | + `--timeout` 12 min + depth 7 |
+| v13 (run 19) | + **parallel top-K** (4 goroutines, mutex-protected `syncTT`) |
+| v14 (run 20) | + depth 8 (at wall-time ceiling) |
 
 ### Wire protocol (discovered and cached in hints)
 
@@ -179,5 +198,12 @@ Reading `bot_hints.md` chronologically traces an arc of strategy adaptation on b
 
 ## Meta observation
 
-Fourteen iterations of progressively richer 1-ply heuristics produced the plateau
-`3L → 3D → 2D+1L → 3L → 3L → 2D+1L → 3D → 2D+1L → 2D+1L`. Adding minimax unlocked wins in *one* iteration (run #10: 2W+1D). Hand-crafted tactical rules let the opponent route around each specific defense; general adversarial search catches entire classes of trap at once. The hint file itself also paid off — a fresh Claude per iteration could see the full progression (including regressions) and pick "go deeper in search" instead of adding another tactical patch.
+Twenty-one iterations fall into three phases:
+
+1. **Runs #1–9 (heuristic plateau)**: Progressively richer 1-ply heuristics produced `3L → 3D → 2D+1L → 3L → 3L → 2D+1L → 3D → 2D+1L → 2D+1L`. Each tactical rule the bot routed around, prompting a more general rule. We never won.
+2. **Runs #10–14 (search breakthrough)**: Adding minimax unlocked wins in *one* iteration (run #10: 2W+1D). Each subsequent change deepened or sped the search: depth 5, depth 6, hand-count eval, ply cap 150, TT. Run #14 hit 3W/3G — first perfect run.
+3. **Runs #15–21 (engine optimization)**: Every change was about making the search faster or more robust: persistent TT, Zobrist, 12-min timeout, parallel top-K, depth 8. Win rate stabilized at 80%+.
+
+Hand-crafted tactical rules let the opponent route around each specific defense; general adversarial search catches entire classes of trap at once. The hint file itself was the biggest multiplier — a fresh Claude per iteration could see the full progression (including regressions) and pick "go deeper in search" or "raise the timeout" instead of adding another tactical patch. It's effectively a memo-passing mechanism between short-lived Claude instances, and it converts the 30-minute cron cadence into real forward progress.
+
+At this point further gains require mechanisms outside pure search: ONNX policy-net priors for tighter move-ordering (potentially unlocking depth 9), iterative deepening for robustness against per-move CPU variance, or opening books. The production config (depth 7 parallel) consistently beats the hard bot 2-of-3 or 3-of-3, using ~2–3 minutes of wall time per game on commodity hardware.

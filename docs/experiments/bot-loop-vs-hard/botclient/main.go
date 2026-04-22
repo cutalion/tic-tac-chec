@@ -21,6 +21,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"tic-tac-chec/engine"
@@ -33,7 +34,7 @@ var (
 	difficulty = flag.String("difficulty", "hard", "bot difficulty")
 	logPath    = flag.String("log", "", "game log output path (defaults to tmp/games/<ts>.json)")
 	hintsPath  = flag.String("hints", "tmp/bot_hints.md", "path to persistent hints file")
-	timeout    = flag.Duration("timeout", 6*time.Minute, "overall game timeout")
+	timeout    = flag.Duration("timeout", 12*time.Minute, "overall game timeout")
 )
 
 type piecePayload struct {
@@ -86,6 +87,7 @@ type gameLog struct {
 func main() {
 	flag.Parse()
 	log.SetFlags(log.Ltime | log.Lmicroseconds)
+	initZobrist()
 
 	hints := loadHints(*hintsPath)
 	if len(hints) > 0 {
@@ -140,6 +142,9 @@ func runGame(ctx context.Context, gl *gameLog) error {
 	var prevState *engine.Game
 	var pendingMove *pending
 	moveHistory := map[string]int{} // (board+piece+cell) fingerprint → times used
+	// Transposition table shared across all moves in this game (HINT run #15).
+	// Capped at 200k entries; cleared when full to bound memory.
+	gameTT := newSyncTT(8192)
 	ply := 0
 	const maxPly = 150
 
@@ -224,7 +229,10 @@ func runGame(ctx context.Context, gl *gameLog) error {
 				return nil
 			}
 
-			piece, cell, reason, ok := pickMoveWithHistory(g, myColor, gl.HintsUsed, moveHistory)
+			if gameTT.size() > 200000 {
+				gameTT.reset(8192)
+			}
+			piece, cell, reason, ok := pickMoveWithHistory(g, myColor, gl.HintsUsed, moveHistory, gameTT)
 			if ok {
 				moveHistory[moveFingerprint(g, piece, cell)]++
 			}
@@ -316,7 +324,7 @@ type candidate struct {
 	reason string
 }
 
-func pickMoveWithHistory(g *engine.Game, me engine.Color, hints []string, moveHistory map[string]int) (engine.Piece, engine.Cell, string, bool) {
+func pickMoveWithHistory(g *engine.Game, me engine.Color, hints []string, moveHistory map[string]int, tt *syncTT) (engine.Piece, engine.Cell, string, bool) {
 	cands := enumerate(g, me)
 	if len(cands) == 0 {
 		return engine.Piece{}, engine.Cell{}, "", false
@@ -349,31 +357,44 @@ func pickMoveWithHistory(g *engine.Game, me engine.Color, hints []string, moveHi
 	// response we'd have lets opp win. If yes, skip this candidate.
 	// HINT run #6: raised topK 8→20 — game #18 had all top-8 as forced losses,
 	// but a safe alternative may have existed deeper in the list.
-	// HINT run #10: alpha-beta minimax depth 4 over top-K. Subsumes both
-	// forced-loss and forced-win checks by scoring each candidate on its
-	// full 4-ply continuation (our → opp → our → opp, then leaf eval).
-	// We take the top-K by 1-ply score, then re-score each with deep search.
+	// HINT run #17: depth 7 top-K=5 fits in timeout but only draws (top-5 too
+	// narrow). Depth 7 top-K=10 still times out. Production: depth 6 top-K=10.
 	const topK = 10
 	limit := min(topK, len(cands))
 
-	// Transposition table scoped to this move-selection call. Cleared between
-	// top-level candidates — different sims produce different subtrees, but
-	// within one sim the TT is shared so move-ordering revisits pay off.
-	tt := make(map[string]ttEntry, 4096)
+	// HINT run #19: parallelize the top-K alpha-beta searches across 4
+	// goroutines sharing a mutex-protected TT. Each goroutine searches one
+	// candidate independently; the shared TT accelerates repeated subtree
+	// lookups across candidates.
+	const workers = 4
+	abScores := make([]int, limit)
+	for i := range abScores {
+		abScores[i] = math.MinInt
+	}
+	sem := make(chan struct{}, workers)
+	var wg sync.WaitGroup
+	for i := 0; i < limit; i++ {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(i int) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			sim := g.Clone()
+			if err := sim.Move(cands[i].piece, cands[i].cell); err != nil {
+				return
+			}
+			// depth 6 = 7-ply horizon. HINT run #20: depth 8 works but hovers
+			// at the 12-min timeout ceiling; depth 7 at ~2m27s/game is the
+			// robust production setting for 3-game validation runs.
+			abScores[i] = abSearch(sim, me, 6, math.MinInt+1, math.MaxInt-1, false, tt)
+		}(i)
+	}
+	wg.Wait()
 
 	bestIdx := 0
 	bestAB := math.MinInt
 	for i := 0; i < limit; i++ {
-		sim := g.Clone()
-		if err := sim.Move(cands[i].piece, cands[i].cell); err != nil {
-			continue
-		}
-		// depth 5 below means 5 more plies after ours; total 6-ply horizon.
-		// HINT run #12: serial 3-game tests stabilized 2W+1D at depth 5; push
-		// to 6 and see if it unlocks the 3rd win.
-		v := abSearch(sim, me, 5, math.MinInt+1, math.MaxInt-1, false, tt)
-		// tie-break with 1-ply score (jitter already applied there).
-		composite := v*10 + cands[i].score/10
+		composite := abScores[i]*10 + cands[i].score/10
 		if composite > bestAB {
 			bestAB = composite
 			bestIdx = i
@@ -400,25 +421,79 @@ type ttEntry struct {
 	flag  int
 }
 
-// ttKey returns a stable key for the (board state, side-to-move) pair.
-func ttKey(g *engine.Game, maximize bool) string {
-	var sb strings.Builder
+// syncTT is a mutex-protected map-based transposition table safe for
+// concurrent access from multiple goroutines (HINT run #18: parallel top-K).
+type syncTT struct {
+	mu sync.RWMutex
+	m  map[uint64]ttEntry
+}
+
+func newSyncTT(capHint int) *syncTT {
+	return &syncTT{m: make(map[uint64]ttEntry, capHint)}
+}
+
+func (s *syncTT) lookup(key uint64) (ttEntry, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	e, ok := s.m[key]
+	return e, ok
+}
+
+func (s *syncTT) store(key uint64, e ttEntry) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.m[key] = e
+}
+
+func (s *syncTT) size() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return len(s.m)
+}
+
+func (s *syncTT) reset(capHint int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.m = make(map[uint64]ttEntry, capHint)
+}
+
+// Zobrist table: per-cell × per-(color,kind) random 64-bit values + one for
+// side-to-move. Seeded deterministically so game logs are reproducible.
+// HINT run #16: string TT key was measurable overhead; Zobrist lets us use
+// *syncTT which is significantly faster.
+var (
+	zobristPieces [engine.BoardSize * engine.BoardSize][int(engine.ColorCount) * int(engine.PieceKindCount)]uint64
+	zobristSide   uint64
+)
+
+func initZobrist() {
+	r := rand.New(rand.NewPCG(0x9E3779B97F4A7C15, 0xBF58476D1CE4E5B9))
+	for i := range zobristPieces {
+		for j := range zobristPieces[i] {
+			zobristPieces[i][j] = r.Uint64()
+		}
+	}
+	zobristSide = r.Uint64()
+}
+
+// ttKey returns a Zobrist hash of (board state, side-to-move).
+func ttKey(g *engine.Game, maximize bool) uint64 {
+	var h uint64
 	for r := range engine.BoardSize {
 		for c := range engine.BoardSize {
 			p := g.Board[r][c]
 			if p == nil {
-				sb.WriteByte('.')
-			} else {
-				sb.WriteString(pieceCode(*p))
+				continue
 			}
+			cellIdx := r*engine.BoardSize + c
+			pieceIdx := int(p.Color)*int(engine.PieceKindCount) + int(p.Kind)
+			h ^= zobristPieces[cellIdx][pieceIdx]
 		}
 	}
 	if maximize {
-		sb.WriteByte('M')
-	} else {
-		sb.WriteByte('m')
+		h ^= zobristSide
 	}
-	return sb.String()
+	return h
 }
 
 // abSearch implements alpha-beta minimax with a transposition table and
@@ -428,13 +503,13 @@ func ttKey(g *engine.Game, maximize bool) string {
 // HINT run #13: added TT with bound flags. Entries cache exact scores and
 // lower/upper bounds so re-entries within the same top-level move don't
 // re-search the same subtree.
-func abSearch(g *engine.Game, me engine.Color, depth int, alpha, beta int, maximize bool, tt map[string]ttEntry) int {
+func abSearch(g *engine.Game, me engine.Color, depth int, alpha, beta int, maximize bool, tt *syncTT) int {
 	if g.Status == engine.GameOver || depth == 0 {
 		return evaluatePosition(g, me)
 	}
 
 	key := ttKey(g, maximize)
-	if e, ok := tt[key]; ok && e.depth >= depth {
+	if e, ok := tt.lookup(key); ok && e.depth >= depth {
 		switch e.flag {
 		case ttExact:
 			return e.score
@@ -531,7 +606,7 @@ func abSearch(g *engine.Game, me engine.Color, depth int, alpha, beta int, maxim
 	default:
 		flag = ttExact
 	}
-	tt[key] = ttEntry{depth: depth, score: best, flag: flag}
+	tt.store(key, ttEntry{depth: depth, score: best, flag: flag})
 
 	return best
 }
