@@ -1,0 +1,706 @@
+{
+  "startedAt": "2026-04-22T02:07:15.963929639+04:00",
+  "endedAt": "2026-04-22T02:08:00.723277048+04:00",
+  "difficulty": "hard",
+  "myColor": "white",
+  "result": "draw",
+  "reason": "ply cap reached (80)",
+  "moves": [
+    {
+      "ply": 0,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b3",
+      "wasPlace": true,
+      "heuristic": "score=6 "
+    },
+    {
+      "ply": 1,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "d4",
+      "wasPlace": true
+    },
+    {
+      "ply": 2,
+      "mover": "me",
+      "piece": "WP",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=6 ours+8"
+    },
+    {
+      "ply": 3,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a3",
+      "wasPlace": true
+    },
+    {
+      "ply": 4,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a3",
+      "from": "b3",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=60 capture BR,ours+8"
+    },
+    {
+      "ply": 5,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "wasPlace": true
+    },
+    {
+      "ply": 6,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a4",
+      "from": "a3",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=54 capture BR"
+    },
+    {
+      "ply": 7,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "d1",
+      "wasPlace": true
+    },
+    {
+      "ply": 8,
+      "mover": "me",
+      "piece": "WP",
+      "to": "d4",
+      "from": "c3",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=61 capture BN,ours+8"
+    },
+    {
+      "ply": 9,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "wasPlace": true
+    },
+    {
+      "ply": 10,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b4",
+      "from": "a4",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=53 capture BR,ours+8"
+    },
+    {
+      "ply": 11,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "wasPlace": true
+    },
+    {
+      "ply": 12,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a4",
+      "from": "b4",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=220 capture BR,ours+8,diag-defend+160"
+    },
+    {
+      "ply": 13,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "wasPlace": true
+    },
+    {
+      "ply": 14,
+      "mover": "me",
+      "piece": "WB",
+      "to": "a1",
+      "wasPlace": true,
+      "heuristic": "score=10 ours+24"
+    },
+    {
+      "ply": 15,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 16,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b2",
+      "from": "a1",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=64 capture BB,ours+16"
+    },
+    {
+      "ply": 17,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "a1",
+      "wasPlace": true
+    },
+    {
+      "ply": 18,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a1",
+      "from": "a4",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=94 capture BN,ours+50"
+    },
+    {
+      "ply": 19,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "wasPlace": true
+    },
+    {
+      "ply": 20,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=91 capture BB,ours+50"
+    },
+    {
+      "ply": 21,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 22,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=100 capture BB,ours+50"
+    },
+    {
+      "ply": 23,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "wasPlace": true
+    },
+    {
+      "ply": 24,
+      "mover": "me",
+      "piece": "WP",
+      "to": "c3",
+      "from": "d4",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=92 capture BB,ours+50"
+    },
+    {
+      "ply": 25,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b2",
+      "from": "b4",
+      "captured": "WB",
+      "wasPlace": false
+    },
+    {
+      "ply": 26,
+      "mover": "me",
+      "piece": "WP",
+      "to": "b2",
+      "from": "c3",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=66 capture BR,ours+16"
+    },
+    {
+      "ply": 27,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "d4",
+      "wasPlace": true
+    },
+    {
+      "ply": 28,
+      "mover": "me",
+      "piece": "WR",
+      "to": "d1",
+      "from": "a1",
+      "captured": "BP",
+      "wasPlace": false,
+      "heuristic": "score=52 capture BP"
+    },
+    {
+      "ply": 29,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "b1",
+      "wasPlace": true
+    },
+    {
+      "ply": 30,
+      "mover": "me",
+      "piece": "WR",
+      "to": "d4",
+      "from": "d1",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=70 capture BN,ours+16"
+    },
+    {
+      "ply": 31,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "a1",
+      "wasPlace": true
+    },
+    {
+      "ply": 32,
+      "mover": "me",
+      "piece": "WP",
+      "to": "a1",
+      "from": "b2",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=69 capture BN,ours+16"
+    },
+    {
+      "ply": 33,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "c2",
+      "wasPlace": true
+    },
+    {
+      "ply": 34,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=40 ours+50"
+    },
+    {
+      "ply": 35,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "wasPlace": true
+    },
+    {
+      "ply": 36,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=91 capture BB,ours+50"
+    },
+    {
+      "ply": 37,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 38,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=100 capture BB,ours+50"
+    },
+    {
+      "ply": 39,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "wasPlace": true
+    },
+    {
+      "ply": 40,
+      "mover": "me",
+      "piece": "WN",
+      "to": "a4",
+      "wasPlace": true,
+      "heuristic": "score=-12 ours+16"
+    },
+    {
+      "ply": 41,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "a1",
+      "from": "c2",
+      "captured": "WP",
+      "wasPlace": false
+    },
+    {
+      "ply": 42,
+      "mover": "me",
+      "piece": "WB",
+      "to": "a1",
+      "from": "b2",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=61 capture BN,ours+16"
+    },
+    {
+      "ply": 43,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "c2",
+      "wasPlace": true
+    },
+    {
+      "ply": 44,
+      "mover": "me",
+      "piece": "WN",
+      "to": "c3",
+      "from": "a4",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=92 capture BB,ours+50"
+    },
+    {
+      "ply": 45,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 46,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b2",
+      "from": "a1",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=91 capture BB,ours+50"
+    },
+    {
+      "ply": 47,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "a1",
+      "wasPlace": true
+    },
+    {
+      "ply": 48,
+      "mover": "me",
+      "piece": "WB",
+      "to": "a1",
+      "from": "b2",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=86 capture BB,ours+50"
+    },
+    {
+      "ply": 49,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 50,
+      "mover": "me",
+      "piece": "WN",
+      "to": "b1",
+      "from": "c3",
+      "captured": "BP",
+      "wasPlace": false,
+      "heuristic": "score=43 capture BP,ours+8"
+    },
+    {
+      "ply": 51,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "c1",
+      "wasPlace": true
+    },
+    {
+      "ply": 52,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b2",
+      "from": "a1",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=63 capture BB,ours+24"
+    },
+    {
+      "ply": 53,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "wasPlace": true
+    },
+    {
+      "ply": 54,
+      "mover": "me",
+      "piece": "WN",
+      "to": "c3",
+      "from": "b1",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=131 capture BB,ours+50,blocks"
+    },
+    {
+      "ply": 55,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "a1",
+      "wasPlace": true
+    },
+    {
+      "ply": 56,
+      "mover": "me",
+      "piece": "WB",
+      "to": "a1",
+      "from": "b2",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=95 capture BB,ours+50"
+    },
+    {
+      "ply": 57,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 58,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b2",
+      "from": "a1",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=92 capture BB,ours+50"
+    },
+    {
+      "ply": 59,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "a1",
+      "wasPlace": true
+    },
+    {
+      "ply": 60,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c1",
+      "from": "b2",
+      "captured": "BP",
+      "wasPlace": false,
+      "heuristic": "score=36 capture BP"
+    },
+    {
+      "ply": 61,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "c4",
+      "wasPlace": true
+    },
+    {
+      "ply": 62,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c4",
+      "from": "d4",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=38 capture BR"
+    },
+    {
+      "ply": 63,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "wasPlace": true
+    },
+    {
+      "ply": 64,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b4",
+      "from": "c4",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=37 capture BR"
+    },
+    {
+      "ply": 65,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "wasPlace": true
+    },
+    {
+      "ply": 66,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a4",
+      "from": "b4",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=212 capture BR,diag-defend+160"
+    },
+    {
+      "ply": 67,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "wasPlace": true
+    },
+    {
+      "ply": 68,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a1",
+      "from": "a4",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=62 capture BB,ours+24"
+    },
+    {
+      "ply": 69,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 70,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b2",
+      "from": "c1",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=90 capture BB,ours+50"
+    },
+    {
+      "ply": 71,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "d4",
+      "wasPlace": true
+    },
+    {
+      "ply": 72,
+      "mover": "me",
+      "piece": "WP",
+      "to": "b3",
+      "wasPlace": true,
+      "heuristic": "score=-13 ours+8"
+    },
+    {
+      "ply": 73,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "a1",
+      "from": "c2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 74,
+      "mover": "me",
+      "piece": "WB",
+      "to": "a1",
+      "from": "b2",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=44 capture BN,ours+8"
+    },
+    {
+      "ply": 75,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 76,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b2",
+      "from": "a1",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=47 capture BB,ours+8"
+    },
+    {
+      "ply": 77,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "a1",
+      "wasPlace": true
+    },
+    {
+      "ply": 78,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c2",
+      "wasPlace": true,
+      "heuristic": "score=13 ours+40"
+    },
+    {
+      "ply": 79,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "b3",
+      "from": "a1",
+      "captured": "WP",
+      "wasPlace": false
+    }
+  ],
+  "hintsUsed": [
+    "Source: `tmp/botclient/main.go` (imports `tic-tac-chec/engine`)",
+    "Build: `go build -o tmp/botclient/botclient ./tmp/botclient/`",
+    "Run: `./tmp/botclient/botclient` (defaults: base=`https://ttc.ctln.pw`, difficulty=`hard`)",
+    "Game logs: `tmp/games/\u003cts\u003e.json`",
+    "`engine.Piece{}` equals `WhitePawn` (Color=0, Kind=0) → \"no legal moves\" guard tripped falsely. **Fixed** with explicit `ok bool`.",
+    "Rep-penalty by post-move signature never fired because we recorded pre-move signatures. **Fixed** by tracking (board-before, piece, cell) move fingerprints with -200 per prior use.",
+    "`inferLastMove` lost the source cell on move-with-capture. **Fixed** with disjoint `source`/`target`/`captured` tracking.",
+    "Auth: `POST /api/clients` returns `{\"token\": \"...\"}` (no body needed).",
+    "Create game: `POST /api/bot-game?difficulty=hard` with `Authorization: Bearer \u003ctoken\u003e` returns `{\"roomId\": \"...\"}`.",
+    "WS: `wss://ttc.ctln.pw/ws/room/{roomId}?token=\u003ctoken\u003e`.",
+    "First message: `{\"type\":\"roomJoined\",\"roomId\":...,\"color\":\"white\"|\"black\"}`.",
+    "State messages: `{\"type\":\"gameState\",\"state\":{board,turn,status,winner,pawnDirections}}` — **no MoveCount field** (differs from `internal/wire.GameState`).",
+    "Move format: `{\"type\":\"move\",\"piece\":\"WR\",\"to\":\"b2\"}`. Placement vs. move is inferred by server (piece already on board ⇒ move; else placement).",
+    "Square notation: `a1`–`d4`, white side at rank 1.",
+    "Piece codes: WP/WR/WB/WN, BP/BR/BB/BN (knight is N, not K).",
+    "**CRITICAL: determinism trap.** The hard bot is deterministic given state, and so is our heuristic — games 2 and 3 were bit-identical. Without code changes, every /loop fire replays the same loss. **Next iteration MUST modify the heuristic before playing** (e.g., apply one of the action items above, or add small randomized tie-breaking).",
+    "**Do NOT keep playing ad-hoc heuristic games forever.** After 3-5 losses, switch strategy: spin up the local onnx `bot_hard` model and use its inference as move picker. That will reveal whether our issue is strategy or just weak move evaluation. (See `internal/bot/` and `bot/models/bot_hard.onnx`; `cmd/web/bots.go` shows how it's loaded with `ORT_LIB_PATH`.)",
+    "Track each game's outcome in the table above and the heuristic version that played it, so we can measure improvement across runs.",
+    "Concrete first code-change to try next run: in `scoreCandidate`, make `lineBuildScore` weight diagonals 2× rows/cols, AND add an \"opponent diagonal threat\" term: if {a1,b2,c3,d4} or {a4,b3,c2,d1} has ≥2 opponent pieces and no mine, penalize any candidate that doesn't land on one of the remaining diagonal cells."
+  ],
+  "finalBoard": "\n    0        1        2        3      \n  -------------------------------------\n0 | .      | [B R]  | .      | [B P]  |\n  -------------------------------------\n1 | .      | [B N]  | [W N]  | .      |\n  -------------------------------------\n2 | .      | [W B]  | [W R]  | .      |\n  -------------------------------------\n3 | .      | .      | .      | .      |\n  -------------------------------------"
+}

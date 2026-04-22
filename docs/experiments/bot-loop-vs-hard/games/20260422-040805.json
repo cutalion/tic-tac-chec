@@ -1,0 +1,411 @@
+{
+  "startedAt": "2026-04-22T04:08:05.986317116+04:00",
+  "endedAt": "2026-04-22T04:08:26.880257793+04:00",
+  "difficulty": "hard",
+  "myColor": "white",
+  "result": "loss",
+  "moves": [
+    {
+      "ply": 0,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b3",
+      "wasPlace": true,
+      "heuristic": "score=6 "
+    },
+    {
+      "ply": 1,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "d4",
+      "wasPlace": true
+    },
+    {
+      "ply": 2,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c2",
+      "wasPlace": true,
+      "heuristic": "score=22 ours+32"
+    },
+    {
+      "ply": 3,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "wasPlace": true
+    },
+    {
+      "ply": 4,
+      "mover": "me",
+      "piece": "WP",
+      "to": "c4",
+      "wasPlace": true,
+      "heuristic": "score=146 ours+8,line-defend+160"
+    },
+    {
+      "ply": 5,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "a1",
+      "wasPlace": true
+    },
+    {
+      "ply": 6,
+      "mover": "me",
+      "piece": "WN",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=154 ours+24,fork+40(+2 2-lines),line-ignored-50,line-defend+160"
+    },
+    {
+      "ply": 7,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "c4",
+      "from": "a4",
+      "captured": "WP",
+      "wasPlace": false
+    },
+    {
+      "ply": 8,
+      "mover": "me",
+      "piece": "WP",
+      "to": "a4",
+      "wasPlace": true,
+      "heuristic": "score=210 ours+66,line-defend+160"
+    },
+    {
+      "ply": 9,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "from": "c4",
+      "captured": "WP",
+      "wasPlace": false
+    },
+    {
+      "ply": 10,
+      "mover": "me",
+      "piece": "WN",
+      "to": "a4",
+      "from": "b2",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=176 capture BR,ours+50,line-defend+160,line-defend+160,line-abandon-200"
+    },
+    {
+      "ply": 11,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "d1",
+      "wasPlace": true
+    },
+    {
+      "ply": 12,
+      "mover": "me",
+      "piece": "WB",
+      "to": "d1",
+      "from": "c2",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=332 capture BB,ours+50,line-defend+160,line-defend+160,line-ignored-50"
+    },
+    {
+      "ply": 13,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c2",
+      "wasPlace": true
+    },
+    {
+      "ply": 14,
+      "mover": "me",
+      "piece": "WN",
+      "to": "c3",
+      "from": "a4",
+      "wasPlace": false,
+      "heuristic": "score=158 ours+8,line-defend+160"
+    },
+    {
+      "ply": 15,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b3",
+      "from": "c2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 16,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=110 line-reinforce+120"
+    },
+    {
+      "ply": 17,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a3",
+      "wasPlace": true
+    },
+    {
+      "ply": 18,
+      "mover": "me",
+      "piece": "WP",
+      "to": "a2",
+      "wasPlace": true,
+      "heuristic": "score=144 ours+8,line-defend+160"
+    },
+    {
+      "ply": 19,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "a2",
+      "from": "b3",
+      "captured": "WP",
+      "wasPlace": false
+    },
+    {
+      "ply": 20,
+      "mover": "me",
+      "piece": "WN",
+      "to": "a2",
+      "from": "c3",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=342 capture BB,ours+16,blocks,line-defend+240"
+    },
+    {
+      "ply": 21,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "wasPlace": true
+    },
+    {
+      "ply": 22,
+      "mover": "me",
+      "piece": "WN",
+      "to": "c3",
+      "from": "a2",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=171 capture BB,line-defend+160,line-abandon-200,line-reinforce+180 2ply-skip-1"
+    },
+    {
+      "ply": 23,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b4",
+      "wasPlace": true
+    },
+    {
+      "ply": 24,
+      "mover": "me",
+      "piece": "WP",
+      "to": "a4",
+      "wasPlace": true,
+      "heuristic": "score=305 ours+16,line-defend+160,line-defend+160"
+    },
+    {
+      "ply": 25,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "from": "a3",
+      "captured": "WP",
+      "wasPlace": false
+    },
+    {
+      "ply": 26,
+      "mover": "me",
+      "piece": "WN",
+      "to": "a4",
+      "from": "c3",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=489 capture BR,ours+16,blocks,line-defend+240,line-defend+160"
+    },
+    {
+      "ply": 27,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "c3",
+      "wasPlace": true
+    },
+    {
+      "ply": 28,
+      "mover": "me",
+      "piece": "WP",
+      "to": "c4",
+      "wasPlace": true,
+      "heuristic": "score=95 ours+32,line-reinforce+120"
+    },
+    {
+      "ply": 29,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "c4",
+      "from": "c3",
+      "captured": "WP",
+      "wasPlace": false
+    },
+    {
+      "ply": 30,
+      "mover": "me",
+      "piece": "WP",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=148 ours+32,line-reinforce+120"
+    },
+    {
+      "ply": 31,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b4",
+      "captured": "WP",
+      "wasPlace": false
+    },
+    {
+      "ply": 32,
+      "mover": "me",
+      "piece": "WP",
+      "to": "c2",
+      "wasPlace": true,
+      "heuristic": "score=172 ours+58,line-defend+160"
+    },
+    {
+      "ply": 33,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "from": "c4",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 34,
+      "mover": "me",
+      "piece": "WN",
+      "to": "b4",
+      "wasPlace": true,
+      "heuristic": "score=68 ours+16,line-defend+160,line-ignored-50 2ply-skip-1"
+    },
+    {
+      "ply": 35,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "from": "a4",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 36,
+      "mover": "me",
+      "piece": "WN",
+      "to": "b3",
+      "wasPlace": true,
+      "heuristic": "score=-46 ours+58,line-ignored-50"
+    },
+    {
+      "ply": 37,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b3",
+      "from": "b4",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 38,
+      "mover": "me",
+      "piece": "WP",
+      "to": "b3",
+      "from": "c2",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=198 capture BR,ours+24,line-defend+160 2ply-hopeless"
+    },
+    {
+      "ply": 39,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b1",
+      "wasPlace": true
+    },
+    {
+      "ply": 40,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c2",
+      "from": "b2",
+      "wasPlace": false,
+      "heuristic": "score=-79998 opponent wins next 2ply-hopeless"
+    },
+    {
+      "ply": 41,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b2",
+      "from": "b1",
+      "wasPlace": false
+    }
+  ],
+  "hintsUsed": [
+    "Source: `tmp/botclient/main.go` (imports `tic-tac-chec/engine`)",
+    "Build: `go build -o tmp/botclient/botclient ./tmp/botclient/`",
+    "Run: `./tmp/botclient/botclient` (defaults: base=`https://ttc.ctln.pw`, difficulty=`hard`)",
+    "Game logs: `tmp/games/\u003cts\u003e.json`",
+    "`engine.Piece{}` equals `WhitePawn` (Color=0, Kind=0) → \"no legal moves\" guard tripped falsely. **Fixed** with explicit `ok bool`.",
+    "Rep-penalty by post-move signature never fired because we recorded pre-move signatures. **Fixed** by tracking (board-before, piece, cell) move fingerprints with -200 per prior use.",
+    "`inferLastMove` lost the source cell on move-with-capture. **Fixed** with disjoint `source`/`target`/`captured` tracking.",
+    "✅ Diagonals weighted 2× in `lineBuildScore` via `isDiagonal()` helper.",
+    "✅ Explicit diagonal-threat term: if opponent has ≥2 on a diagonal with 0 mine, +80/piece bonus for landing on an empty diagonal cell; -50 penalty for ignoring.",
+    "✅ `math/rand/v2` jitter of 0–2 points on every score → breaks determinism.",
+    "✅ Offense boost: `ours *= 2` when `threats(\u0026g.Board, opp) == 0`.",
+    "✅ Fork bonus: +40 if a candidate creates ≥2 new 2-lines.",
+    "✅ `maxPly` raised to 120 with near-win diagnostic (reports `my 3-lines` + `opp 3-lines` on cap).",
+    "❌ Run #3 = 2 draws + 1 loss (vs. run #2 = 3 draws). Offense bias distracted us from defense.",
+    "Game #8 hit cap with `opp 3-lines=1` — a latent loss that cap hid.",
+    "Game #9 lost the anti-diagonal AGAIN (a1-b2-c3-d4 = BN-BR-BB-BP) on ply 94. At ply 91 bot had 2 on anti-diag (c3=BB, d4=BP) plus our WR at b2. Because `mineOnDiag \u003e 0`, the defense term didn't fire, so we happily moved WR→b1 on ply 92, vacating b2; bot moved BR→b2 and completed the diagonal. **Gating bug**: `mineOnDiag \u003e 0` is too permissive — a single defender on a contested line is fragile.",
+    "❌❌❌ **Bot switched from diagonals to columns.** When we hardened the diagonal defense, the bot stopped targeting diagonals — all 3 losses were **4-in-a-column** (col b in games #10–11, col a in game #12).",
+    "This is the single biggest lesson so far: **the diagonal-specific code became blinkers.** In game #10, heuristic logged `diag-reinforce+120` while col b was the actual winning line. We were watching the wrong target.",
+    "The heuristic is specialized where it should be generalized: every defensive term we have (`countDiag`, `diagonals()`, `diag-defend`/`diag-abandon`/`diag-reinforce`) is diagonal-only. Rows and columns have no analogous protection.",
+    "Generalized `criticalLineDefense` scans all 10 lines now. `line-defend+160` and `line-reinforce+120` did fire correctly.",
+    "But **all 3 games still lost** — bot reverted to diagonals (2 anti-diag + 1 main diag wins).",
+    "**Root cause now visible: 2-ply capture combos.** Pattern in all 3 games:",
+    "Bot has 2-3 pieces on line L, our 1 defender is on L at cell C.",
+    "Bot places/moves piece X to an attacking square near C (setup move).",
+    "Our 1-ply heuristic evaluates this bot move and sees no *immediate* win — so we pursue offense.",
+    "Next turn, bot captures our defender at C with piece X, landing ON L, completing the line.",
+    "Example (game #14, ply 8→11): we defended c2 with WN on main diag. Bot placed BB at b1 (non-winning move). Bot then swept BB b1→c2 capturing WN, completing BR-BN-BB-BP. Our code saw this only at ply 10 when it was already unavoidable (`-79998 opponent wins next` on every candidate).",
+    "Progression: 3L → 3D → 2D+1L → 3L → 3L. The generalization helped us notice more threats but didn't buy us lookahead.",
+    "For each opponent response `oc` in `scoreCandidate`, before just scoring their line-build, also check: **does the position after `oc` force us into a \"every-move-loses\" state?** That is, enumerate our candidates after `oc`; if every one has `oppWins=true` on the THIRD ply, flag this candidate as a 2-ply-loss (-50000).",
+    "This is a constrained 3-ply search (1 × branching × 1 × branching × 1 terminal check). At full board ~16 candidates each way, that's ~16² = 256 inner checks per candidate × 16+ candidates = manageable. At mid-game with pieces in hand, branching is higher — cap by evaluating only opp responses that increase a critical line's count.",
+    "Auth: `POST /api/clients` returns `{\"token\": \"...\"}` (no body needed).",
+    "Create game: `POST /api/bot-game?difficulty=hard` with `Authorization: Bearer \u003ctoken\u003e` returns `{\"roomId\": \"...\"}`.",
+    "WS: `wss://ttc.ctln.pw/ws/room/{roomId}?token=\u003ctoken\u003e`.",
+    "First message: `{\"type\":\"roomJoined\",\"roomId\":...,\"color\":\"white\"|\"black\"}`.",
+    "State messages: `{\"type\":\"gameState\",\"state\":{board,turn,status,winner,pawnDirections}}` — **no MoveCount field** (differs from `internal/wire.GameState`).",
+    "Move format: `{\"type\":\"move\",\"piece\":\"WR\",\"to\":\"b2\"}`. Placement vs. move is inferred by server (piece already on board ⇒ move; else placement).",
+    "Square notation: `a1`–`d4`, white side at rank 1.",
+    "Piece codes: WP/WR/WB/WN, BP/BR/BB/BN (knight is N, not K).",
+    "**Determinism trap (mitigated):** added 0–2-point jitter to every score, games are now genuinely different. But jitter is a band-aid — a fuller fix is minimax with a tie-break rule using hash of the move.",
+    "**Progress measurement:** 3 losses in run #1 → 3 draws in run #2. Next target: first win (or at least 1 win in 3 games). If run #3 is again 3 draws at ply cap, the heuristic is plateauing and it's time to drop in the local ONNX model via `internal/bot/` + `bot/models/bot_hard.onnx` as the move picker (need `ORT_LIB_PATH` exported).",
+    "**Concrete code-changes for run #6:**",
+    "**🔥 Step 1 (try first, ~30 lines of Go): \"attacker on defender\" 1-ply check.** In `scoreCandidate`, after computing the critical-line sim, for each line with `oppCount \u003e= 3 \u0026\u0026 mineCount \u003e= 1`, scan opp pieces on the board: for each, check if any `g.LegalMoves(p)` includes our defender's cell. If yes AND that cell is on the critical line, record an `attacker` flag. Then: if our candidate doesn't (a) capture the attacker, (b) add a second defender on L, or (c) move our defender off L **to a still-safe square**, penalize by -800. This catches game #14's BB→b1 setup because b1 doesn't match our filter but the SECOND move BB→c2 does — and at ply 8 we'd already see BB isn't on the board but BP is.",
+    "Actually, simpler: instead of tracking setup pieces, just *enumerate all opp pieces including in-hand placements* and ask: \"assuming opp gets one free move, can they place any opp piece at an empty cell of line L AND simultaneously capture my defender?\" If the answer is yes for any critical line, that IS a 2-ply loss pattern. This is a ~50-line addition.",
+    "**Step 2 if run #6 still loses (≥2 games):** Abandon heuristic, switch to ONNX model. Setup:",
+    "`export ORT_LIB_PATH=/path/to/libonnxruntime.so` (see `third_party/onnxruntime-linux-x64-*` in repo).",
+    "Modify client to import `tic-tac-chec/internal/bot`, initialize with `bot.New(\"bot/models/bot_hard.onnx\", 500)` (500 MCTS sims = hard strength).",
+    "Call `bot.Model.Pick(game, color)` (or however its API works) instead of `pickMove`.",
+    "Our client still handles WS + hint tracking; move picker changes.",
+    "Progress: run #1 = 3L, run #2 = 3D, run #3 = 2D+1L, run #4 = 3L, run #5 = 3L. The heuristic plateau is real; the jump to ONNX is on deck."
+  ],
+  "finalBoard": "\n    0        1        2        3      \n  -------------------------------------\n0 | .      | .      | .      | [B N]  |\n  -------------------------------------\n1 | .      | [W P]  | [B B]  | .      |\n  -------------------------------------\n2 | .      | [B R]  | [W R]  | .      |\n  -------------------------------------\n3 | [B P]  | .      | .      | [W B]  |\n  -------------------------------------"
+}

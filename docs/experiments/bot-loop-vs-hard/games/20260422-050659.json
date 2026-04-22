@@ -1,0 +1,1086 @@
+{
+  "startedAt": "2026-04-22T05:06:59.213477248+04:00",
+  "endedAt": "2026-04-22T05:07:58.937066777+04:00",
+  "difficulty": "hard",
+  "myColor": "white",
+  "result": "draw",
+  "reason": "ply cap reached (120); my 3-lines=0, opp 3-lines=0",
+  "moves": [
+    {
+      "ply": 0,
+      "mover": "me",
+      "piece": "WP",
+      "to": "b3",
+      "wasPlace": true,
+      "heuristic": "score=6 "
+    },
+    {
+      "ply": 1,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "d4",
+      "wasPlace": true
+    },
+    {
+      "ply": 2,
+      "mover": "me",
+      "piece": "WN",
+      "to": "c2",
+      "wasPlace": true,
+      "heuristic": "score=37 ours+48"
+    },
+    {
+      "ply": 3,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "wasPlace": true
+    },
+    {
+      "ply": 4,
+      "mover": "me",
+      "piece": "WP",
+      "to": "a4",
+      "from": "b3",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=252 capture BR,ours+48,line-defend+160"
+    },
+    {
+      "ply": 5,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "wasPlace": true
+    },
+    {
+      "ply": 6,
+      "mover": "me",
+      "piece": "WN",
+      "to": "b4",
+      "from": "c2",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=284 capture BR,line-reinforce+120,attacker-capture+120"
+    },
+    {
+      "ply": 7,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "d1",
+      "wasPlace": true
+    },
+    {
+      "ply": 8,
+      "mover": "me",
+      "piece": "WR",
+      "to": "d3",
+      "wasPlace": true,
+      "heuristic": "score=138 line-defend+160"
+    },
+    {
+      "ply": 9,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "c4",
+      "wasPlace": true
+    },
+    {
+      "ply": 10,
+      "mover": "me",
+      "piece": "WB",
+      "to": "d2",
+      "wasPlace": true,
+      "heuristic": "score=96 line-reinforce+120"
+    },
+    {
+      "ply": 11,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "wasPlace": true
+    },
+    {
+      "ply": 12,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c3",
+      "from": "d2",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=378 capture BB,ours+8,line-defend+160,line-defend+160"
+    },
+    {
+      "ply": 13,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b3",
+      "wasPlace": true
+    },
+    {
+      "ply": 14,
+      "mover": "me",
+      "piece": "WN",
+      "to": "c2",
+      "from": "b4",
+      "wasPlace": false,
+      "heuristic": "score=181 line-reinforce+120,attacker-reinforce+80"
+    },
+    {
+      "ply": 15,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c2",
+      "from": "b3",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 16,
+      "mover": "me",
+      "piece": "WB",
+      "to": "d4",
+      "from": "c3",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=90 capture BN,line-reinforce+120,attacker-reinforce+80,line-abandon-200,attacker-left-60,line-reinforce+120,attacker-reinforce+80,attacker-left-60"
+    },
+    {
+      "ply": 17,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "from": "c4",
+      "captured": "WP",
+      "wasPlace": false
+    },
+    {
+      "ply": 18,
+      "mover": "me",
+      "piece": "WR",
+      "to": "d1",
+      "from": "d3",
+      "captured": "BP",
+      "wasPlace": false,
+      "heuristic": "score=341 capture BP,ours+16,blocks,line-defend+240"
+    },
+    {
+      "ply": 19,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 20,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b2",
+      "from": "d4",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=149 capture BN,line-defend+160,attacker-left-60"
+    },
+    {
+      "ply": 21,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "c3",
+      "wasPlace": true
+    },
+    {
+      "ply": 22,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=148 capture BN,line-defend+160,attacker-left-60"
+    },
+    {
+      "ply": 23,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 24,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=149 capture BN,line-defend+160,attacker-left-60"
+    },
+    {
+      "ply": 25,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "c3",
+      "wasPlace": true
+    },
+    {
+      "ply": 26,
+      "mover": "me",
+      "piece": "WP",
+      "to": "b3",
+      "wasPlace": true,
+      "heuristic": "score=129 ours+8,line-ignored-50,line-reinforce+120,attacker-reinforce+80"
+    },
+    {
+      "ply": 27,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "a1",
+      "wasPlace": true
+    },
+    {
+      "ply": 28,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a1",
+      "from": "d1",
+      "captured": "BP",
+      "wasPlace": false,
+      "heuristic": "score=386 capture BP,ours+8,line-defend+160,line-ignored-50,line-reinforce+120,attacker-capture+120"
+    },
+    {
+      "ply": 29,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "d1",
+      "wasPlace": true
+    },
+    {
+      "ply": 30,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a4",
+      "from": "a1",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=247 capture BR,ours+8,line-ignored-50,line-reinforce+180,attacker-reinforce+80"
+    },
+    {
+      "ply": 31,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "wasPlace": true
+    },
+    {
+      "ply": 32,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=218 capture BN,ours+8,line-defend+160"
+    },
+    {
+      "ply": 33,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "from": "b4",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 34,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=0 ours+64,fork+40(+2 2-lines),attacker-left-60"
+    },
+    {
+      "ply": 35,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b3",
+      "from": "c2",
+      "captured": "WP",
+      "wasPlace": false
+    },
+    {
+      "ply": 36,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b3",
+      "from": "b2",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=346 capture BB,ours+16,blocks,line-defend+240"
+    },
+    {
+      "ply": 37,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 38,
+      "mover": "me",
+      "piece": "WN",
+      "to": "c2",
+      "wasPlace": true,
+      "heuristic": "score=141 ours+32,line-reinforce+120"
+    },
+    {
+      "ply": 39,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WB",
+      "wasPlace": false
+    },
+    {
+      "ply": 40,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "from": "b3",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=66 capture BB,ours+16"
+    },
+    {
+      "ply": 41,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "d4",
+      "wasPlace": true
+    },
+    {
+      "ply": 42,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b3",
+      "wasPlace": true,
+      "heuristic": "score=89 ours+16,line-ignored-50,line-ignored-50,line-reinforce+120,attacker-reinforce+80"
+    },
+    {
+      "ply": 43,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "c2",
+      "from": "d4",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 44,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c2",
+      "from": "c3",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=230 capture BN,line-reinforce+180"
+    },
+    {
+      "ply": 45,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "d4",
+      "wasPlace": true
+    },
+    {
+      "ply": 46,
+      "mover": "me",
+      "piece": "WB",
+      "to": "a4",
+      "from": "b3",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=139 capture BR,line-defend+160,line-ignored-50"
+    },
+    {
+      "ply": 47,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "wasPlace": true
+    },
+    {
+      "ply": 48,
+      "mover": "me",
+      "piece": "WN",
+      "to": "c4",
+      "wasPlace": true,
+      "heuristic": "score=128 ours+8,line-reinforce+120,attacker-reinforce+80,line-ignored-50"
+    },
+    {
+      "ply": 49,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b1",
+      "wasPlace": true
+    },
+    {
+      "ply": 50,
+      "mover": "me",
+      "piece": "WP",
+      "to": "c1",
+      "wasPlace": true,
+      "heuristic": "score=55 ours+25,line-defend+160,line-ignored-50,line-ignored-50"
+    },
+    {
+      "ply": 51,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c2",
+      "from": "b1",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 52,
+      "mover": "me",
+      "piece": "WR",
+      "to": "d3",
+      "wasPlace": true,
+      "heuristic": "score=52 line-defend+160,attacker-left-60 2ply-skip-1"
+    },
+    {
+      "ply": 53,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "from": "b4",
+      "captured": "WB",
+      "wasPlace": false
+    },
+    {
+      "ply": 54,
+      "mover": "me",
+      "piece": "WR",
+      "to": "d1",
+      "from": "d3",
+      "captured": "BP",
+      "wasPlace": false,
+      "heuristic": "score=153 capture BP,ours+16,blocks,attacker-left-60,line-abandon-200,attacker-reinforce+80,line-defend+240"
+    },
+    {
+      "ply": 55,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "b3",
+      "wasPlace": true
+    },
+    {
+      "ply": 56,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=-156 ours+16,attacker-left-60,attacker-left-60 2ply-skip-5"
+    },
+    {
+      "ply": 57,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "c4",
+      "from": "a4",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 58,
+      "mover": "me",
+      "piece": "WN",
+      "to": "a4",
+      "wasPlace": true,
+      "heuristic": "score=340 ours+8,line-defend+160,line-reinforce+120,attacker-reinforce+80"
+    },
+    {
+      "ply": 59,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "c3",
+      "from": "c4",
+      "captured": "WB",
+      "wasPlace": false
+    },
+    {
+      "ply": 60,
+      "mover": "me",
+      "piece": "WN",
+      "to": "c3",
+      "from": "a4",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=489 capture BR,ours+8,line-defend+160,line-reinforce+120,line-defend+160"
+    },
+    {
+      "ply": 61,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "d2",
+      "wasPlace": true
+    },
+    {
+      "ply": 62,
+      "mover": "me",
+      "piece": "WP",
+      "to": "d2",
+      "from": "c1",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=565 capture BR,line-defend+160,line-reinforce+120,attacker-capture+120,attacker-capture+120"
+    },
+    {
+      "ply": 63,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "d3",
+      "wasPlace": true
+    },
+    {
+      "ply": 64,
+      "mover": "me",
+      "piece": "WB",
+      "to": "a3",
+      "wasPlace": true,
+      "heuristic": "score=118 line-reinforce+120,attacker-reinforce+80,attacker-left-60"
+    },
+    {
+      "ply": 65,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "d1",
+      "from": "c2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 66,
+      "mover": "me",
+      "piece": "WN",
+      "to": "d1",
+      "from": "c3",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=451 capture BB,line-reinforce+180,attacker-reinforce+80,line-defend+160"
+    },
+    {
+      "ply": 67,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c2",
+      "wasPlace": true
+    },
+    {
+      "ply": 68,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a4",
+      "wasPlace": true,
+      "heuristic": "score=192 ours+16,line-reinforce+120,attacker-reinforce+80"
+    },
+    {
+      "ply": 69,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "d1",
+      "from": "c2",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 70,
+      "mover": "me",
+      "piece": "WR",
+      "to": "d4",
+      "from": "a4",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=72 capture BN,line-reinforce+180,attacker-reinforce+80,line-abandon-200"
+    },
+    {
+      "ply": 71,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "c2",
+      "wasPlace": true
+    },
+    {
+      "ply": 72,
+      "mover": "me",
+      "piece": "WN",
+      "to": "a4",
+      "wasPlace": true,
+      "heuristic": "score=262 ours+32,fork+40(+2 2-lines),blocks,attacker-left-60,line-defend+240"
+    },
+    {
+      "ply": 73,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "d4",
+      "from": "d3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 74,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c4",
+      "wasPlace": true,
+      "heuristic": "score=-126 ours+16,attacker-left-60,attacker-left-60"
+    },
+    {
+      "ply": 75,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "c4",
+      "from": "d4",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 76,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b4",
+      "wasPlace": true,
+      "heuristic": "score=-110 ours+8,line-ignored-50,attacker-left-60"
+    },
+    {
+      "ply": 77,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "from": "c4",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 78,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b4",
+      "from": "a3",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=332 capture BR,ours+8,line-defend+160,attacker-capture+120"
+    },
+    {
+      "ply": 79,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "c4",
+      "wasPlace": true
+    },
+    {
+      "ply": 80,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c1",
+      "wasPlace": true,
+      "heuristic": "score=152 line-defend+160"
+    },
+    {
+      "ply": 81,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "from": "c4",
+      "captured": "WB",
+      "wasPlace": false
+    },
+    {
+      "ply": 82,
+      "mover": "me",
+      "piece": "WR",
+      "to": "d1",
+      "from": "c1",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=255 capture BB,ours+8,line-ignored-50,line-reinforce+180,attacker-reinforce+80"
+    },
+    {
+      "ply": 83,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 84,
+      "mover": "me",
+      "piece": "WN",
+      "to": "b2",
+      "from": "a4",
+      "captured": "BB",
+      "wasPlace": false,
+      "heuristic": "score=464 capture BB,ours+16,blocks,line-reinforce+120,line-defend+240"
+    },
+    {
+      "ply": 85,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "a1",
+      "wasPlace": true
+    },
+    {
+      "ply": 86,
+      "mover": "me",
+      "piece": "WB",
+      "to": "b1",
+      "wasPlace": true,
+      "heuristic": "score=201 ours+16,line-reinforce+120,attacker-reinforce+80"
+    },
+    {
+      "ply": 87,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "a1",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 88,
+      "mover": "me",
+      "piece": "WN",
+      "to": "a4",
+      "wasPlace": true,
+      "heuristic": "score=132 ours+32,line-reinforce+120"
+    },
+    {
+      "ply": 89,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "from": "b4",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 90,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c2",
+      "from": "b1",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=148 capture BN,ours+16,line-reinforce+120,line-abandon-200,line-reinforce+180"
+    },
+    {
+      "ply": 91,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "c3",
+      "wasPlace": true
+    },
+    {
+      "ply": 92,
+      "mover": "me",
+      "piece": "WP",
+      "to": "c3",
+      "from": "d2",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=311 capture BN,ours+8,line-defend+160,line-ignored-50,line-defend+160"
+    },
+    {
+      "ply": 93,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "a1",
+      "wasPlace": true
+    },
+    {
+      "ply": 94,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a1",
+      "from": "d1",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=345 capture BN,ours+8,line-defend+160,line-ignored-50,line-reinforce+120,attacker-reinforce+80"
+    },
+    {
+      "ply": 95,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "d4",
+      "wasPlace": true
+    },
+    {
+      "ply": 96,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a4",
+      "from": "a1",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=355 capture BR,ours+8,line-defend+160,line-ignored-50,line-reinforce+120,attacker-reinforce+80"
+    },
+    {
+      "ply": 97,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "c2",
+      "from": "d4",
+      "captured": "WB",
+      "wasPlace": false
+    },
+    {
+      "ply": 98,
+      "mover": "me",
+      "piece": "WB",
+      "to": "a2",
+      "wasPlace": true,
+      "heuristic": "score=93 ours+8,line-defend+160,line-ignored-50 2ply-skip-2"
+    },
+    {
+      "ply": 99,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "a2",
+      "from": "b3",
+      "captured": "WB",
+      "wasPlace": false
+    },
+    {
+      "ply": 100,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a2",
+      "from": "a4",
+      "captured": "BP",
+      "wasPlace": false,
+      "heuristic": "score=317 capture BP,blocks,line-defend+240"
+    },
+    {
+      "ply": 101,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "b1",
+      "wasPlace": true
+    },
+    {
+      "ply": 102,
+      "mover": "me",
+      "piece": "WN",
+      "to": "d2",
+      "wasPlace": true,
+      "heuristic": "score=111 line-reinforce+120,attacker-reinforce+80,line-ignored-50"
+    },
+    {
+      "ply": 103,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WP",
+      "wasPlace": false
+    },
+    {
+      "ply": 104,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c2",
+      "from": "a2",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=208 capture BN,ours+8,line-defend+160"
+    },
+    {
+      "ply": 105,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "c2",
+      "from": "b1",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 106,
+      "mover": "me",
+      "piece": "WP",
+      "to": "c4",
+      "wasPlace": true,
+      "heuristic": "score=138 line-defend+160"
+    },
+    {
+      "ply": 107,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "d4",
+      "wasPlace": true
+    },
+    {
+      "ply": 108,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=141 line-defend+160"
+    },
+    {
+      "ply": 109,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "wasPlace": true
+    },
+    {
+      "ply": 110,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b4",
+      "from": "b2",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=291 capture BR,line-reinforce+120,attacker-capture+120,attacker-capture+120,line-abandon-200,attacker-capture+120"
+    },
+    {
+      "ply": 111,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "wasPlace": true
+    },
+    {
+      "ply": 112,
+      "mover": "me",
+      "piece": "WR",
+      "to": "a4",
+      "from": "b4",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=122 capture BR,line-defend+160,line-ignored-50"
+    },
+    {
+      "ply": 113,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "wasPlace": true
+    },
+    {
+      "ply": 114,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c1",
+      "wasPlace": true,
+      "heuristic": "score=102 line-reinforce+120,attacker-reinforce+80,line-ignored-50"
+    },
+    {
+      "ply": 115,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "c4",
+      "from": "b4",
+      "captured": "WP",
+      "wasPlace": false
+    },
+    {
+      "ply": 116,
+      "mover": "me",
+      "piece": "WN",
+      "to": "c4",
+      "from": "d2",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=374 capture BR,line-reinforce+120,attacker-capture+120,line-reinforce+180,line-ignored-50"
+    },
+    {
+      "ply": 117,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "wasPlace": true
+    },
+    {
+      "ply": 118,
+      "mover": "me",
+      "piece": "WP",
+      "to": "a1",
+      "wasPlace": true,
+      "heuristic": "score=202 ours+16,fork+40(+2 2-lines),line-defend+160"
+    },
+    {
+      "ply": 119,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "from": "b4",
+      "captured": "WR",
+      "wasPlace": false
+    }
+  ],
+  "hintsUsed": [
+    "Source: `tmp/botclient/main.go` (imports `tic-tac-chec/engine`)",
+    "Build: `go build -o tmp/botclient/botclient ./tmp/botclient/`",
+    "Run: `./tmp/botclient/botclient` (defaults: base=`https://ttc.ctln.pw`, difficulty=`hard`)",
+    "Game logs: `tmp/games/\u003cts\u003e.json`",
+    "`engine.Piece{}` equals `WhitePawn` (Color=0, Kind=0) → \"no legal moves\" guard tripped falsely. **Fixed** with explicit `ok bool`.",
+    "Rep-penalty by post-move signature never fired because we recorded pre-move signatures. **Fixed** by tracking (board-before, piece, cell) move fingerprints with -200 per prior use.",
+    "`inferLastMove` lost the source cell on move-with-capture. **Fixed** with disjoint `source`/`target`/`captured` tracking.",
+    "✅ Diagonals weighted 2× in `lineBuildScore` via `isDiagonal()` helper.",
+    "✅ Explicit diagonal-threat term: if opponent has ≥2 on a diagonal with 0 mine, +80/piece bonus for landing on an empty diagonal cell; -50 penalty for ignoring.",
+    "✅ `math/rand/v2` jitter of 0–2 points on every score → breaks determinism.",
+    "✅ Offense boost: `ours *= 2` when `threats(\u0026g.Board, opp) == 0`.",
+    "✅ Fork bonus: +40 if a candidate creates ≥2 new 2-lines.",
+    "✅ `maxPly` raised to 120 with near-win diagnostic (reports `my 3-lines` + `opp 3-lines` on cap).",
+    "❌ Run #3 = 2 draws + 1 loss (vs. run #2 = 3 draws). Offense bias distracted us from defense.",
+    "Game #8 hit cap with `opp 3-lines=1` — a latent loss that cap hid.",
+    "Game #9 lost the anti-diagonal AGAIN (a1-b2-c3-d4 = BN-BR-BB-BP) on ply 94. At ply 91 bot had 2 on anti-diag (c3=BB, d4=BP) plus our WR at b2. Because `mineOnDiag \u003e 0`, the defense term didn't fire, so we happily moved WR→b1 on ply 92, vacating b2; bot moved BR→b2 and completed the diagonal. **Gating bug**: `mineOnDiag \u003e 0` is too permissive — a single defender on a contested line is fragile.",
+    "❌❌❌ **Bot switched from diagonals to columns.** When we hardened the diagonal defense, the bot stopped targeting diagonals — all 3 losses were **4-in-a-column** (col b in games #10–11, col a in game #12).",
+    "This is the single biggest lesson so far: **the diagonal-specific code became blinkers.** In game #10, heuristic logged `diag-reinforce+120` while col b was the actual winning line. We were watching the wrong target.",
+    "The heuristic is specialized where it should be generalized: every defensive term we have (`countDiag`, `diagonals()`, `diag-defend`/`diag-abandon`/`diag-reinforce`) is diagonal-only. Rows and columns have no analogous protection.",
+    "Generalized `criticalLineDefense` scans all 10 lines now. `line-defend+160` and `line-reinforce+120` did fire correctly.",
+    "But **all 3 games still lost** — bot reverted to diagonals (2 anti-diag + 1 main diag wins).",
+    "**Root cause now visible: 2-ply capture combos.** Pattern in all 3 games:",
+    "Bot has 2-3 pieces on line L, our 1 defender is on L at cell C.",
+    "Bot places/moves piece X to an attacking square near C (setup move).",
+    "Our 1-ply heuristic evaluates this bot move and sees no *immediate* win — so we pursue offense.",
+    "Next turn, bot captures our defender at C with piece X, landing ON L, completing the line.",
+    "Example (game #14, ply 8→11): we defended c2 with WN on main diag. Bot placed BB at b1 (non-winning move). Bot then swept BB b1→c2 capturing WN, completing BR-BN-BB-BP. Our code saw this only at ply 10 when it was already unavoidable (`-79998 opponent wins next` on every candidate).",
+    "Progression: 3L → 3D → 2D+1L → 3L → 3L. The generalization helped us notice more threats but didn't buy us lookahead.",
+    "Added `leadsToForcedLoss(g, c, me)`: 3-ply search (our move → opp response → our reply → check opp immediate wins). If any opp response has NO safe reply for us, the candidate is flagged.",
+    "`pickMoveWithHistory` now sorts by 1-ply score then tests top-8; first non-forced-loss is chosen (`2ply-skip-N` in heuristic log).",
+    "Smoke test + 2 real games went to ply cap 120. Only one loss at ply 42 — and the log shows `2ply-hopeless` already at ply 36, meaning the bot constructed a 4-ply trap faster than our 2-ply filter could react.",
+    "1-ply per move went from ~100ms to ~250ms (smoke game took 31s for 120 plies). Sustainable.",
+    "**Remaining failure modes:**",
+    "4-ply setups (need deeper search or wider top-K).",
+    "\"2ply-hopeless\" cases where even top-8 all lose — we could check top-20 or all candidates; at 250ms/move extra, full enumeration doubles game time.",
+    "Raised `topK` from 8→20 and added **attacker-on-defender 1-ply precheck**: for each critical line with `mine==1 \u0026\u0026 opp\u003e=2`, scan on-board opp pieces for any whose `LegalMoves` include our defender's cell. If found:",
+    "candidate captures the attacker (c.cell == attackerCell): +120",
+    "candidate reinforces the line (landsOnLine): +80",
+    "candidate ignores: -60",
+    "**All 3 games drew at ply cap with `my=0 opp=0` 3-lines** — genuine balanced endgames, no latent threats masked by the cap. This is the first run where every game closed cleanly.",
+    "The bot never got a 3-in-a-line either; our combined filters prevent even the *setup* moves from gaining traction.",
+    "The draw state is now stable: we defend perfectly at our strength level, but we also can't *win*. The remaining barrier is offense, not defense.",
+    "**Symmetric \"forced-win\" search.** The mirror of `leadsToForcedLoss` — for each of our top candidates, check whether *we* can force a win in 2 plies. A move that does is a win. Cheap: same 3-ply search, just checking `*winner == me` at the deepest level.",
+    "**Fork-promotion penalty for opp.** When opp has NO 2-in-a-line yet, push harder toward our own 3-in-a-lines. Currently offense boost is x2; try x3 in cold-start states (total pieces on board ≤ 4).",
+    "**Pawn direction tactics.** Pawns reverse on reaching the far edge — this creates cycling opportunities we don't exploit. Detect when our pawn is 1 move from the far edge and give a small bonus.",
+    "Auth: `POST /api/clients` returns `{\"token\": \"...\"}` (no body needed).",
+    "Create game: `POST /api/bot-game?difficulty=hard` with `Authorization: Bearer \u003ctoken\u003e` returns `{\"roomId\": \"...\"}`.",
+    "WS: `wss://ttc.ctln.pw/ws/room/{roomId}?token=\u003ctoken\u003e`.",
+    "First message: `{\"type\":\"roomJoined\",\"roomId\":...,\"color\":\"white\"|\"black\"}`.",
+    "State messages: `{\"type\":\"gameState\",\"state\":{board,turn,status,winner,pawnDirections}}` — **no MoveCount field** (differs from `internal/wire.GameState`).",
+    "Move format: `{\"type\":\"move\",\"piece\":\"WR\",\"to\":\"b2\"}`. Placement vs. move is inferred by server (piece already on board ⇒ move; else placement).",
+    "Square notation: `a1`–`d4`, white side at rank 1.",
+    "Piece codes: WP/WR/WB/WN, BP/BR/BB/BN (knight is N, not K).",
+    "**Determinism trap (mitigated):** added 0–2-point jitter to every score, games are now genuinely different. But jitter is a band-aid — a fuller fix is minimax with a tie-break rule using hash of the move.",
+    "**Progress measurement:** 3 losses in run #1 → 3 draws in run #2. Next target: first win (or at least 1 win in 3 games). If run #3 is again 3 draws at ply cap, the heuristic is plateauing and it's time to drop in the local ONNX model via `internal/bot/` + `bot/models/bot_hard.onnx` as the move picker (need `ORT_LIB_PATH` exported).",
+    "**Concrete code-changes for run #8:**",
+    "**Add `leadsToForcedWin(g, c, me)` — the offensive mirror.** Same 3-ply search skeleton as `leadsToForcedLoss`. If true, override candidate score to +100_000 and pick it. Then rerun 3 games: if any win, celebrate.",
+    "**Increase offense boost x2 → x3** in cold-start states (total pieces on board ≤ 4). Rationale: in the opening, the bot hasn't committed to a line yet; our early aggression may force it to defend rather than build.",
+    "Pawn-flip tactic: detect when a pawn is 1 cell from its direction's far edge; if placing/moving it there creates a 2-in-a-line, +15 bonus.",
+    "Progress: 3L → 3D → 2D+1L → 3L → 3L → 2D+1L → **3D (clean)**. Target run #8: at least 1 win. If none, offense is fundamentally capped by 1-ply — upgrade to alpha-beta minimax of depth 3."
+  ],
+  "finalBoard": "\n    0        1        2        3      \n  -------------------------------------\n0 | [B R]  | .      | [W N]  | [B N]  |\n  -------------------------------------\n1 | .      | .      | [B B]  | .      |\n  -------------------------------------\n2 | .      | .      | [B P]  | .      |\n  -------------------------------------\n3 | [W P]  | .      | [W B]  | .      |\n  -------------------------------------"
+}

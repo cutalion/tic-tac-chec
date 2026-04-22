@@ -1,0 +1,9 @@
+{
+  "startedAt": "2026-04-22T01:43:00.322874734+04:00",
+  "endedAt": "2026-04-22T01:43:00.990330725+04:00",
+  "difficulty": "hard",
+  "myColor": "white",
+  "result": "error",
+  "reason": "no legal moves found",
+  "moves": null
+}

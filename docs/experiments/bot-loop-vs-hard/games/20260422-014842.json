@@ -1,0 +1,684 @@
+{
+  "startedAt": "2026-04-22T01:48:42.026154134+04:00",
+  "endedAt": "2026-04-22T01:49:03.295714989+04:00",
+  "difficulty": "hard",
+  "myColor": "white",
+  "result": "draw",
+  "reason": "ply cap reached (80)",
+  "moves": [
+    {
+      "ply": 0,
+      "mover": "me",
+      "piece": "WP",
+      "to": "b3",
+      "wasPlace": true,
+      "heuristic": "score=4 "
+    },
+    {
+      "ply": 1,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "d4",
+      "wasPlace": true
+    },
+    {
+      "ply": 2,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=4 ours+8"
+    },
+    {
+      "ply": 3,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a3",
+      "wasPlace": true
+    },
+    {
+      "ply": 4,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c2",
+      "wasPlace": true,
+      "heuristic": "score=4 ours+16"
+    },
+    {
+      "ply": 5,
+      "mover": "bot",
+      "piece": "BP",
+      "to": "a1",
+      "wasPlace": true
+    },
+    {
+      "ply": 6,
+      "mover": "me",
+      "piece": "WN",
+      "to": "a4",
+      "wasPlace": true,
+      "heuristic": "score=12 ours+33"
+    },
+    {
+      "ply": 7,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "from": "a3",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 8,
+      "mover": "me",
+      "piece": "WP",
+      "to": "a4",
+      "from": "b3",
+      "captured": "BR",
+      "wasPlace": false,
+      "heuristic": "score=60 capture BR,ours+16"
+    },
+    {
+      "ply": 9,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "wasPlace": true
+    },
+    {
+      "ply": 10,
+      "mover": "me",
+      "piece": "WN",
+      "to": "b3",
+      "wasPlace": true,
+      "heuristic": "score=20 ours+41"
+    },
+    {
+      "ply": 11,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "b3",
+      "from": "d4",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 12,
+      "mover": "me",
+      "piece": "WP",
+      "to": "b3",
+      "from": "a4",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=80 capture BN,ours+24"
+    },
+    {
+      "ply": 13,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "d1",
+      "wasPlace": true
+    },
+    {
+      "ply": 14,
+      "mover": "me",
+      "piece": "WB",
+      "to": "d1",
+      "from": "c2",
+      "captured": "BN",
+      "wasPlace": false,
+      "heuristic": "score=60 capture BN,ours+16"
+    },
+    {
+      "ply": 15,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a3",
+      "wasPlace": true
+    },
+    {
+      "ply": 16,
+      "mover": "me",
+      "piece": "WN",
+      "to": "a4",
+      "wasPlace": true,
+      "heuristic": "score=12 ours+25"
+    },
+    {
+      "ply": 17,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "from": "a3",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 18,
+      "mover": "me",
+      "piece": "WN",
+      "to": "a3",
+      "wasPlace": true,
+      "heuristic": "score=0 ours+25"
+    },
+    {
+      "ply": 19,
+      "mover": "bot",
+      "piece": "BN",
+      "to": "d4",
+      "wasPlace": true
+    },
+    {
+      "ply": 20,
+      "mover": "me",
+      "piece": "WB",
+      "to": "c2",
+      "from": "d1",
+      "wasPlace": false,
+      "heuristic": "score=4 ours+33"
+    },
+    {
+      "ply": 21,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a3",
+      "from": "a4",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 22,
+      "mover": "me",
+      "piece": "WN",
+      "to": "a4",
+      "wasPlace": true,
+      "heuristic": "score=3 ours+33"
+    },
+    {
+      "ply": 23,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "a4",
+      "from": "a3",
+      "captured": "WN",
+      "wasPlace": false
+    },
+    {
+      "ply": 24,
+      "mover": "me",
+      "piece": "WN",
+      "to": "c4",
+      "wasPlace": true,
+      "heuristic": "score=0 ours+33"
+    },
+    {
+      "ply": 25,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 26,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=27 ours+16,blocks"
+    },
+    {
+      "ply": 27,
+      "mover": "bot",
+      "piece": "BR",
+      "to": "b4",
+      "from": "a4",
+      "wasPlace": false
+    },
+    {
+      "ply": 28,
+      "mover": "me",
+      "piece": "WN",
+      "to": "d2",
+      "from": "c4",
+      "wasPlace": false,
+      "heuristic": "score=0 ours+33"
+    },
+    {
+      "ply": 29,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 30,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 31,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 32,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 33,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 34,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 35,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 36,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 37,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 38,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 39,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 40,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 41,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 42,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 43,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 44,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 45,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 46,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 47,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 48,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 49,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 50,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 51,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 52,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 53,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 54,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 55,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 56,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 57,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 58,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 59,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 60,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 61,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 62,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 63,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 64,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 65,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 66,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 67,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 68,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 69,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 70,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 71,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 72,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 73,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 74,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 75,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 76,
+      "mover": "me",
+      "piece": "WR",
+      "to": "b2",
+      "wasPlace": true,
+      "heuristic": "score=44 ours+33,blocks"
+    },
+    {
+      "ply": 77,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "b2",
+      "from": "c3",
+      "captured": "WR",
+      "wasPlace": false
+    },
+    {
+      "ply": 78,
+      "mover": "me",
+      "piece": "WR",
+      "to": "c3",
+      "wasPlace": true,
+      "heuristic": "score=35 ours+24,blocks"
+    },
+    {
+      "ply": 79,
+      "mover": "bot",
+      "piece": "BB",
+      "to": "c3",
+      "from": "b2",
+      "captured": "WR",
+      "wasPlace": false
+    }
+  ],
+  "finalBoard": "\n    0        1        2        3      \n  -------------------------------------\n0 | .      | [B R]  | .      | [B N]  |\n  -------------------------------------\n1 | .      | [W P]  | [B B]  | .      |\n  -------------------------------------\n2 | .      | .      | [W B]  | [W N]  |\n  -------------------------------------\n3 | [B P]  | .      | .      | .      |\n  -------------------------------------"
+}
