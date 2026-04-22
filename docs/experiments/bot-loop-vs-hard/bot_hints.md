@@ -83,6 +83,12 @@ _Updated by the /loop task. Each run: read this, play a game, append observation
 | 70 | 2026-04-22 11:36 | white | loss-likely | 150 | depth 7 parallel — opp 3-lines=1 on anti-diag (BN-BB-·-BR) at cap | `20260422-113635.json` |
 | 71 | 2026-04-22 11:43 | white | **🏆 WIN** | 21 | depth 7 parallel — anti-diag (WR-WP-WN-WB) | `20260422-114344.json` |
 | 72 | 2026-04-22 11:46 | white | **🏆 WIN** | 35 | depth 7 parallel — col d (WR-WB-WP-WN) | `20260422-114659.json` |
+| 73 | 2026-04-22 12:36 | white | draw (clean) | 150 | depth 7 parallel — my=0 opp=0 at cap | `20260422-123613.json` |
+| 74 | 2026-04-22 12:43 | white | draw (clean) | 150 | depth 7 parallel — my=0 opp=0 at cap | `20260422-124345.json` |
+| 75 | 2026-04-22 12:48 | white | **🏆 WIN** | 123 | depth 7 parallel — col a (WP-WN-WR-WB) | `20260422-124858.json` |
+| 76 | 2026-04-22 13:06 | white | **🏆 WIN** | 15 | iterative deepening smoke; anti-diag (WP-WR-WN-WB); 1/4/3 at d6/d7/d8 | `20260422-130656.json` |
+| 77 | 2026-04-22 13:09 | white | **🏆 WIN** | 81 | ID; row 3 (WN-WR-WB-WP); 1/20/20 at d5/d7/d8 (49% d8) | `20260422-130910.json` |
+| 78 | 2026-04-22 13:18 | white | **🏆 WIN** | 59 | ID; row 3 (WR-WN-WB-WP); 1/6/23 at d5/d7/d8 (**77% d8**) | `20260422-131818.json` |
 
 ## Observed bot strategies
 
@@ -194,6 +200,24 @@ When we keep replacing a rook on b2/c3 to "block", the bot's bishop just sweeps 
   - Game #42: cap with `my 3-lines=1` on row 3 (WR-·-WN-WB, b1 empty). One move from a third win.
 - Depth 6 doesn't just repeat depth 5's wins — it finds *new* winning patterns, especially long combinations on rows. The hand-count eval term also helps: we less often sacrifice pieces unnecessarily.
 
+### Run #23 (🏆🏆🏆 3 WINS / 3 GAMES) — iterative deepening LANDED
+- Implemented ID with 30s per-move budget and adaptive cutoff: try depth 4→7 (8-ply horizon), stop between depths when `remaining_time < 4 * last_depth_time` (approximating the 4× branching cost per depth).
+- Added `horizon=N` tag to the per-move heuristic log for analysis.
+- **All 3 games won.** Depth distributions by game:
+  - Game #76 (15 plies): 1/4/3 at d6/d7/d8 — 37% d8 (smoke, WIN anti-diag at ply 15).
+  - Game #77 (81 plies): 1/20/20 at d5/d7/d8 — 49% d8 (WIN row 3).
+  - Game #78 (59 plies): 1/6/23 at d5/d7/d8 — **77% d8** (WIN row 3, the deeper the search reached, the more frequently).
+- **Key observation**: as the game progresses and pieces land on the board, branching factor drops, and ID naturally climbs to d8 for most endgame moves. Early moves run at d6/d7 where branching is highest.
+- **Combined runs #14–23: 23W + 5D + 1L-likely / 29 games (79.3% win rate, 0 confirmed losses).**
+
+### Run #22 (🏆 1 WIN + 2 DRAWS) — more validation data
+- Same depth-7 parallel config as run #21. 3 serial games: 1 win + 2 clean draws at cap 150.
+  - Game #73: clean draw (my=0, opp=0).
+  - Game #74: clean draw (my=0, opp=0). Bot defended well; no 3-in-a-line for either side.
+  - Game #75: win ply 123 on col a (WP-WN-WR-WB).
+- **Combined runs #14–22: 20 wins + 5 draws + 1 loss-likely / 26 games (76.9% win rate, 0 confirmed losses).**
+- Win-rate fluctuates around 75-85% between runs — this is mostly opening randomness, not configuration differences. Two clean draws in this run means the bot played close-to-optimal and never gave us a winning line.
+
 ### Run #21 (🏆 2 WINS + 1 loss-likely, depth 7 validation) — variance on display
 - Reverted to depth 7 parallel for a 3-game validation (depth 8 at ~12 min each couldn't fit 3 games in the 30-min cron interval).
 - **Results: 2 wins + 1 loss-likely at cap 150.**
@@ -300,8 +324,8 @@ When we keep replacing a rook on b2/c3 to "block", the bot's bishop just sweeps 
 23. ✅ Runs #14–18: 12W+3D/15 games.
 24. ✅ **Parallel top-K landed (run #19)** — 3× speedup at depth 7.
 25. ✅ Depth 8 landed (run #20).
-26. ✅ Run #21 validated depth 7 stability: 19W+3D+1L-likely / 23 games (82.6%).
-27. **Open: iterative deepening** — would let depth 8 run on most turns, falling back to depth 7 when deadlines loom.
+26. ✅ Iterative deepening landed (run #23). All 3 games won, 77% d8 in the endgame-heavy game.
+27. ✅ Runs #14–23 combined: **23W+5D+1L-likely / 29 games (79.3%)**.
 28. **Open: ONNX bot_hard as move-order prior** — unlocks depth 9.
 29. **Open: aspiration windows** — 30-50% faster pruning.
 30. **Open: opening book** — first 4 plies could be pre-computed; save seconds per game.

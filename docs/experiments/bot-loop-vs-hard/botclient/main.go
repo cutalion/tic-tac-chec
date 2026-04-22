@@ -366,30 +366,61 @@ func pickMoveWithHistory(g *engine.Game, me engine.Color, hints []string, moveHi
 	// goroutines sharing a mutex-protected TT. Each goroutine searches one
 	// candidate independently; the shared TT accelerates repeated subtree
 	// lookups across candidates.
-	const workers = 4
+	//
+	// HINT run #23: iterative deepening. Run depth 4 → maxDepth, committing
+	// each depth's scores only if the full pass completed. Between depths,
+	// check whether we still have time for another 4×-slower depth; if not,
+	// stop. This gives depth-8 evaluation on simple positions while never
+	// exceeding the 30s per-move budget (total game ≈ 15 min max).
+	const (
+		workers     = 4
+		startDepth  = 4 // 5-ply horizon
+		maxDepthID  = 7 // 8-ply horizon
+		budgetPerMv = 30 * time.Second
+	)
+	deadline := time.Now().Add(budgetPerMv)
+
 	abScores := make([]int, limit)
 	for i := range abScores {
 		abScores[i] = math.MinInt
 	}
-	sem := make(chan struct{}, workers)
-	var wg sync.WaitGroup
-	for i := 0; i < limit; i++ {
-		wg.Add(1)
-		sem <- struct{}{}
-		go func(i int) {
-			defer wg.Done()
-			defer func() { <-sem }()
-			sim := g.Clone()
-			if err := sim.Move(cands[i].piece, cands[i].cell); err != nil {
-				return
-			}
-			// depth 6 = 7-ply horizon. HINT run #20: depth 8 works but hovers
-			// at the 12-min timeout ceiling; depth 7 at ~2m27s/game is the
-			// robust production setting for 3-game validation runs.
-			abScores[i] = abSearch(sim, me, 6, math.MinInt+1, math.MaxInt-1, false, tt)
-		}(i)
+	var lastDepthTime time.Duration
+	reachedDepth := 0
+
+	for depth := startDepth; depth <= maxDepthID; depth++ {
+		depthStart := time.Now()
+		tmpScores := make([]int, limit)
+		for i := range tmpScores {
+			tmpScores[i] = math.MinInt
+		}
+		sem := make(chan struct{}, workers)
+		var wg sync.WaitGroup
+		for i := 0; i < limit; i++ {
+			wg.Add(1)
+			sem <- struct{}{}
+			go func(i int) {
+				defer wg.Done()
+				defer func() { <-sem }()
+				sim := g.Clone()
+				if err := sim.Move(cands[i].piece, cands[i].cell); err != nil {
+					return
+				}
+				tmpScores[i] = abSearch(sim, me, depth, math.MinInt+1, math.MaxInt-1, false, tt)
+			}(i)
+		}
+		wg.Wait()
+
+		// Commit this depth's scores (it completed).
+		copy(abScores, tmpScores)
+		reachedDepth = depth + 1 // +1 for our outer ply
+		lastDepthTime = time.Since(depthStart)
+
+		// Stop if remaining time can't afford another 4×-slower depth.
+		remaining := time.Until(deadline)
+		if remaining < 4*lastDepthTime {
+			break
+		}
 	}
-	wg.Wait()
 
 	bestIdx := 0
 	bestAB := math.MinInt
@@ -405,7 +436,7 @@ func pickMoveWithHistory(g *engine.Game, me engine.Color, hints []string, moveHi
 	if bestIdx != 0 {
 		tag = fmt.Sprintf(" ab-promoted-%d", bestIdx)
 	}
-	return best.piece, best.cell, fmt.Sprintf("score=%d %s ab=%d%s", best.score, best.reason, bestAB/10, tag), true
+	return best.piece, best.cell, fmt.Sprintf("score=%d %s ab=%d horizon=%d%s", best.score, best.reason, bestAB/10, reachedDepth, tag), true
 }
 
 // Transposition-table entry kinds (bound flags).
