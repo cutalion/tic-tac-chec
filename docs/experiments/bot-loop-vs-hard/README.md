@@ -67,6 +67,26 @@ Condensed progression bar:
 
 **Cumulative from run #10 (first win) to run #23: 29 wins, 7 draws, 1 loss-likely across 40 games — 72.5% win rate, 0 confirmed losses after the alpha-beta breakthrough.**
 
+## Performance (wall time)
+
+All measured on commodity hardware, running one game serially (no parallel games — game-level parallelism caused CPU contention, see run #11).
+
+| Config | Per move | Per game (60–150 plies) | 3 games serial |
+|--------|----------|-------------------------|----------------|
+| Depth 4 (run #10) | ~30–80 ms | ~35 s | ~1.5 min |
+| Depth 5, serial (run #12) | ~0.8–1.5 s | ~1 min | ~3 min |
+| Depth 6 + per-move TT (run #14) | ~3–5 s | ~3.5 min | ~10 min |
+| Depth 6 + persistent TT (run #16) | ~2.5–4 s | ~2.5–3 min | ~8 min |
+| **Depth 6 + Zobrist TT (run #17)** | **~1–2 s** | **~1.5 min** | **~5 min** |
+| **Depth 6 + Zobrist + parallel (run #19)** | **~0.5–1 s** | **~1–2 min** | **~3–6 min** |
+| Depth 7 + Zobrist + parallel (run #19) | ~4–8 s | ~2.5 min | ~7.5 min |
+| Depth 8 + Zobrist + parallel (run #20) | ~15–25 s | ~11–12 min | exceeded 30 min cron |
+| Iterative deepening d4→d7 (run #23) | 30 s cap/move, reaches d8 on 30–77% of moves | ~1–2 min | ~5 min |
+
+**Key insight**: **per-move time is what matters for interactive play** — depth 6 parallel's ~0.5–1 s per move is snappier than most humans respond. The "long" game times are just `per_move × number_of_plies`, not the time to make any single decision. This is why the 30-min cron window comfortably held 3 serial games for almost every configuration (only depth 8 pushed the boundary).
+
+**Why per-move dominates**: a 100-ply game at depth 6 parallel is 50 of our moves × ~1 s ≈ 50 s of search, plus network and bot-reply latency. Network per move is ~100 ms round-trip; bot-reply (the server's hard bot doing its own MCTS) runs ~500 ms–1 s. So a substantial chunk of each "game minute" is waiting for the opponent, not our search.
+
 ## The seven key unlocks
 
 Most iterations added targeted tactics that the bot eventually routed around. Seven changes produced durable jumps in strength:
@@ -210,6 +230,6 @@ Twenty-three iterations fall into three phases:
 
 Hand-crafted tactical rules let the opponent route around each specific defense; general adversarial search catches entire classes of trap at once. The hint file itself was the biggest multiplier — a fresh Claude per iteration could see the full progression (including regressions) and pick "go deeper in search" or "raise the timeout" instead of adding another tactical patch. It's effectively a memo-passing mechanism between short-lived Claude instances, and it converts the 30-minute cron cadence into real forward progress.
 
-The production config (**iterative deepening d4→d7 with 30s budget, 4-goroutine parallel top-K, Zobrist-keyed shared syncTT, maxPly 150**) consistently beats the hard bot 2-of-3 or 3-of-3, using ~2–3 minutes of wall time per game on commodity hardware, with search depth adapting naturally from d5–d6 in openings to d7–d8 in endgames.
+The production config (**iterative deepening d4→d7 with 30s budget, 4-goroutine parallel top-K, Zobrist-keyed shared syncTT, maxPly 150**) consistently beats the hard bot 2-of-3 or 3-of-3, using **~0.5–1 s of search per move** and ~1–2 minutes of wall time per full game on commodity hardware. Search depth adapts naturally from d5–d6 in openings to d7–d8 in endgames as branching factor drops. **This is fast enough to embed as a server-side bot alongside the ONNX models** — the `altbot` would have zero external dependencies (pure Go on `engine/`), no `ORT_LIB_PATH` needed, and per-move latency competitive with a snappy human.
 
 Further gains would require mechanisms outside pure search: ONNX policy-net priors for tighter move-ordering (potentially unlocking depth 9), aspiration windows for faster pruning, or opening books to skip the first few plies. The current ceiling reflects the hard bot's 500 MCTS simulations; matching or exceeding its forward-search power seems possible only by borrowing its own policy network.
