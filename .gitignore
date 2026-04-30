@@ -20,6 +20,7 @@ code-critic.md
 
 # Local environment
 .env
+docker-compose.override.yml
 
 # SQLite dev databases
 *.db
@@ -55,3 +56,6 @@ specs/
 
 # Worktrees
 .worktrees/
+
+# Local Netlify folder
+.netlify

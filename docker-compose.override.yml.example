@@ -1,0 +1,12 @@
+# Local-development overrides. Copy to docker-compose.override.yml (gitignored)
+# and Compose will merge it on top of docker-compose.yml automatically.
+#
+# Use this when you run the Go binary outside compose (e.g. `air` on the host)
+# and need to reach the otel-collector on localhost.
+
+services:
+  otel-collector:
+    ports:
+      - "127.0.0.1:14318:4318"   # OTLP HTTP — pick a non-default host port
+      - "127.0.0.1:14317:4317"   # OTLP gRPC — to avoid clashing with any
+                                 # host-level otel agent (e.g. Better Stack's)
