@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"math/rand"
 	"os"
@@ -12,7 +11,10 @@ import (
 	"time"
 
 	ort "github.com/yalue/onnxruntime_go"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 )
+
+var logger = otelslog.NewLogger("tic-tac-chec/internal/bot")
 
 // Model plays Tic Tac Chec using an ONNX neural network model.
 type Model struct {
@@ -243,7 +245,7 @@ func (m *Model) playLoop(player *game.Player, commands chan game.Command) {
 			if e.Game.Turn == botColor {
 				piece, cell, err := m.SelectAction(&e.Game)
 				if err != nil {
-					log.Printf("bot: SelectAction error: %v", err)
+					logger.Error("bot.select_action_failed", "err", err)
 					continue
 				}
 				commands <- game.MoveCommand{Piece: piece, To: cell}

@@ -36,11 +36,29 @@ services:
       - .env
     environment:
       - DB_PATH=/data/ttc.db
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=ttc-web
     volumes:
       - ./bot/models:/app/bot/models:ro
       - ttc-db:/data
     mem_limit: 256m
     mem_reservation: 128m
+    depends_on:
+      - otel-collector
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.110.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    env_file:
+      - .env
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC (host access for local dev)
+      - "4318:4318"   # OTLP HTTP
+    mem_limit: 128m
+    mem_reservation: 64m
     restart: unless-stopped
 
 volumes:

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"tic-tac-chec/cmd/web/store"
 	"tic-tac-chec/engine"
 	"tic-tac-chec/internal/game"
@@ -28,26 +28,26 @@ func recordGames(games *store.GameStore, listener <-chan game.RoomEvent) {
 	for event := range listener {
 		switch e := event.(type) {
 		case game.GameStarted:
-			log.Printf("[PERSISTOR]: game started. Room: %s, White: %s, Black: %s\n", e.RoomID, e.WhitePlayer, e.BlackPlayer)
+			slog.Info("persistor.game_started", "room_id", e.RoomID, "white", e.WhitePlayer, "black", e.BlackPlayer)
 			game := store.NewGame(string(e.GameID), string(e.RoomID), string(e.WhitePlayer), string(e.BlackPlayer))
 
 			stateJSON, err := json.Marshal(e.Game)
 			if err != nil {
-				log.Printf("[PERSISTOR]: failed to marshal game state: %v\n", err)
+				slog.Error("persistor.marshal_failed", "stage", "create", "err", err)
 				continue
 			}
 
 			game.State = stateJSON
 			err = games.Upsert(ctx, game)
 			if err != nil {
-				log.Printf("[PERSISTOR]: failed to create game: %v\n", err)
+				slog.Error("persistor.create_failed", "err", err)
 				continue
 			}
 
 		case game.StateUpdate:
 			jsonState, err := json.Marshal(e.Game)
 			if err != nil {
-				log.Printf("[PERSISTOR]: failed to marshal game state: %v\n", err)
+				slog.Error("persistor.marshal_failed", "stage", "update", "err", err)
 				continue
 			}
 
@@ -55,12 +55,12 @@ func recordGames(games *store.GameStore, listener <-chan game.RoomEvent) {
 				winner := winnerStr(e.Game.Winner)
 				err := games.Finish(ctx, string(e.GameID), winner, jsonState, time.Now())
 				if err != nil {
-					log.Printf("[PERSISTOR]: failed to finish game: %v\n", err)
+					slog.Error("persistor.finish_failed", "err", err)
 				}
 			} else {
 				err := games.UpdateState(ctx, string(e.GameID), jsonState)
 				if err != nil {
-					log.Printf("[PERSISTOR]: failed to get game: %v\n", err)
+					slog.Error("persistor.update_failed", "err", err)
 				}
 			}
 		}

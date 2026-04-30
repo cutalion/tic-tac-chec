@@ -2,13 +2,15 @@ package game
 
 import (
 	"errors"
-	"log"
 	"sync"
 	"tic-tac-chec/engine"
 	"time"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 )
+
+var logger = otelslog.NewLogger("tic-tac-chec/internal/game")
 
 const (
 	Connected    = "connected"
@@ -375,6 +377,6 @@ func sendUpdateTo(player Player, msg any) {
 	select {
 	case player.Updates <- msg:
 	default: // skip if nobody listens
-		log.Printf("dropping message: %v", msg)
+		logger.Warn("room.message_dropped", "msg", msg)
 	}
 }

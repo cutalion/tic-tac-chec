@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"log"
+	"log/slog"
 	"sync"
 	"tic-tac-chec/cmd/web/store"
 	"tic-tac-chec/internal/game"
@@ -66,7 +66,7 @@ func (l *lobby) Join(client Client) (<-chan PairingResult, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	log.Println("lobby join", client.ID)
+	slog.Info("lobby.join", "client_id", client.ID)
 
 	if l.completed != nil {
 		if client.ID == l.completed.Pairing.Players[1].ID || client.ID == l.completed.Pairing.Players[0].ID {

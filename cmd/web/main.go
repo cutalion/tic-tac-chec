@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"tic-tac-chec/cmd/web/store"
+	"tic-tac-chec/internal/observability"
+	"time"
 )
 
 var analyticsConfig = resolveAnalyticsConfig()
@@ -17,10 +21,28 @@ type AnalyticsConfig struct {
 }
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("shutdown complete")
+}
+
+func run() error {
+	ctx := context.Background()
+	shutdown, err := observability.SetupLogs(ctx, "web")
+	if err != nil {
+		return fmt.Errorf("setup logs: %w", err)
+	}
+	defer func() {
+		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = shutdown(sctx)
+	}()
+
 	allowedOrigins := parseAllowedOrigins()
 	db, err := store.NewStore(dbPath())
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("store init: %w", err)
 	}
 	defer db.Close()
 
@@ -46,7 +68,7 @@ func main() {
 	}
 
 	log.Println("Listening on :" + port)
-	log.Fatal(http.ListenAndServe(":"+port, corsMiddleware(mux, app.allowedOrigins)))
+	return http.ListenAndServe(":"+port, corsMiddleware(mux, app.allowedOrigins))
 }
 
 func corsMiddleware(next http.Handler, allowedOrigins []string) http.Handler {

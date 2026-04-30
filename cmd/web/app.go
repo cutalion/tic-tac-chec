@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"tic-tac-chec/cmd/web/store"
@@ -224,7 +224,7 @@ func (a *App) Room(w http.ResponseWriter, r *http.Request) {
 		RoomID: room.ID,
 		Color:  colorName(room.PlayerColor(participant.PlayerID)),
 	}); err != nil {
-		log.Println("error sending room joined message:", err)
+		slog.Error("room.send_joined_failed", "err", err)
 		return
 	}
 
@@ -232,7 +232,7 @@ func (a *App) Room(w http.ResponseWriter, r *http.Request) {
 		for event := range events {
 			msg, ok := roomEventMessage(event)
 			if !ok {
-				log.Printf("unknown room event: %#v", event)
+				slog.Warn("room.unknown_event", "event", fmt.Sprintf("%#v", event))
 				continue
 			}
 
@@ -246,7 +246,7 @@ func (a *App) Room(w http.ResponseWriter, r *http.Request) {
 	for {
 		msgType, msg, err := ws.Read(context.Background())
 		if err != nil {
-			log.Println("error reading websocket message:", err)
+			slog.Error("ws.read_failed", "err", err)
 			return
 		}
 
@@ -297,7 +297,7 @@ func (a *App) Room(w http.ResponseWriter, r *http.Request) {
 			commands <- game.ReactionCommand{PlayerID: participant.PlayerID, Reaction: reaction.Reaction}
 
 		default:
-			log.Printf("invalid command: %s", envelope.Type)
+			slog.Warn("ws.invalid_command", "type", envelope.Type)
 			a.sendMessage(ws, errorMessage{Type: "error", Error: "invalid command"})
 			continue
 		}
@@ -367,16 +367,16 @@ func (a *App) serveLobby(w http.ResponseWriter, r *http.Request, lobby *lobby, c
 			return
 		}
 
-		log.Println("received pairing result", result)
+		slog.Info("lobby.pairing_received", "room_id", result.RoomEntry.Room.ID)
 		roomEntry := result.RoomEntry
 		msg := lobbyPairedMessage{
 			Type:   "paired",
 			RoomID: roomEntry.Room.ID,
 		}
 
-		log.Println("sending lobby paired message", msg)
+		slog.Info("lobby.paired_send", "room_id", msg.RoomID)
 		if err := a.sendMessage(ws, msg); err != nil {
-			log.Println("error sending lobby paired message:", err)
+			slog.Error("lobby.paired_send_failed", "err", err)
 			return
 		}
 	case <-r.Context().Done():
@@ -489,7 +489,7 @@ func (a *App) restoreActiveGames(ctx context.Context) {
 	for _, g := range games {
 		roomEntry, err := a.buildRoomFromGame(ctx, g)
 		if err != nil {
-			log.Printf("restore: skip game=%s: %v", g.ID, err)
+			slog.Warn("restore.skip_game", "game_id", g.ID, "err", err)
 			continue
 		}
 
@@ -498,7 +498,7 @@ func (a *App) restoreActiveGames(ctx context.Context) {
 		runPersistor(a.db.Games(), roomEntry.Room)
 		go roomEntry.Room.Run()
 	}
-	log.Printf("restore: restored %d active games", len(games))
+	slog.Info("restore.complete", "count", len(games))
 }
 
 type clientResponse struct {
