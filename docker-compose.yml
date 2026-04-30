@@ -55,8 +55,12 @@ services:
     volumes:
       - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
     ports:
-      - "4317:4317"   # OTLP gRPC (host access for local dev)
-      - "4318:4318"   # OTLP HTTP
+      # Bind to localhost only — the web container reaches the collector via
+      # the compose network. Exposing 0.0.0.0 would let anyone on the VPS
+      # public IP push telemetry. Localhost is enough for `air`/`go run`
+      # outside compose during dev.
+      - "127.0.0.1:4317:4317"   # OTLP gRPC
+      - "127.0.0.1:4318:4318"   # OTLP HTTP
     mem_limit: 128m
     mem_reservation: 64m
     restart: unless-stopped

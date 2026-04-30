@@ -39,12 +39,25 @@ exporters:
       max_interval: 30s
       max_elapsed_time: 5m
 
+  otlphttp/posthog:
+    logs_endpoint: ${env:POSTHOG_HOST}/i/v1/logs
+    headers:
+      Authorization: "Bearer ${env:POSTHOG_KEY}"
+    sending_queue:
+      enabled: true
+      queue_size: 5000
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 5m
+
 service:
   pipelines:
     logs:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
-      exporters: [debug, otlphttp/betterstack]
+      exporters: [debug, otlphttp/betterstack, otlphttp/posthog]
 
   telemetry:
     metrics:
