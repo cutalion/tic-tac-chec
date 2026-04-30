@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"tic-tac-chec/cmd/web/store"
 )
 
@@ -11,6 +12,8 @@ type Client struct {
 }
 
 type ClientID string
+
+func (id ClientID) LogValue() slog.Value { return slog.StringValue(string(id)) }
 
 const (
 	BotClientID ClientID = "bot"

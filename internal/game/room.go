@@ -2,6 +2,7 @@ package game
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
 	"tic-tac-chec/engine"
 	"time"
@@ -20,6 +21,10 @@ const (
 type RoomID string
 type PlayerID string
 type GameID string
+
+func (id RoomID) LogValue() slog.Value   { return slog.StringValue(string(id)) }
+func (id PlayerID) LogValue() slog.Value { return slog.StringValue(string(id)) }
+func (id GameID) LogValue() slog.Value   { return slog.StringValue(string(id)) }
 
 type Player struct {
 	ID              PlayerID
