@@ -1,48 +1,52 @@
-package main
+package room
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
-	"tic-tac-chec/cmd/web/store"
 	"tic-tac-chec/engine"
 	"tic-tac-chec/internal/game"
+	"tic-tac-chec/internal/web/clients"
+	store "tic-tac-chec/internal/web/persistence/sqlite"
 )
 
-type RoomRegistry interface {
-	Create(pairing Pairing) RoomEntry
-	CreateWithPlayers(p1, p2 game.Player, clients [2]ClientID) RoomEntry
-	Lookup(id game.RoomID) (RoomEntry, bool)
-	Add(entry RoomEntry)
-	Restore(ctx context.Context, id game.RoomID) (RoomEntry, error)
+var ErrRoomNotFound = errors.New("room not found")
+
+type Registry interface {
+	Create(pairing Pairing) Entry
+	CreateWithPlayers(p1, p2 game.Player, clients [2]clients.ClientID) Entry
+	Lookup(id game.RoomID) (Entry, bool)
+	Add(entry Entry)
+	Restore(ctx context.Context, id game.RoomID) (Entry, error)
 }
 
 type Participant struct {
-	ClientID ClientID
+	ClientID clients.ClientID
 	PlayerID game.PlayerID
 }
 
-type RoomEntry struct {
+type Entry struct {
 	Room         *game.Room
 	Participants [2]Participant
 }
 
 type botSpawner func(botID string) (game.Player, bool)
 
-type roomRegistry struct {
+type registry struct {
 	mu       sync.Mutex
-	rooms    map[game.RoomID]RoomEntry
+	rooms    map[game.RoomID]Entry
 	games    *store.GameStore
 	players  *store.PlayerStore
 	spawnBot botSpawner
 }
 
-func NewRoomRegistry(games *store.GameStore, players *store.PlayerStore, spawnBot botSpawner) *roomRegistry {
-	return &roomRegistry{rooms: make(map[game.RoomID]RoomEntry), games: games, players: players, spawnBot: spawnBot}
+func NewRegistry(games *store.GameStore, players *store.PlayerStore, spawnBot botSpawner) *registry {
+	return &registry{rooms: make(map[game.RoomID]Entry), games: games, players: players, spawnBot: spawnBot}
 }
 
-func (rr *roomRegistry) Create(pairing Pairing) RoomEntry {
+func (rr *registry) Create(pairing Pairing) Entry {
 	rr.mu.Lock()
 	defer rr.mu.Unlock()
 
@@ -50,7 +54,7 @@ func (rr *roomRegistry) Create(pairing Pairing) RoomEntry {
 	p2 := game.NewPlayerWithID(make(chan game.Command), pairing.Players[1].PlayerID)
 	room := game.NewRoom(p1, p2)
 
-	entry := RoomEntry{
+	entry := Entry{
 		Room: room,
 		Participants: [2]Participant{
 			Participant{ClientID: pairing.Players[0].ID, PlayerID: p1.ID},
@@ -63,11 +67,11 @@ func (rr *roomRegistry) Create(pairing Pairing) RoomEntry {
 	return entry
 }
 
-func (rr *roomRegistry) CreateWithPlayers(p1, p2 game.Player, clients [2]ClientID) RoomEntry {
+func (rr *registry) CreateWithPlayers(p1, p2 game.Player, clients [2]clients.ClientID) Entry {
 	rr.mu.Lock()
 	defer rr.mu.Unlock()
 
-	entry := RoomEntry{
+	entry := Entry{
 		Room: game.NewRoom(p1, p2),
 		Participants: [2]Participant{
 			{ClientID: clients[0], PlayerID: p1.ID},
@@ -80,14 +84,14 @@ func (rr *roomRegistry) CreateWithPlayers(p1, p2 game.Player, clients [2]ClientI
 	return entry
 }
 
-func (rr *roomRegistry) Add(entry RoomEntry) {
+func (rr *registry) Add(entry Entry) {
 	rr.mu.Lock()
 	defer rr.mu.Unlock()
 
 	rr.rooms[entry.Room.ID] = entry
 }
 
-func (rr *roomRegistry) Lookup(id game.RoomID) (RoomEntry, bool) {
+func (rr *registry) Lookup(id game.RoomID) (Entry, bool) {
 	rr.mu.Lock()
 	defer rr.mu.Unlock()
 
@@ -95,37 +99,37 @@ func (rr *roomRegistry) Lookup(id game.RoomID) (RoomEntry, bool) {
 	return entry, exists
 }
 
-func (rr *roomRegistry) Restore(ctx context.Context, roomId game.RoomID) (RoomEntry, error) {
+func (rr *registry) Restore(ctx context.Context, roomId game.RoomID) (Entry, error) {
 	rr.mu.Lock()
 	defer rr.mu.Unlock()
 
 	g, err := rr.games.LoadLatestByRoom(ctx, string(roomId))
 	if err != nil {
-		return RoomEntry{}, ErrRoomNotFound
+		return Entry{}, ErrRoomNotFound
 	}
 
 	whitePlayer, err := rr.players.Get(ctx, g.WhitePlayerID)
 	if err != nil {
-		return RoomEntry{}, ErrRoomNotFound
+		return Entry{}, ErrRoomNotFound
 	}
 	blackPlayer, err := rr.players.Get(ctx, g.BlackPlayerID)
 	if err != nil {
-		return RoomEntry{}, ErrRoomNotFound
+		return Entry{}, ErrRoomNotFound
 	}
 
 	gamePlayerWhite, clientWhite, err := rr.playerFor(whitePlayer)
 	if err != nil {
-		return RoomEntry{}, ErrRoomNotFound
+		return Entry{}, ErrRoomNotFound
 	}
 	gamePlayerBlack, clientBlack, err := rr.playerFor(blackPlayer)
 	if err != nil {
-		return RoomEntry{}, ErrRoomNotFound
+		return Entry{}, ErrRoomNotFound
 	}
 
 	var gameState engine.Game
 	err = json.Unmarshal(g.State, &gameState)
 	if err != nil {
-		return RoomEntry{}, ErrRoomNotFound
+		return Entry{}, ErrRoomNotFound
 	}
 
 	room := game.NewRoom(gamePlayerWhite, gamePlayerBlack)
@@ -133,7 +137,7 @@ func (rr *roomRegistry) Restore(ctx context.Context, roomId game.RoomID) (RoomEn
 	room.GameID = game.GameID(g.ID)
 	room.Game = &gameState
 
-	entry := RoomEntry{
+	entry := Entry{
 		Room: room,
 		Participants: [2]Participant{
 			{ClientID: clientWhite, PlayerID: gamePlayerWhite.ID},
@@ -146,7 +150,16 @@ func (rr *roomRegistry) Restore(ctx context.Context, roomId game.RoomID) (RoomEn
 	return entry, nil
 }
 
-func (rr *roomRegistry) playerFor(p store.Player) (game.Player, ClientID, error) {
+func (re *Entry) ParticipantByClientID(clientID clients.ClientID) (Participant, bool) {
+	for _, participant := range re.Participants {
+		if participant.ClientID == clientID {
+			return participant, true
+		}
+	}
+	return Participant{}, false
+}
+
+func (rr *registry) playerFor(p store.Player) (game.Player, clients.ClientID, error) {
 	switch {
 	case p.BotID != nil:
 		player, ok := rr.spawnBot(*p.BotID)
@@ -154,7 +167,7 @@ func (rr *roomRegistry) playerFor(p store.Player) (game.Player, ClientID, error)
 			return game.Player{}, "", fmt.Errorf("bot %s is not available", *p.BotID)
 		}
 
-		return player, BotClientID, nil
+		return player, clients.BotClientID, nil
 	case p.UserID != nil:
 		player := game.Player{
 			ID:              game.PlayerID(p.ID),
@@ -165,17 +178,8 @@ func (rr *roomRegistry) playerFor(p store.Player) (game.Player, ClientID, error)
 			Color:    engine.Color(0),
 		}
 
-		return player, ClientID(*p.UserID), nil
+		return player, clients.ClientID(*p.UserID), nil
 	default:
 		return game.Player{}, "", fmt.Errorf("player neither bot nor user")
 	}
-}
-
-func (re *RoomEntry) participantByClientID(clientID ClientID) (Participant, bool) {
-	for _, participant := range re.Participants {
-		if participant.ClientID == clientID {
-			return participant, true
-		}
-	}
-	return Participant{}, false
 }

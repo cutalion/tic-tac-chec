@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 	"testing"
-	"tic-tac-chec/cmd/web/store"
+	store "tic-tac-chec/internal/web/persistence/sqlite"
 
 	"github.com/pressly/goose/v3"
 )

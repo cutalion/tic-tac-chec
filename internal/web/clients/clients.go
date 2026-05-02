@@ -1,9 +1,9 @@
-package main
+package clients
 
 import (
 	"context"
 	"log/slog"
-	"tic-tac-chec/cmd/web/store"
+	store "tic-tac-chec/internal/web/persistence/sqlite"
 )
 
 type Client struct {
@@ -28,7 +28,7 @@ type clientService struct {
 	users *store.UserStore
 }
 
-func NewClientService(users *store.UserStore) ClientService {
+func NewService(users *store.UserStore) ClientService {
 	return &clientService{
 		users: users,
 	}

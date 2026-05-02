@@ -1,42 +1,41 @@
-package main
+package lobby
 
 import (
 	"errors"
 	"log/slog"
 	"sync"
-	"tic-tac-chec/cmd/web/store"
 	"tic-tac-chec/internal/game"
+	"tic-tac-chec/internal/web/clients"
+	store "tic-tac-chec/internal/web/persistence/sqlite"
+	"tic-tac-chec/internal/web/persistor"
+	"tic-tac-chec/internal/web/room"
 )
 
-type Pairing struct {
-	Players [2]Client
-}
-
 type PairingResult struct {
-	Pairing   Pairing
-	RoomEntry RoomEntry
+	Pairing   room.Pairing
+	RoomEntry room.Entry
 }
 
 type completedPairing struct {
-	Pairing Pairing
+	Pairing room.Pairing
 	RoomID  game.RoomID
 }
 
 type waiter struct {
-	client  Client
+	client  clients.Client
 	results chan PairingResult
 }
 
-type Lobby interface {
-	Join(client Client) (<-chan PairingResult, error)
-	Leave(clientID ClientID)
+type LobbyInterface interface {
+	Join(client clients.Client) (<-chan PairingResult, error)
+	Leave(clientID clients.ClientID)
 }
 
 type LobbyID string
 
-type lobby struct {
+type Lobby struct {
 	ID           LobbyID
-	roomRegistry RoomRegistry
+	roomRegistry room.Registry
 	games        *store.GameStore
 	waiter       *waiter
 
@@ -53,15 +52,14 @@ const (
 )
 
 var (
-	ErrLobbyIsFull  = errors.New("lobby is full")
-	ErrRoomNotFound = errors.New("room not found")
+	ErrLobbyIsFull = errors.New("lobby is full")
 )
 
-func NewLobby(id LobbyID, roomRegistry RoomRegistry, games *store.GameStore, persistent bool) *lobby {
-	return &lobby{ID: id, roomRegistry: roomRegistry, games: games, persistent: persistent}
+func NewLobby(id LobbyID, roomRegistry room.Registry, games *store.GameStore, persistent bool) *Lobby {
+	return &Lobby{ID: id, roomRegistry: roomRegistry, games: games, persistent: persistent}
 }
 
-func (l *lobby) Join(client Client) (<-chan PairingResult, error) {
+func (l *Lobby) Join(client clients.Client) (<-chan PairingResult, error) {
 	// if there is no waiter, create a new one
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -72,7 +70,7 @@ func (l *lobby) Join(client Client) (<-chan PairingResult, error) {
 		if client.ID == l.completed.Pairing.Players[1].ID || client.ID == l.completed.Pairing.Players[0].ID {
 			roomEntry, ok := l.roomRegistry.Lookup(l.completed.RoomID)
 			if !ok {
-				return nil, ErrRoomNotFound
+				return nil, room.ErrRoomNotFound
 			}
 			result := PairingResult{
 				Pairing:   l.completed.Pairing,
@@ -119,19 +117,19 @@ func (l *lobby) Join(client Client) (<-chan PairingResult, error) {
 	results1 := waiter.results
 	results2 := make(chan PairingResult, 1)
 
-	roomEntry := l.roomRegistry.Create(Pairing{Players: [2]Client{waiter.client, client}})
+	roomEntry := l.roomRegistry.Create(room.Pairing{Players: [2]clients.Client{waiter.client, client}})
 
-	runPersistor(l.games, roomEntry.Room)
+	persistor.Run(l.games, roomEntry.Room)
 	go roomEntry.Room.Run()
 
 	result := PairingResult{
-		Pairing:   Pairing{Players: [2]Client{waiter.client, client}},
+		Pairing:   room.Pairing{Players: [2]clients.Client{waiter.client, client}},
 		RoomEntry: roomEntry,
 	}
 
 	if !l.persistent {
 		l.completed = &completedPairing{
-			Pairing: Pairing{Players: [2]Client{waiter.client, client}},
+			Pairing: room.Pairing{Players: [2]clients.Client{waiter.client, client}},
 			RoomID:  roomEntry.Room.ID,
 		}
 	}
@@ -142,7 +140,7 @@ func (l *lobby) Join(client Client) (<-chan PairingResult, error) {
 	return results2, nil
 }
 
-func (l *lobby) Leave(clientID ClientID) {
+func (l *Lobby) Leave(clientID clients.ClientID) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 

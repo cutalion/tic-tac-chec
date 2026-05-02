@@ -36,6 +36,7 @@ services:
       - .env
     environment:
       - DB_PATH=/data/ttc.db
+      - OTEL_ENABLED=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_SERVICE_NAME=ttc-web
     volumes:

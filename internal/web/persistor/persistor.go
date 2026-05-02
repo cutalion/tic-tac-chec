@@ -1,16 +1,16 @@
-package main
+package persistor
 
 import (
 	"context"
 	"encoding/json"
 	"log/slog"
-	"tic-tac-chec/cmd/web/store"
 	"tic-tac-chec/engine"
 	"tic-tac-chec/internal/game"
+	store "tic-tac-chec/internal/web/persistence/sqlite"
 	"time"
 )
 
-func runPersistor(games *store.GameStore, room *game.Room) {
+func Run(games *store.GameStore, room *game.Room) {
 	listener := make(chan game.RoomEvent, 32)
 	cancel := room.Subscribe(listener)
 

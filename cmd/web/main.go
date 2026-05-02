@@ -4,32 +4,35 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
-	"strings"
-	"tic-tac-chec/cmd/web/store"
+	"os/signal"
+	"syscall"
 	"tic-tac-chec/internal/observability"
+	"tic-tac-chec/internal/web/app"
+	"tic-tac-chec/internal/web/config"
+	store "tic-tac-chec/internal/web/persistence/sqlite"
 	"time"
 )
 
-var analyticsConfig = resolveAnalyticsConfig()
-
-type AnalyticsConfig struct {
-	Enabled     bool
-	PostHogKey  string
-	PostHogHost string
-}
-
 func main() {
-	if err := run(); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	config, err := config.NewConfig(ctx)
+
+	if err != nil {
 		log.Fatal(err)
 	}
+
+	if err := run(ctx, *config); err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("shutdown complete")
 }
 
-func run() error {
-	ctx := context.Background()
-	shutdown, err := observability.SetupLogs(ctx, "web")
+func run(ctx context.Context, cfg config.Config) error {
+	shutdown, err := observability.SetupLogs(ctx, "web", cfg.Logging)
 	if err != nil {
 		return fmt.Errorf("setup logs: %w", err)
 	}
@@ -39,96 +42,16 @@ func run() error {
 		_ = shutdown(sctx)
 	}()
 
-	allowedOrigins := parseAllowedOrigins()
-	db, err := store.NewStore(dbPath())
+	db, err := store.NewStore(cfg.Database.DbPath)
 	if err != nil {
 		return fmt.Errorf("store init: %w", err)
 	}
 	defer db.Close()
 
-	app := NewApp(db, allowedOrigins)
-
-	mux := http.NewServeMux()
-	registerStaticRoutes(mux)
-
-	// api
-	mux.HandleFunc("POST /api/clients", app.CreateClient)
-	mux.HandleFunc("POST /api/lobbies", app.CreateLobby)
-	mux.HandleFunc("POST /api/bot-game", app.BotGame)
-	mux.HandleFunc("GET /api/me", app.Me)
-
-	// ws
-	mux.HandleFunc("GET /ws/lobby", app.DefaultLobby)
-	mux.HandleFunc("GET /ws/lobby/{id}", app.Lobby)
-	mux.HandleFunc("GET /ws/room/{id}", app.Room)
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	a := app.NewApp(ctx, db, cfg)
+	if err := a.Run(ctx); err != nil {
+		return fmt.Errorf("app run: %w", err)
 	}
 
-	log.Println("Listening on :" + port)
-	return http.ListenAndServe(":"+port, corsMiddleware(mux, app.allowedOrigins))
-}
-
-func corsMiddleware(next http.Handler, allowedOrigins []string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if len(allowedOrigins) == 0 {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		for _, origin := range allowedOrigins {
-			if r.Header.Get("Origin") == origin {
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				w.Header().Set("Vary", "Origin")
-				break
-			}
-		}
-
-		if r.Method == "OPTIONS" {
-			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func parseAllowedOrigins() []string {
-	raw := os.Getenv("ALLOWED_ORIGINS")
-	if raw == "" {
-		return []string{}
-	}
-	origins := strings.Split(raw, ",")
-	for i, o := range origins {
-		origins[i] = strings.TrimSpace(o)
-	}
-	return origins
-}
-
-func resolveAnalyticsConfig() AnalyticsConfig {
-	enabled := os.Getenv("ANALYTICS_ENABLED") == "true"
-	key := os.Getenv("POSTHOG_KEY")
-	host := os.Getenv("POSTHOG_HOST")
-
-	if !enabled || key == "" || host == "" {
-		return AnalyticsConfig{}
-	}
-
-	return AnalyticsConfig{
-		Enabled:     enabled,
-		PostHogKey:  key,
-		PostHogHost: host,
-	}
-}
-
-func dbPath() string {
-	env := os.Getenv("DB_PATH")
-	if env == "" {
-		env = "tic-tac-chec.db"
-	}
-	return env
+	return nil
 }

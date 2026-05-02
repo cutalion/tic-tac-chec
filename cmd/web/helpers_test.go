@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"tic-tac-chec/cmd/web/store"
+	store "tic-tac-chec/internal/web/persistence/sqlite"
 
 	"github.com/stretchr/testify/require"
 )

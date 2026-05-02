@@ -3,7 +3,7 @@ package store_test
 import (
 	"context"
 	"testing"
-	"tic-tac-chec/cmd/web/store"
+	store "tic-tac-chec/internal/web/persistence/sqlite"
 	"time"
 
 	"github.com/stretchr/testify/assert"
