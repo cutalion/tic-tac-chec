@@ -55,12 +55,12 @@ func NewApp(ctx context.Context, db *store.Store, cfg config.Config) *App {
 }
 
 func (app *App) Run(ctx context.Context) error {
-	r := router.Router(app.api, app.config)
+	r := router.New(app.api, app.config)
 	return server.Run(ctx, app.config.Server.Port, r)
 }
 
 func (app *App) Router() http.Handler {
-	r := router.Router(app.api, app.config)
+	r := router.New(app.api, app.config)
 	return r
 }
 

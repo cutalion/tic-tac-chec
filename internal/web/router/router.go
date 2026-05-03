@@ -4,23 +4,30 @@ import (
 	"net/http"
 	"tic-tac-chec/internal/web/api"
 	"tic-tac-chec/internal/web/config"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
-func Router(a *api.API, cfg config.Config) http.Handler {
-	mux := http.NewServeMux()
-	registerStaticRoutes(mux, cfg)
+func New(a *api.API, cfg config.Config) http.Handler {
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Use(corsMiddleware(*cfg.Server))
 
-	// api
-	mux.HandleFunc("POST /api/clients", a.CreateClient)
-	mux.HandleFunc("POST /api/lobbies", a.CreateLobby)
-	mux.HandleFunc("POST /api/bot-game", a.BotGame)
-	mux.HandleFunc("GET /api/me", a.Me)
+	r.Route("/api", func(r chi.Router) {
+		r.Post("/clients", a.CreateClient)
+		r.Post("/lobbies", a.CreateLobby)
+		r.Post("/bot-game", a.BotGame)
+		r.Get("/me", a.Me)
+	})
 
-	// ws
-	mux.HandleFunc("GET /ws/lobby", a.DefaultLobby)
-	mux.HandleFunc("GET /ws/lobby/{id}", a.Lobby)
-	mux.HandleFunc("GET /ws/room/{id}", a.Room)
+	r.Route("/ws", func(r chi.Router) {
+		r.Get("/lobby", a.DefaultLobby)
+		r.Get("/lobby/{id}", a.Lobby)
+		r.Get("/room/{id}", a.Room)
+	})
 
-	handler := corsMiddleware(mux, cfg.Server.AllowedOrigins)
-	return handler
+	registerStaticRoutes(r, cfg)
+
+	return r
 }

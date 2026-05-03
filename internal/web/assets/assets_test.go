@@ -13,7 +13,7 @@ func TestResolveAnalyticsConfigDisabledByDefault(t *testing.T) {
 	t.Setenv("POSTHOG_KEY", "")
 	t.Setenv("POSTHOG_HOST", "")
 
-	got, err := config.NewConfig(context.Background())
+	got, err := config.Load(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestResolveAnalyticsConfigEnabled(t *testing.T) {
 	t.Setenv("POSTHOG_KEY", "phc_test")
 	t.Setenv("POSTHOG_HOST", "https://eu.i.posthog.com")
 
-	got, err := config.NewConfig(context.Background())
+	got, err := config.Load(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

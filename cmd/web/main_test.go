@@ -22,7 +22,7 @@ func setupAppServer(t *testing.T) (http.Handler, *app.App) {
 	t.Helper()
 
 	db := newTestStore(t)
-	cfg, err := config.NewConfig(context.Background())
+	cfg, err := config.Load(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

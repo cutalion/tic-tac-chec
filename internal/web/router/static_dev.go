@@ -7,10 +7,12 @@ import (
 	"os"
 	"tic-tac-chec/internal/web/assets"
 	"tic-tac-chec/internal/web/config"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func registerStaticRoutes(mux *http.ServeMux, cfg config.Config) {
-	mux.Handle("GET /{$}", indexHandler(cfg))
+func registerStaticRoutes(mux *chi.Mux, cfg config.Config) {
+	mux.Handle("GET /", indexHandler(cfg))
 	mux.Handle("GET /rules", indexHandler(cfg))
 	mux.Handle("GET /lobby", indexHandler(cfg))
 	mux.Handle("GET /lobby/{id}", indexHandler(cfg))
@@ -27,11 +29,11 @@ func registerStaticRoutes(mux *http.ServeMux, cfg config.Config) {
 	mux.Handle("GET /favicon.ico", staticHandler())
 	mux.Handle("GET /llms.txt", staticHandler())
 	mux.Handle("GET /ttc_logo.png", staticHandler())
-	mux.Handle("GET /fonts/", staticHandler())
-	mux.Handle("GET /sounds/", staticHandler())
-	mux.Handle("GET /docs/", http.StripPrefix("/docs/", http.FileServer(http.Dir("internal/web/app/docs"))))
+	mux.Handle("GET /fonts/*", staticHandler())
+	mux.Handle("GET /sounds/*", staticHandler())
+	mux.Handle("GET /docs/*", http.StripPrefix("/docs/", http.FileServer(http.Dir("internal/web/app/docs"))))
 
-	mux.Handle("GET /", notFoundHandler())
+	mux.NotFound(notFoundHandler)
 }
 
 func staticHandler() http.Handler {
@@ -43,8 +45,8 @@ func staticHandler() http.Handler {
 	})
 }
 
-func indexHandler(cfg config.Config) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func indexHandler(cfg config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		raw, err := os.ReadFile("internal/web/router/pages/index.html")
 		if err != nil {
 			http.Error(w, "index not found", http.StatusInternalServerError)
@@ -52,21 +54,19 @@ func indexHandler(cfg config.Config) http.Handler {
 		}
 
 		assets.WriteTemplatedAsset(w, "text/html; charset=utf-8", raw, *cfg.Analytics)
-	})
+	}
 }
 
-func notFoundHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		raw, err := os.ReadFile("internal/web/router/pages/notfound.html")
-		if err != nil {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write(raw)
-	})
+func notFoundHandler(w http.ResponseWriter, r *http.Request) {
+	raw, err := os.ReadFile("internal/web/router/pages/notfound.html")
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.WriteHeader(http.StatusNotFound)
+	_, _ = w.Write(raw)
 }
 
 func serviceWorkerHandler(cfg config.Config) http.Handler {

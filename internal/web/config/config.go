@@ -44,7 +44,7 @@ type Config struct {
 	Logging   *Logging
 }
 
-func NewConfig(ctx context.Context) (*Config, error) {
+func Load(ctx context.Context) (*Config, error) {
 	var cfg Config
 	if err := envconfig.Process(ctx, &cfg); err != nil {
 		return nil, err
