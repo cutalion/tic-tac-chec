@@ -245,7 +245,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) executeMove(piece engine.Piece, cell engine.Cell) {
+func (m *Model) executeMove(piece engine.Piece, cell engine.Cell) {
 	m.SelectedPiece = nil
 
 	if m.online() {

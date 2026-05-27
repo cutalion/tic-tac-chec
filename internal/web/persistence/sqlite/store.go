@@ -19,6 +19,10 @@ type rowScanner interface {
 var ErrNotFound = errors.New("store: not found")
 
 func NewStore(path string) (*Store, error) {
+	if path == "" {
+		panic("db path cannot be empty")
+	}
+
 	params := "?_pragma=foreign_keys(on)&_pragma=journal_mode(wal)&_pragma=synchronous(normal)&_pragma=busy_timeout(5000)"
 	db, err := sql.Open("sqlite", path+params)
 	if err != nil {
