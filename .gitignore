@@ -12,9 +12,9 @@
 .idea/
 .vscode/
 
-# Claude Code
+# Agents
 .claude/
-CLAUDE.md
+.codex/
 code-critic.md
 .code-critic.md
 
