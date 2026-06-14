@@ -144,6 +144,9 @@ func (g *GameStore) LoadActive(ctx context.Context) ([]Game, error) {
 		}
 		games = append(games, game)
 	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
 	return games, nil
 }
 

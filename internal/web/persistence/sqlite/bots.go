@@ -63,6 +63,9 @@ func (s *BotStore) LoadBots(ctx context.Context, version int) ([]Bot, error) {
 		}
 		bots = append(bots, bot)
 	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
 	return bots, nil
 }
 
