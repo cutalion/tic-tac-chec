@@ -119,6 +119,7 @@ func TestGameStore_Finish(t *testing.T) {
 	assert.Equal(t, loaded.Status, "finished")
 	assert.Equal(t, *loaded.Winner, "white")
 	assert.Equal(t, *loaded.EndedAt, finishTime.Truncate(time.Second).UTC())
+	assert.Equal(t, loaded.UpdatedAt, finishTime.Truncate(time.Second).UTC())
 }
 
 func TestGameStore_Load_NotFound(t *testing.T) {

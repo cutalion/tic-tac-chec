@@ -53,7 +53,7 @@ const (
 
 	finishGameSQL = `
 	UPDATE games
-	SET winner = ?, state = ?, ended_at = ?, status = 'finished'
+	SET winner = ?, state = ?, ended_at = ?, updated_at = ?, status = 'finished'
 	WHERE id = ?
 	`
 
@@ -114,7 +114,7 @@ func (g *GameStore) UpdateState(ctx context.Context, id string, state []byte) er
 
 func (g *GameStore) Finish(ctx context.Context, id string, winner string, state []byte, endedAt time.Time) error {
 	_, err := g.db.ExecContext(ctx, finishGameSQL,
-		winner, state, formatTime(endedAt), id,
+		winner, state, formatTime(endedAt), formatTime(endedAt), id,
 	)
 	return err
 }
