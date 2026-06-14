@@ -11,7 +11,7 @@ import (
 
 func New(a *api.API, cfg config.Config) http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(middleware.RequestLogger(RedactingLogFormatter))
 	r.Use(corsMiddleware(*cfg.Server))
 
 	r.Route("/api", func(r chi.Router) {
