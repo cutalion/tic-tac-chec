@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 	// Find project root (internal/model -> ../../)
 	root := filepath.Join("..", "..")
 	libPath := filepath.Join(root, "third_party", "onnxruntime-linux-x64-1.24.1", "lib", "libonnxruntime.so")
-	testModelPath = filepath.Join(root, "model", "models", "model.onnx")
+	testModelPath = filepath.Join(root, "bot", "models", "bot.onnx")
 
 	ort.SetSharedLibraryPath(libPath)
 	if err := ort.InitializeEnvironment(); err != nil {

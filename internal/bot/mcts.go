@@ -46,14 +46,6 @@ func mctsSelectAction(b *Model, g *engine.Game, numSimulations int) (engine.Piec
 	}
 	backpropagate(root, value)
 
-	// TODO(human): implement the MCTS simulation loop
-	// For each simulation (numSimulations - 1 remaining, since root expansion counts as one):
-	//   1. SELECT: walk from root to a leaf using ucbScore to pick children
-	//   2. EXPAND: if the leaf is terminal, use terminalValue. Otherwise call expand(b, leaf)
-	//   3. BACKPROPAGATE: call backpropagate(leaf, value)
-	//
-	// After all simulations, pick the root child with the highest visitCount.
-
 	for i := 0; i < numSimulations-1; i++ {
 		leaf := selectLeaf(root)
 
@@ -139,11 +131,13 @@ func expand(b *Model, n *node) (float32, error) {
 			boardPiece := child.game.Board[src.Row][src.Col]
 			if boardPiece != nil {
 				moveErr = child.game.Move(*boardPiece, dst)
+			} else {
+				return 0, fmt.Errorf("model: no piece at %d,%d", src.Row, src.Col)
 			}
 		}
 
 		if moveErr != nil {
-			continue
+			return 0, fmt.Errorf("model: applying action %d: %w", action, moveErr)
 		}
 
 		if child.game.Status == engine.GameOver {
