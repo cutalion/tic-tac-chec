@@ -21,9 +21,14 @@ const APP_SHELL = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(APP_SHELL);
-    }),
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => {
+        return cache.addAll(APP_SHELL);
+      })
+      .catch((error) => {
+        console.error("Failed to cache app shell:", error);
+      }),
   );
   self.skipWaiting();
 });
