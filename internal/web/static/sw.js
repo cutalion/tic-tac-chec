@@ -51,7 +51,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (requestURL.pathname.startsWith("/api/") || requestURL.pathname.startsWith("/ws/")) {
+  if (
+    requestURL.pathname.startsWith("/api/") ||
+    requestURL.pathname.startsWith("/ws/")
+  ) {
     return;
   }
 
@@ -61,7 +64,7 @@ self.addEventListener("fetch", (event) => {
         if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, copy);
+            event.waitUntil(cache.put(event.request, copy));
           });
         }
         return response;
