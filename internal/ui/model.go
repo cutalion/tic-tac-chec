@@ -54,6 +54,8 @@ type Model struct {
 	Updates  <-chan game.Event   // receive state updates from Room
 }
 
+type Disconnected struct{}
+
 func InitialModel() Model {
 	return Model{
 		Game:   engine.NewGame(),
@@ -92,7 +94,7 @@ func (m Model) waitForUpdates() tea.Cmd {
 	return func() tea.Msg {
 		msg, ok := <-updates
 		if !ok {
-			return OpponentDisconnectedMsg{}
+			return Disconnected{}
 		}
 		return msg
 	}
@@ -129,6 +131,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case game.OpponentAwayEvent:
 		m.LastErrorMessage = "Opponent away"
 		return m, m.nextCmd()
+
+	case Disconnected:
+		m.LastErrorMessage = "Disconnected"
+		return m, tea.Quit
 
 	case tea.WindowSizeMsg:
 		m.WindowWidth = msg.Width
