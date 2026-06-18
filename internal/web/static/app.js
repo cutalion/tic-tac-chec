@@ -8,18 +8,32 @@ const PIECE_CODES = {
 const PIECE_SVGS = {
   pawn: '<svg viewBox="0 0 45 45"><path d="m 22.5,9 c -2.21,0 -4,1.79 -4,4 0,0.89 0.29,1.71 0.78,2.38 C 17.33,16.5 16,18.59 16,21 c 0,2.03 0.94,3.84 2.41,5.03 C 15.41,27.09 11,31.58 11,39.5 H 34 C 34,31.58 29.59,27.09 26.59,26.03 28.06,24.84 29,23.03 29,21 29,18.59 27.67,16.5 25.72,15.38 26.21,14.71 26.5,13.89 26.5,13 c 0,-2.21 -1.79,-4 -4,-4 z" style="fill:currentColor;stroke:var(--piece-stroke);stroke-width:1;stroke-linecap:round;stroke-linejoin:miter"/></svg>',
   rook: '<svg viewBox="0 0 45 45"><g style="fill:currentColor;stroke:var(--piece-stroke);stroke-width:1;stroke-linecap:round;stroke-linejoin:round" transform="translate(0,0.3)"><path d="M 9,39 L 36,39 L 36,36 L 9,36 L 9,39 z" style="stroke-linecap:butt"/><path d="M 12,36 L 12,32 L 33,32 L 33,36 L 12,36 z" style="stroke-linecap:butt"/><path d="M 11,14 L 11,9 L 15,9 L 15,11 L 20,11 L 20,9 L 25,9 L 25,11 L 30,11 L 30,9 L 34,9 L 34,14" style="stroke-linecap:butt"/><path d="M 34,14 L 31,17 L 14,17 L 11,14"/><path d="M 31,17 L 31,29.5 L 14,29.5 L 14,17" style="stroke-linecap:butt;stroke-linejoin:miter"/><path d="M 31,29.5 L 32.5,32 L 12.5,32 L 14,29.5"/><path d="M 11,14 L 34,14" style="fill:none;stroke-linejoin:miter"/></g></svg>',
-  bishop: '<svg viewBox="0 0 45 45"><g style="fill:currentColor;stroke:var(--piece-stroke);stroke-width:1;stroke-linecap:round;stroke-linejoin:round" transform="translate(0,0.6)"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"/><path d="M 25 8 A 2.5 2.5 0 1 1 20,8 A 2.5 2.5 0 1 1 25 8 z"/><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" style="fill:none;stroke-linejoin:miter"/></g></svg>',
-  knight: '<svg viewBox="0 0 45 45"><g style="fill:currentColor;stroke:var(--piece-stroke);stroke-width:1;stroke-linecap:round;stroke-linejoin:round" transform="translate(0,0.3)"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18"/><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10"/><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" style="fill:var(--piece-stroke);stroke:var(--piece-stroke)"/><path d="M 15 15.5 A 0.5 1.5 0 1 1 14,15.5 A 0.5 1.5 0 1 1 15 15.5 z" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)" style="fill:var(--piece-stroke);stroke:var(--piece-stroke)"/></g></svg>',
+  bishop:
+    '<svg viewBox="0 0 45 45"><g style="fill:currentColor;stroke:var(--piece-stroke);stroke-width:1;stroke-linecap:round;stroke-linejoin:round" transform="translate(0,0.6)"><path d="M 9,36 C 12.39,35.03 19.11,36.43 22.5,34 C 25.89,36.43 32.61,35.03 36,36 C 36,36 37.65,36.54 39,38 C 38.32,38.97 37.35,38.99 36,38.5 C 32.61,37.53 25.89,38.96 22.5,37.5 C 19.11,38.96 12.39,37.53 9,38.5 C 7.65,38.99 6.68,38.97 6,38 C 7.35,36.54 9,36 9,36 z"/><path d="M 15,32 C 17.5,34.5 27.5,34.5 30,32 C 30.5,30.5 30,30 30,30 C 30,27.5 27.5,26 27.5,26 C 33,24.5 33.5,14.5 22.5,10.5 C 11.5,14.5 12,24.5 17.5,26 C 17.5,26 15,27.5 15,30 C 15,30 14.5,30.5 15,32 z"/><path d="M 25 8 A 2.5 2.5 0 1 1 20,8 A 2.5 2.5 0 1 1 25 8 z"/><path d="M 17.5,26 L 27.5,26 M 15,30 L 30,30 M 22.5,15.5 L 22.5,20.5 M 20,18 L 25,18" style="fill:none;stroke-linejoin:miter"/></g></svg>',
+  knight:
+    '<svg viewBox="0 0 45 45"><g style="fill:currentColor;stroke:var(--piece-stroke);stroke-width:1;stroke-linecap:round;stroke-linejoin:round" transform="translate(0,0.3)"><path d="M 22,10 C 32.5,11 38.5,18 38,39 L 15,39 C 15,30 25,32.5 23,18"/><path d="M 24,18 C 24.38,20.91 18.45,25.37 16,27 C 13,29 13.18,31.34 11,31 C 9.958,30.06 12.41,27.96 11,28 C 10,28 11.19,29.23 10,30 C 9,30 5.997,31 6,26 C 6,24 12,14 12,14 C 12,14 13.89,12.1 14,10.5 C 13.27,9.506 13.5,8.5 13.5,7.5 C 14.5,6.5 16.5,10 16.5,10 L 18.5,10 C 18.5,10 19.28,8.008 21,7 C 22,7 22,10 22,10"/><path d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z" style="fill:var(--piece-stroke);stroke:var(--piece-stroke)"/><path d="M 15 15.5 A 0.5 1.5 0 1 1 14,15.5 A 0.5 1.5 0 1 1 15 15.5 z" transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)" style="fill:var(--piece-stroke);stroke:var(--piece-stroke)"/></g></svg>',
 };
 
 const KINDS = ["pawn", "rook", "bishop", "knight"];
 
 const HOME_BOARD = {
   cells: [
-    { kind: "rook",   color: "black" }, null, { kind: "bishop", color: "white" }, { kind: "knight", color: "black" },
-    null, null, { kind: "bishop", color: "black" }, null,
-    null, { kind: "pawn",   color: "black" }, { kind: "rook",   color: "white" }, null,
-    { kind: "pawn",   color: "white" }, null, { kind: "knight", color: "white" }, null,
+    { kind: "rook", color: "black" },
+    null,
+    { kind: "bishop", color: "white" },
+    { kind: "knight", color: "black" },
+    null,
+    null,
+    { kind: "bishop", color: "black" },
+    null,
+    null,
+    { kind: "pawn", color: "black" },
+    { kind: "rook", color: "white" },
+    null,
+    { kind: "pawn", color: "white" },
+    null,
+    { kind: "knight", color: "white" },
+    null,
   ],
   selected: 0,
   dots: [1, 4, 8],
@@ -93,7 +107,9 @@ const playBotBtn = document.getElementById("play-bot-btn");
 const inviteStatus = document.getElementById("invite-status");
 const installAppBtn = document.getElementById("install-app-btn");
 const installStatus = document.getElementById("install-status");
-const difficultyButtons = Array.from(document.querySelectorAll(".difficulty-option"));
+const difficultyButtons = Array.from(
+  document.querySelectorAll(".difficulty-option"),
+);
 const titleLink = document.querySelector(".title-link");
 const themeColorMeta = document.querySelector('meta[name="theme-color"]');
 
@@ -103,11 +119,11 @@ const moonSVG =
   '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>';
 
 const SOUND_URLS = {
-  place:   "/sounds/move.mp3",
-  move:    "/sounds/move.mp3",
+  place: "/sounds/move.mp3",
+  move: "/sounds/move.mp3",
   capture: "/sounds/capture.mp3",
-  win:     "/sounds/win.mp3",
-  lose:    "/sounds/lose.mp3",
+  win: "/sounds/win.mp3",
+  lose: "/sounds/lose.mp3",
 };
 const SOUND_VOLUME = 0.7;
 
@@ -343,7 +359,7 @@ function runHomeDemo() {
         drawWinLine(homeBoardEl, HOME_DEMO.winLine, HOME_DEMO.color);
       }, HOME_DEMO.lineDelayMs);
     },
-    { once: true }
+    { once: true },
   );
 }
 
@@ -364,7 +380,10 @@ function initDifficulty() {
 
 function syncDifficultyUI() {
   for (const btn of difficultyButtons) {
-    btn.setAttribute("aria-checked", String(btn.dataset.difficulty === state.botDifficulty));
+    btn.setAttribute(
+      "aria-checked",
+      String(btn.dataset.difficulty === state.botDifficulty),
+    );
   }
 }
 
@@ -482,9 +501,8 @@ function removeFromHashParams(paramName) {
   hashParams.delete(paramName);
 
   const nextHash = hashParams.toString();
-  const nextURL = location.pathname +
-    location.search +
-    (nextHash ? `#${nextHash}` : "");
+  const nextURL =
+    location.pathname + location.search + (nextHash ? `#${nextHash}` : "");
 
   window.history.replaceState({}, "", nextURL);
 }
@@ -512,7 +530,9 @@ function connectLobby() {
   const lobbyPath = state.lobbyId
     ? `/ws/lobby/${encodeURIComponent(state.lobbyId)}`
     : "/ws/lobby";
-  const socket = new WebSocket(wsURL(`${lobbyPath}?token=${encodeURIComponent(state.token)}`));
+  const socket = new WebSocket(
+    wsURL(`${lobbyPath}?token=${encodeURIComponent(state.token)}`),
+  );
   ws = socket;
 
   socket.addEventListener("open", () => {
@@ -585,7 +605,9 @@ function connectRoom() {
   render();
 
   const socket = new WebSocket(
-    wsURL(`/ws/room/${encodeURIComponent(state.roomId)}?token=${encodeURIComponent(state.token)}`),
+    wsURL(
+      `/ws/room/${encodeURIComponent(state.roomId)}?token=${encodeURIComponent(state.token)}`,
+    ),
   );
   ws = socket;
 
@@ -750,7 +772,8 @@ function renderRoute() {
 }
 
 function renderInstallCTA() {
-  const showButton = state.route === "home" && !isStandalone() && !!deferredInstallPrompt;
+  const showButton =
+    state.route === "home" && !isStandalone() && !!deferredInstallPrompt;
   installAppBtn.classList.toggle("hidden", !showButton);
 
   if (state.route !== "home" || state.installMessage) {
@@ -764,7 +787,8 @@ function renderInstallCTA() {
   }
 
   if (isIOS()) {
-    installStatus.textContent = 'On iPhone, tap Share and choose "Add to Home Screen".';
+    installStatus.textContent =
+      'On iPhone, tap Share and choose "Add to Home Screen".';
     installStatus.classList.remove("hidden");
     return;
   }
@@ -835,7 +859,8 @@ function renderTurnIndicator() {
     row.className = "turn-row";
     const result = document.createElement("span");
     if (state.winner) {
-      result.textContent = state.winner === state.myColor ? "You win!" : "You lose!";
+      result.textContent =
+        state.winner === state.myColor ? "You win!" : "You lose!";
     } else {
       result.textContent = "Draw!";
     }
@@ -854,7 +879,9 @@ function renderTurnIndicator() {
 
   if (state.opponentStatus) {
     turnIndicator.textContent =
-      state.opponentStatus === "away" ? "Opponent away..." : "Opponent disconnected";
+      state.opponentStatus === "away"
+        ? "Opponent away..."
+        : "Opponent disconnected";
     return;
   }
 
@@ -887,7 +914,11 @@ function loadScore() {
   if (!key) return;
   try {
     const saved = JSON.parse(localStorage.getItem(key));
-    if (saved && typeof saved.me === "number" && typeof saved.opponent === "number") {
+    if (
+      saved &&
+      typeof saved.me === "number" &&
+      typeof saved.opponent === "number"
+    ) {
       state.score = saved;
     }
   } catch (_) {}
@@ -906,9 +937,9 @@ function createScoreEl() {
   el.innerHTML =
     `<span class="score-strip-name">Them</span>` +
     `<span class="score-strip-score">` +
-      `<span class="score-num">${opponent}</span>` +
-      `<span class="score-sep">\u2013</span>` +
-      `<span class="score-num">${me}</span>` +
+    `<span class="score-num">${opponent}</span>` +
+    `<span class="score-sep">\u2013</span>` +
+    `<span class="score-num">${me}</span>` +
     `</span>` +
     `<span class="score-strip-name">You</span>`;
   return el;
@@ -958,7 +989,9 @@ function renderGameArea() {
     if (winLine) {
       const animate = !state.winLineShown;
       state.winLineShown = true;
-      requestAnimationFrame(() => drawWinLine(boardEl, winLine, state.winner, animate));
+      requestAnimationFrame(() =>
+        drawWinLine(boardEl, winLine, state.winner, animate),
+      );
     }
   }
 }
@@ -996,12 +1029,14 @@ function renderInviteLobby() {
 
   const title = document.createElement("h2");
   title.className = "invite-card-title";
-  title.textContent = state.phase === "connecting" ? "Setting up\u2026" : "Play with friend";
+  title.textContent =
+    state.phase === "connecting" ? "Setting up\u2026" : "Play with friend";
   card.appendChild(title);
 
   const howTo = document.createElement("p");
   howTo.className = "invite-card-text";
-  howTo.textContent = "Send this link to your friend. Once they open it, the game will start automatically.";
+  howTo.textContent =
+    "Send this link to your friend. Once they open it, the game will start automatically.";
   card.appendChild(howTo);
 
   const linkBox = document.createElement("div");
@@ -1019,7 +1054,9 @@ function renderInviteLobby() {
     try {
       const copyMethod = await copyInviteLink(inviteLobbyURL());
       state.lobbyShareStatus =
-        copyMethod === "manual" ? "Clipboard unavailable. Copy the link from the dialog." : "Link copied to clipboard.";
+        copyMethod === "manual"
+          ? "Clipboard unavailable. Copy the link from the dialog."
+          : "Link copied to clipboard.";
       render();
     } catch (error) {
       console.error("copy invite link failed", error);
@@ -1034,7 +1071,9 @@ function renderInviteLobby() {
   const waitingText = document.createElement("p");
   waitingText.className = "invite-card-text invite-card-note";
   waitingText.textContent =
-    state.phase === "connecting" ? "Connecting you to the private lobby..." : "Waiting for your friend to join...";
+    state.phase === "connecting"
+      ? "Connecting you to the private lobby..."
+      : "Waiting for your friend to join...";
   card.appendChild(waitingText);
 
   const status = document.createElement("p");
@@ -1087,10 +1126,17 @@ function renderHand(color) {
       const span = document.createElement("span");
       span.className = `piece-glyph piece-${color}`;
       span.innerHTML = PIECE_SVGS[kind];
-      if (state.prev && state.prev.board && wasPieceOnBoard(state.prev.board, color, kind)) {
+      if (
+        state.prev &&
+        state.prev.board &&
+        wasPieceOnBoard(state.prev.board, color, kind)
+      ) {
         span.classList.add("animate-place");
       }
-      if (state.selectedPiece && state.selectedPiece.code === PIECE_CODES[color][kind]) {
+      if (
+        state.selectedPiece &&
+        state.selectedPiece.code === PIECE_CODES[color][kind]
+      ) {
         cell.classList.add("selected");
       }
       cell.appendChild(span);
@@ -1126,14 +1172,25 @@ function renderBoard(flipped) {
   board.className = "board";
 
   let moves = [];
-  if (state.selectedPiece && state.selectedPiece.source === "board" && state.pawnDirections) {
+  if (
+    state.selectedPiece &&
+    state.selectedPiece.source === "board" &&
+    state.pawnDirections
+  ) {
     const pos = findPiecePosition(state.board, state.selectedPiece.code);
     if (pos) {
-      moves = computeMoves(state.board, state.selectedPiece, pos.row, pos.col, state.pawnDirections);
+      moves = computeMoves(
+        state.board,
+        state.selectedPiece,
+        pos.row,
+        pos.col,
+        state.pawnDirections,
+      );
     }
   }
 
-  const handPlacement = state.selectedPiece && state.selectedPiece.source === "hand";
+  const handPlacement =
+    state.selectedPiece && state.selectedPiece.source === "hand";
 
   for (let i = 0; i < 4; i += 1) {
     const engineRow = flipped ? 3 - i : i;
@@ -1248,8 +1305,12 @@ function renderColLabels() {
 function drawWinLine(boardEl, winLine, color, animate = true) {
   const first = winLine[0];
   const last = winLine[winLine.length - 1];
-  const firstCell = boardEl.querySelector(`[data-row="${first.row}"][data-col="${first.col}"]`);
-  const lastCell = boardEl.querySelector(`[data-row="${last.row}"][data-col="${last.col}"]`);
+  const firstCell = boardEl.querySelector(
+    `[data-row="${first.row}"][data-col="${first.col}"]`,
+  );
+  const lastCell = boardEl.querySelector(
+    `[data-row="${last.row}"][data-col="${last.col}"]`,
+  );
   if (!firstCell || !lastCell) {
     return;
   }
@@ -1335,14 +1396,18 @@ function leaveCurrentPage() {
   navigateToHome();
 }
 
-
 function scheduleReconnect() {
   cancelReconnect();
   const base = Math.min(1000 * Math.pow(2, reconnectAttempt), 30000);
   const jitter = Math.random() * base * 0.3;
   const delay = base + jitter;
   reconnectAttempt++;
-  console.debug("reconnect in", Math.round(delay), "ms (attempt", reconnectAttempt + ")");
+  console.debug(
+    "reconnect in",
+    Math.round(delay),
+    "ms (attempt",
+    reconnectAttempt + ")",
+  );
   reconnectTimer = setTimeout(async () => {
     reconnectTimer = null;
     if (state.phase !== "connectionLost") return;
@@ -1392,7 +1457,9 @@ function navigateToNamedLobby(lobbyId) {
 }
 
 function navigateToRoom(roomId) {
-  navigate(`/room/${encodeURIComponent(roomId)}#clientId=${encodeURIComponent(state.token)}`);
+  navigate(
+    `/room/${encodeURIComponent(roomId)}#clientId=${encodeURIComponent(state.token)}`,
+  );
 }
 
 function navigate(path, { replace = false } = {}) {
@@ -1461,7 +1528,10 @@ async function startBotGame() {
 }
 
 function inviteLobbyURL() {
-  return new URL(`/lobby/${encodeURIComponent(state.lobbyId)}`, location.origin).toString();
+  return new URL(
+    `/lobby/${encodeURIComponent(state.lobbyId)}`,
+    location.origin,
+  ).toString();
 }
 
 async function copyInviteLink(inviteURL) {
@@ -1497,7 +1567,9 @@ function reconcileSelectedPiece() {
   if (!state.selectedPiece) return;
 
   const justMovedMyself =
-    state.prev && state.prev.turn === state.myColor && state.turn !== state.myColor;
+    state.prev &&
+    state.prev.turn === state.myColor &&
+    state.turn !== state.myColor;
   if (justMovedMyself || state.status === "over") {
     state.selectedPiece = null;
     return;
@@ -1562,7 +1634,7 @@ function renderEmojiButton() {
 function toggleEmojiPicker(wrapper) {
   const existing = wrapper.querySelector(".emoji-picker");
   if (existing) {
-    existing.remove();
+    existing._remove();
     return;
   }
 
@@ -1581,21 +1653,26 @@ function toggleEmojiPicker(wrapper) {
 
   wrapper.appendChild(picker);
 
-  function dismissOnClickOutside(e) {
-    if (!wrapper.contains(e.target)) {
-      picker.remove();
-      document.removeEventListener("click", dismissOnClickOutside);
-    }
-  }
-  setTimeout(() => document.addEventListener("click", dismissOnClickOutside), 0);
+  picker._remove = () => {
+    picker.remove();
+    document.removeEventListener("click", picker._dismissOnClickOutside);
+    document.removeEventListener("keydown", picker._dismissOnEscape);
+  };
 
-  function dismissOnEscape(e) {
-    if (e.key === "Escape") {
-      picker.remove();
-      document.removeEventListener("keydown", dismissOnEscape);
+  picker._dismissOnClickOutside = (e) => {
+    if (!wrapper.contains(e.target)) {
+      picker._remove();
     }
-  }
-  document.addEventListener("keydown", dismissOnEscape);
+  };
+
+  picker._dismissOnEscape = (e) => {
+    if (e.key === "Escape") {
+      picker._remove();
+    }
+  };
+
+  document.addEventListener("keydown", picker._dismissOnEscape);
+  document.addEventListener("click", picker._dismissOnClickOutside);
 }
 
 function sendReaction(emoji) {
@@ -1607,8 +1684,8 @@ function showEmojiReaction(emoji, fromColor) {
   el.className = "emoji-bubble";
   el.textContent = emoji;
 
-  el.style.left = (10 + Math.random() * 80) + "%";
-  el.style.animationDuration = (2.5 + Math.random() * 1.0) + "s";
+  el.style.left = 10 + Math.random() * 80 + "%";
+  el.style.animationDuration = 2.5 + Math.random() * 1.0 + "s";
 
   document.body.appendChild(el);
 
@@ -1687,21 +1764,33 @@ function slideMoves(board, color, row, col, directions) {
 
 function rookMoves(board, color, row, col) {
   return slideMoves(board, color, row, col, [
-    [0, 1], [0, -1], [-1, 0], [1, 0],
+    [0, 1],
+    [0, -1],
+    [-1, 0],
+    [1, 0],
   ]);
 }
 
 function bishopMoves(board, color, row, col) {
   return slideMoves(board, color, row, col, [
-    [-1, 1], [1, 1], [1, -1], [-1, -1],
+    [-1, 1],
+    [1, 1],
+    [1, -1],
+    [-1, -1],
   ]);
 }
 
 function knightMoves(board, color, row, col) {
   const moves = [];
   const jumps = [
-    [-2, -1], [-2, 1], [2, -1], [2, 1],
-    [-1, -2], [-1, 2], [1, -2], [1, 2],
+    [-2, -1],
+    [-2, 1],
+    [2, -1],
+    [2, 1],
+    [-1, -2],
+    [-1, 2],
+    [1, -2],
+    [1, 2],
   ];
   for (const [dr, dc] of jumps) {
     const result = canMoveTo(board, color, row + dr, col + dc);
@@ -1722,7 +1811,8 @@ function pawnMoves(board, color, row, col, direction) {
 
   for (const dc of [-1, 1]) {
     const captureCol = col + dc;
-    if (forwardRow < 0 || forwardRow > 3 || captureCol < 0 || captureCol > 3) continue;
+    if (forwardRow < 0 || forwardRow > 3 || captureCol < 0 || captureCol > 3)
+      continue;
     const target = board[forwardRow][captureCol];
     if (target && target.color !== color) {
       moves.push({ row: forwardRow, col: captureCol, capture: true });
@@ -1751,11 +1841,22 @@ function findPiecePosition(board, code) {
 
 function computeMoves(board, piece, row, col, pawnDirections) {
   switch (piece.kind) {
-    case "rook":   return rookMoves(board, piece.color, row, col);
-    case "bishop": return bishopMoves(board, piece.color, row, col);
-    case "knight": return knightMoves(board, piece.color, row, col);
-    case "pawn":   return pawnMoves(board, piece.color, row, col, pawnDirection(pawnDirections, piece.color));
-    default:       return [];
+    case "rook":
+      return rookMoves(board, piece.color, row, col);
+    case "bishop":
+      return bishopMoves(board, piece.color, row, col);
+    case "knight":
+      return knightMoves(board, piece.color, row, col);
+    case "pawn":
+      return pawnMoves(
+        board,
+        piece.color,
+        row,
+        col,
+        pawnDirection(pawnDirections, piece.color),
+      );
+    default:
+      return [];
   }
 }
 
@@ -1860,19 +1961,24 @@ async function promptInstall() {
   if (outcome === "accepted") {
     state.installMessage = "App added to your home screen.";
   } else {
-    state.installMessage = "Install dismissed. You can still use the browser menu later.";
+    state.installMessage =
+      "Install dismissed. You can still use the browser menu later.";
   }
 
   render();
 }
 
 function isStandalone() {
-  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true
+  );
 }
 
 function isIOS() {
   const ua = window.navigator.userAgent.toLowerCase();
-  const touchMac = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  const touchMac =
+    navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
   return /iphone|ipad|ipod/.test(ua) || touchMac;
 }
 
